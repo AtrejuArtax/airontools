@@ -123,15 +123,3 @@ def customized_dense(x, input_dim, units, activation, specs, name, i):
             activation=activation))
 
     return x
-
-def plot_loss(losses):
-    plt.figure(figsize=(10, 8))
-    plt.plot(losses, label='loss')
-    plt.legend()
-    plt.show()
-
-
-def make_trainable(net, val):
-    net.trainable = val
-    for l in net.layers:
-        l.trainable = val
