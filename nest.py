@@ -37,9 +37,13 @@ class DeepNet(object):
             specs = space.copy()
             specs.update(model_specs)
             specs.update(experiment_specs)
+            if 'n_layers' in space.keys():
+                n_layers = space['n_layers']
+            else:
+                n_layers = specs['n_layers']
             specs['units'] = [int(units) for units in
                               np.linspace(specs['n_input'], specs['n_output'],
-                                          space['n_layers'] + 1)]
+                                          n_layers + 1)]
             model = customized_net(
                 specs=specs,
                 metrics=metrics,
@@ -179,7 +183,8 @@ class DeepNet(object):
     def get_weights(self):
 
         # Get weights
-        self.__model.get_weights()
+        return self.__model.get_weights()
+
 
     def set_weights(self, weights):
 

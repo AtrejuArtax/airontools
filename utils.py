@@ -101,9 +101,10 @@ def customized_dense(x, input_dim, units, activation, specs, name, i):
             l2=specs['bias_regularizer_l2'])))
 
     # Batch Normalization
-    x.add(BatchNormalization(
-        name=name + '_batch_normalization_' + str(i),
-        input_shape=(input_dim,)))
+    if specs['bn']:
+        x.add(BatchNormalization(
+            name=name + '_batch_normalization_' + str(i),
+            input_shape=(input_dim,)))
 
     # Activation
     if activation == 'leakyrelu':
