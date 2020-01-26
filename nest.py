@@ -17,15 +17,16 @@ class DeepNet(object):
         self.__parallel_models = None
         self.__device = None
 
-    def create(self, specs, metrics=list([])):
+    def create(self, specs, metrics=None):
         specs['units'] = [int(units) for units in
                           np.linspace(specs['n_input'], specs['n_output'], specs['n_layers'] + 1)]
         self.__model = customized_net(
             specs=specs,
-            metrics=metrics)
+            metrics=metrics,
+            net_name='NN')
 
     def explore(self, x_train, y_train, x_val, y_val, space, model_specs, experiment_specs, path, max_evals,
-                print_model=False, tensor_board=False, metrics=list([])):
+                print_model=False, tensor_board=False, metrics=None):
 
         self.__parallel_models = model_specs['parallel_models']
         self.__device = model_specs['device']
@@ -41,7 +42,8 @@ class DeepNet(object):
                                           space['n_layers'] + 1)]
             model = customized_net(
                 specs=specs,
-                metrics=metrics)
+                metrics=metrics,
+                net_name='NN')
 
             # Print model
             if print_model:
@@ -98,9 +100,7 @@ class DeepNet(object):
         # Callbacks
         callbacks_list = []
         if tensor_board:
-            callbacks_list += [callbacks.TensorBoard(
-                log_dir=path + mode + '_logs',
-                batch_size=experiment_specs['batch_size'])]
+            callbacks_list += [callbacks.TensorBoard(log_dir=path + mode + '_logs')]
         callbacks_list += [callbacks.ReduceLROnPlateau(
             monitor='val_loss',
             factor=0.2,
@@ -112,7 +112,7 @@ class DeepNet(object):
             min_delta=0,
             patience=experiment_specs['early_stopping'],
             verbose=0,
-            mode='auto')]
+            mode='min')]
         callbacks_list += [callbacks.ModelCheckpoint(
             filepath=path + 'best_epoch_model_' + mode,
             save_best_only=True,
@@ -128,7 +128,7 @@ class DeepNet(object):
             epochs=experiment_specs['epochs'],
             verbose=0,
             callbacks=callbacks_list,
-            class_weight=experiment_specs['class_weight'],
+            class_weight={output_name: experiment_specs['class_weight'] for output_name in model.output_names},
             shuffle=True)
 
         # Best model
