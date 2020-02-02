@@ -189,6 +189,11 @@ def to_time_series(tensor):
 
 
 def evaluate_clf(cat_encoder, model, x, y):
-    pred = cat_encoder.inverse_transform(model.predict(x))
+    pred = inference(cat_encoder, model, x)
     print("\nReport:")
     print(classification_report(y, pred, digits=4))
+
+
+def inference(cat_encoder, model, x):
+    return cat_encoder.inverse_transform(model.predict(x))
+

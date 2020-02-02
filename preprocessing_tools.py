@@ -98,3 +98,24 @@ def preprocessor(sentence):
     sentence = sentence.translate(sentence.maketrans(string.punctuation, ' ' * len(string.punctuation)))
     sentence = " ".join([w for w in nltk.word_tokenize(sentence) if len(w) > 1])
     return sentence
+
+
+def get_processed_data(files_for, file_names, target_column, skip_columns, features):
+    X, Y, prep, target_prep = {}, {}, None, None
+    for file_name, file_for in zip(file_names, files_for):
+        # Load
+        dataset = pd.read_csv(file_name, sep="\t", encoding="utf-8").sample(frac=1).reset_index(drop=True)
+        X.update({file_for: dataset.loc[:, [header for header in dataset.keys()
+                                            if header not in [target_column] + skip_columns]]})
+        Y.update({file_for: dataset.loc[:, [target_column]]})
+        # Preprocess/Transform
+        if file_for == 'train':
+            prep = PreProcessing(text_features=features['text'], language='english')
+            prep.fit(X[file_for])
+            target_prep = PreProcessing(cat_features=[target_column])
+            target_prep.fit(Y[file_for])
+        X[file_for] = prep.transform(X[file_for])
+        Y['raw_' + file_for] = Y[file_for].copy()
+        Y['raw_' + file_for] = Y[file_for].copy()
+        Y[file_for] = target_prep.transform(Y[file_for])
+    return X, Y, prep, target_prep
