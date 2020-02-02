@@ -32,8 +32,6 @@ class DeepNet(object):
             specs = space.copy()
             specs.update(model_specs)
             specs.update(experiment_specs)
-            if 'n_layers' in space.keys():
-                specs['n_layers'] = space['n_layers']
             model = customized_net(
                 specs=specs,
                 metrics=metrics,

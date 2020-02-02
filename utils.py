@@ -1,6 +1,7 @@
 import tensorflow as tf
 from tensorflow.keras import regularizers
-from tensorflow.keras.layers import LeakyReLU, PReLU, Input, BatchNormalization, Dense, Dropout, Activation, GRU, Lambda
+from tensorflow.keras.layers import LeakyReLU, PReLU, Input, BatchNormalization, Dense, Dropout, Activation, GRU, \
+    Lambda, Bidirectional
 from tensorflow.keras import models
 from tensorflow.python.ops import init_ops
 import tensorflow.keras.backend as K
@@ -55,7 +56,8 @@ def customized_net(specs, net_name='', compile_model=True, metrics=None):
                         specs=specs,
                         name=name,
                         i=i,
-                        return_sequences=True)
+                        return_sequences=True,
+                        bidirectional=specs['bidirectional'])
 
                 # Output Layer
                 i += 1
@@ -89,7 +91,8 @@ def customized_net(specs, net_name='', compile_model=True, metrics=None):
     return model
 
 
-def customized_layer(x, input_dim, units, activation, specs, name, i, dropout=True, return_sequences=False):
+def customized_layer(x, input_dim, units, activation, specs, name, i, dropout=True, return_sequences=False,
+                     bidirectional=False):
 
     # Input shape
     if specs['sequential']:
@@ -106,21 +109,39 @@ def customized_layer(x, input_dim, units, activation, specs, name, i, dropout=Tr
 
     # Recurrent
     if specs['sequential']:
-        x.add(GRU(
-            name=name + '_gru_' + str(i),
-            input_shape=input_shape,
-            units=units,
-            use_bias=True,
-            kernel_initializer=init_ops.random_normal_initializer(),
-            bias_initializer=init_ops.zeros_initializer(),
-            kernel_regularizer=regularizers.l1_l2(
-                l1=specs['kernel_regularizer_l1'],
-                l2=specs['kernel_regularizer_l2']),
-            bias_regularizer=regularizers.l1_l2(
-                l1=specs['bias_regularizer_l1'],
-                l2=specs['bias_regularizer_l2']),
-            return_sequences=return_sequences,
-            activation='linear'))
+        if bidirectional:
+            x.add(Bidirectional(GRU(
+                name=name + '_gru_' + str(i),
+                input_shape=input_shape,
+                units=units,
+                use_bias=True,
+                kernel_initializer=init_ops.random_normal_initializer(),
+                bias_initializer=init_ops.zeros_initializer(),
+                kernel_regularizer=regularizers.l1_l2(
+                    l1=specs['kernel_regularizer_l1'],
+                    l2=specs['kernel_regularizer_l2']),
+                bias_regularizer=regularizers.l1_l2(
+                    l1=specs['bias_regularizer_l1'],
+                    l2=specs['bias_regularizer_l2']),
+                return_sequences=return_sequences,
+                activation='linear'),
+            input_shape=input_shape))
+        else:
+            x.add(GRU(
+                name=name + '_gru_' + str(i),
+                input_shape=input_shape,
+                units=units,
+                use_bias=True,
+                kernel_initializer=init_ops.random_normal_initializer(),
+                bias_initializer=init_ops.zeros_initializer(),
+                kernel_regularizer=regularizers.l1_l2(
+                    l1=specs['kernel_regularizer_l1'],
+                    l2=specs['kernel_regularizer_l2']),
+                bias_regularizer=regularizers.l1_l2(
+                    l1=specs['bias_regularizer_l1'],
+                    l2=specs['bias_regularizer_l2']),
+                return_sequences=return_sequences,
+                activation='linear'))
 
     # Dense
     else:
