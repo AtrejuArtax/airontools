@@ -1,16 +1,22 @@
 import tensorflow as tf
 from tensorflow.keras import regularizers
-from tensorflow.keras.layers import LeakyReLU, PReLU, Input, BatchNormalization,Dense, Dropout, Activation
+from tensorflow.keras.layers import LeakyReLU, PReLU, Input, BatchNormalization, Dense, Dropout, Activation, GRU, Lambda
 from tensorflow.keras import models
 from tensorflow.python.ops import init_ops
+import tensorflow.keras.backend as K
 import numpy as np
-import matplotlib.pyplot as plt
-
-
-__author__ = 'claudi'
+from sklearn.metrics import classification_report
 
 
 def customized_net(specs, net_name='', compile_model=True, metrics=None):
+
+    # Define units per hidden layer
+    if specs['sequential']:
+        n_units = 1
+    else:
+        n_units = specs['n_input']
+    specs['units'] = [specs['n_input']] + [int(units)
+                                           for units in np.linspace(n_units, specs['n_output'], specs['n_layers'])]
 
     inputs = []
     outputs = []
@@ -33,29 +39,35 @@ def customized_net(specs, net_name='', compile_model=True, metrics=None):
                     shape=(specs['units'][0],),
                     name=name + '_input')
 
-                # Dense layers
+                # Hidden layers
                 output = models.Sequential(name=name)
+                if specs['sequential']: # To time series
+                    output.add(Lambda(
+                        to_time_series,
+                        name=name + '_totimeseries'))
                 i = 0
                 for i in range(1, len(specs['units']) - 1):
-                    output = customized_dense(
+                    output = customized_layer(
                         x=output,
                         input_dim=specs['units'][i-1],
                         units=specs['units'][i],
                         activation=specs['hidden_activation'],
                         specs=specs,
                         name=name,
-                        i=i)
+                        i=i,
+                        return_sequences=True)
 
                 # Output Layer
                 i += 1
-                output = customized_dense(
+                output = customized_layer(
                     x=output,
                     input_dim=specs['units'][-2],
                     units=specs['units'][-1],
                     activation=specs['output_activation'],
                     specs=specs,
                     name=name + '_output',
-                    i=i)
+                    i=i,
+                    dropout=False)
 
                 # Inputs and outputs
                 inputs += [x]
@@ -77,49 +89,85 @@ def customized_net(specs, net_name='', compile_model=True, metrics=None):
     return model
 
 
-def customized_dense(x, input_dim, units, activation, specs, name, i):
+def customized_layer(x, input_dim, units, activation, specs, name, i, dropout=True, return_sequences=False):
+
+    # Input shape
+    if specs['sequential']:
+        input_shape = (specs['length'], input_dim,)
+    else:
+        input_shape = (input_dim,)
 
     # Dropout
-    x.add(Dropout(
-        name=name + '_dropout' + '_' + str(i),
-        rate=specs['dropout_rate'],
-        input_shape=(input_dim,)))
+    if dropout:
+        x.add(Dropout(
+            name=name + '_dropout' + '_' + str(i),
+            rate=specs['dropout_rate'],
+            input_shape=input_shape))
+
+    # Recurrent
+    if specs['sequential']:
+        x.add(GRU(
+            name=name + '_gru_' + str(i),
+            input_shape=input_shape,
+            units=units,
+            use_bias=True,
+            kernel_initializer=init_ops.random_normal_initializer(),
+            bias_initializer=init_ops.zeros_initializer(),
+            kernel_regularizer=regularizers.l1_l2(
+                l1=specs['kernel_regularizer_l1'],
+                l2=specs['kernel_regularizer_l2']),
+            bias_regularizer=regularizers.l1_l2(
+                l1=specs['bias_regularizer_l1'],
+                l2=specs['bias_regularizer_l2']),
+            return_sequences=return_sequences,
+            activation='linear'))
 
     # Dense
-    x.add(Dense(
-        name=name + '_dense_' + str(i),
-        input_shape=(input_dim,),
-        units=units,
-        use_bias=True,
-        kernel_initializer=init_ops.random_normal_initializer(),
-        bias_initializer=init_ops.zeros_initializer(),
-        kernel_regularizer=regularizers.l1_l2(
-            l1=specs['kernel_regularizer_l1'],
-            l2=specs['kernel_regularizer_l2']),
-        bias_regularizer=regularizers.l1_l2(
-            l1=specs['bias_regularizer_l1'],
-            l2=specs['bias_regularizer_l2'])))
+    else:
+        x.add(Dense(
+            name=name + '_dense_' + str(i),
+            input_shape=input_shape,
+            units=units,
+            use_bias=True,
+            kernel_initializer=init_ops.random_normal_initializer(),
+            bias_initializer=init_ops.zeros_initializer(),
+            kernel_regularizer=regularizers.l1_l2(
+                l1=specs['kernel_regularizer_l1'],
+                l2=specs['kernel_regularizer_l2']),
+            bias_regularizer=regularizers.l1_l2(
+                l1=specs['bias_regularizer_l1'],
+                l2=specs['bias_regularizer_l2'])))
 
     # Batch Normalization
     if specs['bn']:
         x.add(BatchNormalization(
             name=name + '_batch_normalization_' + str(i),
-            input_shape=(input_dim,)))
+            input_shape=input_shape))
 
     # Activation
     if activation == 'leakyrelu':
         x.add(LeakyReLU(
             name = name + '_' + activation + '_' + str(i),
-            input_shape=(input_dim,),
+            input_shape=input_shape,
             alpha=specs['alpha']))
     if activation == 'prelu':
         x.add(PReLU(
             name = name + '_' + activation + '_' + str(i),
-            input_shape=(input_dim,)))
+            input_shape=input_shape))
     else:
         x.add(Activation(
             name = name + '_' + activation + '_' + str(i),
-            input_shape=(input_dim,),
+            input_shape=input_shape,
             activation=activation))
 
     return x
+
+
+def to_time_series(tensor):
+    return K.expand_dims(tensor, axis=2)
+
+
+def evaluate_clf(cat_encoder, model, x, y):
+    pred = cat_encoder.inverse_transform(model.predict(x))
+    print("\nReport:")
+    print(classification_report(y, pred, digits=4))

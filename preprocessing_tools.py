@@ -2,9 +2,9 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.feature_extraction.text import TfidfVectorizer
-
-
-__author__ = 'claudi'
+import re
+import string
+import nltk
 
 
 class PreProcessing(object):
@@ -14,10 +14,10 @@ class PreProcessing(object):
         self.cat_features = cat_features
         self.text_features = text_features
         self.prep_features = []
-        self.__mean = None
-        self.__std = None
-        self.__cat_encoder = None
-        self.__vectorizer = None
+        self.mean = None
+        self.std = None
+        self.cat_encoder = None
+        self.vectorizer = {}
         self.language = language
 
     def fit(self, x):
@@ -30,7 +30,7 @@ class PreProcessing(object):
                 updated_array = sub_x[:, i][~np.isnan(sub_x[:, i])]
                 mean += [np.mean(updated_array, axis=0)]
                 std += [np.std(updated_array, axis=0)]
-            self.__mean, self.__std = np.array(mean), np.array(std)
+            self.mean, self.std = np.array(mean), np.array(std)
             self.prep_features += self.num_features
 
         # Categorical features: encoder
@@ -39,23 +39,26 @@ class PreProcessing(object):
             sub_x = np.where(sub_x == '0', 'No', sub_x)
             sub_x = np.where(sub_x == '1', 'Yes', sub_x)
             sub_x = np.nan_to_num(sub_x)
-            self.__cat_encoder = OneHotEncoder(handle_unknown='ignore')
-            self.__cat_encoder.fit(sub_x)
+            self.cat_encoder = OneHotEncoder(handle_unknown='ignore')
+            self.cat_encoder.fit(sub_x)
             new_categories = []
-            for array, cat_feature in zip(self.__cat_encoder.categories_, self.cat_features):
+            for array, cat_feature in zip(self.cat_encoder.categories_, self.cat_features):
                 if 'nan' in array:
                     array = array.tolist()
                     array.remove('nan')
                     array = np.array(array)
                 new_categories += [array]
                 self.prep_features += [cat_feature + '_' + category for category in array.tolist()]
-            self.__cat_encoder.categories_ = new_categories
+            self.cat_encoder.categories_ = new_categories
 
         # Text features: vectorizer
         if self.text_features is not None and len(self.text_features) > 0:
-            sub_x = x.loc[:, self.text_features].values
-            self.__vectorizer = TfidfVectorizer(stop_words=self.language, max_features=5000)
-            self.__vectorizer.fit(sub_x)
+            for text_feature in self.text_features:
+                sub_x = x[text_feature]
+                sub_x = sub_x.apply(preprocessor)
+                self.vectorizer.update({text_feature: TfidfVectorizer(stop_words=self.language, max_features=5000)})
+                self.vectorizer[text_feature].fit(sub_x)
+                self.prep_features += [text_feature]
 
     def transform(self, x):
 
@@ -63,20 +66,35 @@ class PreProcessing(object):
 
         # Numerical features
         if self.num_features is not None and len(self.num_features) > 0:
-            x_arrays += [np.nan_to_num(x.loc[:, self.num_features].values)]
-            x_arrays[-1] = (x_arrays[-1] - self.__mean) / self.__std
+            sub_x = x.loc[:, self.num_features]
+            x_arrays += [np.nan_to_num(sub_x.values)]
+            x_arrays[-1] = (x_arrays[-1] - self.mean) / self.std
 
         # Categorical features
         if self.cat_features is not None and len(self.cat_features) > 0:
-            x_arrays += [x.loc[:, self.cat_features].values.astype(str)]
+            sub_x = x.loc[:, self.cat_features]
+            x_arrays += [sub_x.values.astype(str)]
             x_arrays[-1] = np.where(x_arrays[-1] == '0', 'No', x_arrays[-1])
             x_arrays[-1] = np.where(x_arrays[-1] == '1', 'Yes', x_arrays[-1])
             x_arrays[-1] = np.nan_to_num(x_arrays[-1])
-            x_arrays[-1] = self.__cat_encoder.transform(x_arrays[-1]).toarray()
+            x_arrays[-1] = self.cat_encoder.transform(x_arrays[-1]).toarray()
 
         # Text features
         if self.text_features is not None and len(self.text_features) > 0:
-            x_arrays += [x.loc[:, self.text_features].values.astype(str)]
-            x_arrays[-1] = self.__vectorizer.transform(x_arrays[-1])
+            for text_feature in self.text_features:
+                sub_x = x[text_feature]
+                sub_x = sub_x.apply(preprocessor)
+                x_arrays += [self.vectorizer[text_feature].transform(sub_x)]
+        if len(x_arrays) == 1:
+            x_arrays = x_arrays[0]
+        else:
+            x_arrays = np.concatenate(tuple(x_arrays), axis=1)
+        return x_arrays
 
-        return pd.DataFrame(data=np.concatenate(tuple(x_arrays), axis=1), columns=self.prep_features)
+
+def preprocessor(sentence):
+    sentence = sentence.strip().lower()
+    sentence = re.sub(r"\d+", "", sentence)
+    sentence = sentence.translate(sentence.maketrans(string.punctuation, ' ' * len(string.punctuation)))
+    sentence = " ".join([w for w in nltk.word_tokenize(sentence) if len(w) > 1])
+    return sentence

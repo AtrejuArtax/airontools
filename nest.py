@@ -6,9 +6,6 @@ from tensorflow.keras import callbacks
 from tensorflow.keras import models
 
 
-__author__ = 'claudi'
-
-
 class DeepNet(object):
 
     def __init__(self):
@@ -18,8 +15,6 @@ class DeepNet(object):
         self.__device = None
 
     def create(self, specs, metrics=None):
-        specs['units'] = [int(units) for units in
-                          np.linspace(specs['n_input'], specs['n_output'], specs['n_layers'] + 1)]
         self.__model = customized_net(
             specs=specs,
             metrics=metrics,
@@ -38,12 +33,7 @@ class DeepNet(object):
             specs.update(model_specs)
             specs.update(experiment_specs)
             if 'n_layers' in space.keys():
-                n_layers = space['n_layers']
-            else:
-                n_layers = specs['n_layers']
-            specs['units'] = [int(units) for units in
-                              np.linspace(specs['n_input'], specs['n_output'],
-                                          n_layers + 1)]
+                specs['n_layers'] = space['n_layers']
             model = customized_net(
                 specs=specs,
                 metrics=metrics,
