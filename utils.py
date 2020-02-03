@@ -15,9 +15,10 @@ def customized_net(specs, net_name='', compile_model=True, metrics=None):
     if specs['sequential']:
         n_units = 1
     else:
-        n_units = specs['n_input']
-    specs['units'] = [specs['n_input']] + [int(units)
-                                           for units in np.linspace(n_units, specs['n_output'], specs['n_layers'])]
+        n_units = specs['n_input'] if not 'compression' in specs.keys() \
+            else int(specs['n_input'] * (1 - specs['compression']) + 1)
+    specs['units'] = [specs['n_input']] \
+                     + [int(units) for units in np.linspace(n_units, specs['n_output'], specs['n_layers'] + 1)][1:]
 
     inputs = []
     outputs = []
@@ -57,7 +58,7 @@ def customized_net(specs, net_name='', compile_model=True, metrics=None):
                         name=name,
                         i=i,
                         return_sequences=True,
-                        bidirectional=specs['bidirectional'])
+                        bidirectional=specs['bidirectional'] if specs['sequential'] else False)
 
                 # Output Layer
                 i += 1
@@ -195,5 +196,10 @@ def evaluate_clf(cat_encoder, model, x, y):
 
 
 def inference(cat_encoder, model, x):
-    return cat_encoder.inverse_transform(model.predict(x))
+    inf = model.predict(x)
+    if isinstance(inf, list):
+        inf = [sub_inf.reshape(sub_inf.shape + tuple([1])) for sub_inf in inf]
+        inf = np.concatenate(tuple(inf), axis=-1)
+        inf = np.mean(inf, axis=-1)
+    return cat_encoder.inverse_transform(inf)
 

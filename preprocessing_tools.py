@@ -100,11 +100,13 @@ def preprocessor(sentence):
     return sentence
 
 
-def get_processed_data(files_for, file_names, target_column, skip_columns, features):
+def get_processed_data(files_for, file_names, target_column, skip_columns, features, mult=1):
     X, Y, prep, target_prep = {}, {}, None, None
     for file_name, file_for in zip(file_names, files_for):
         # Load
-        dataset = pd.read_csv(file_name, sep="\t", encoding="utf-8").sample(frac=1).reset_index(drop=True)
+        dataset = pd.read_csv(file_name, sep="\t", encoding="utf-8").reset_index(drop=True)
+        n = dataset.shape[0] if file_for != 'train' and mult != 1 else dataset.shape[0] - dataset.shape[0] % mult
+        dataset = dataset.sample(n=n)
         X.update({file_for: dataset.loc[:, [header for header in dataset.keys()
                                             if header not in [target_column] + skip_columns]]})
         Y.update({file_for: dataset.loc[:, [target_column]]})
