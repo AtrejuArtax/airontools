@@ -13,13 +13,15 @@ def customized_net(specs, net_name='', compile_model=True, metrics=None):
 
     # Define units per hidden layer
     if specs['sequential']:
-        n_units = 1
+        input_shape = (specs['units'][0], specs['length'],)
     else:
-        n_units = specs['n_input'] if not 'compression' in specs.keys() \
-            else int(specs['n_input'] * (1 - specs['compression']) + 1)
+        input_shape = (specs['units'][0],)
+    n_units = specs['n_input'] if not 'compression' in specs.keys() \
+        else int(specs['n_input'] * (1 - specs['compression']) + 1)
     specs['units'] = [specs['n_input']] \
                      + [int(units) for units in np.linspace(n_units, specs['n_output'], specs['n_layers'] + 1)][1:]
 
+    # Make the ensemble of models
     inputs = []
     outputs = []
     for device in specs['device']:
@@ -38,15 +40,11 @@ def customized_net(specs, net_name='', compile_model=True, metrics=None):
 
                 # Input layer
                 x = Input(
-                    shape=(specs['units'][0],),
+                    shape=input_shape,
                     name=name + '_input')
 
                 # Hidden layers
                 output = models.Sequential(name=name)
-                if specs['sequential']: # To time series
-                    output.add(Lambda(
-                        to_time_series,
-                        name=name + '_totimeseries'))
                 i = 0
                 for i in range(1, len(specs['units']) - 1):
                     output = customized_layer(

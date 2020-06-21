@@ -1,5 +1,5 @@
 import numpy as np
-from utils import customized_net
+from cave.utils import customized_net
 from hyperopt import Trials, STATUS_OK
 import hyperopt
 from tensorflow.keras import callbacks
