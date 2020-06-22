@@ -52,7 +52,12 @@ def to_prep_samples_targets(drivers_file_name, requests_file_name, length, targe
         # Select target and requests based on time delay with respect the driver
         target = requests[requests['created_at'] >= driver['timestamp'] + target_delay]
         target.index = np.arange(0, target.shape[0])
-        target = get_closest_latlon(reference=driver, candidates=target.loc[0:100, requests.columns])
+        closest, closest_i = get_closest_latlon(
+            reference=driver.tolist()[1:3],
+            candidates=target.loc[0:100, ['latitude', 'longitude']].values.tolist())
+        target = pd.DataFrame(
+            data=[closest + target.loc[closest_i, ['created_at']].values.tolist()],
+            columns=target.columns)
         requests_ = requests[requests['created_at'] <= driver['timestamp']]
         requests_ = requests_.sort_values('created_at', ascending=False)
         requests_.index = np.arange(0, requests_.shape[0])
@@ -91,16 +96,17 @@ def get_closest_latlon(reference, candidates):
             candidates (list): Candidates.
 
         Returns:
-            A list.
+            A list and an integer.
     """
-    closest = []
+    closest, closest_i = 2 * [None]
     closest_distance = np.inf
-    for candidate in candidates:
+    for candidate, i in zip(candidates, np.arange(0, len(candidates))):
         distance = distance_f(here=reference, there=candidate)
         if distance < closest_distance:
             closest_distance = distance
             closest = candidate
-    return closest
+            closest_i = i
+    return closest, closest_i
 
 
 def distance_f(here, there):
