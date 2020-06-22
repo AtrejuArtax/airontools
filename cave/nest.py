@@ -87,29 +87,31 @@ class DeepNet(object):
 
         self.__model = optimize()
 
-    def __train(self, x_train, y_train, x_val, y_val, model, experiment_specs, mode, path, tensor_board=False):
+    def __train(self, x_train, y_train, x_val, y_val, model, experiment_specs, mode, path, tensor_board=False,
+                use_callbacks=True):
 
         # Callbacks
         callbacks_list = []
-        if tensor_board:
-            callbacks_list += [callbacks.TensorBoard(log_dir=path + mode + '_logs')]
-        callbacks_list += [callbacks.ReduceLROnPlateau(
-            monitor='val_loss',
-            factor=0.2,
-            patience=0,
-            min_lr=0.000000001,
-            verbose=0)]
-        callbacks_list += [callbacks.EarlyStopping(
-            monitor='val_loss',
-            min_delta=0,
-            patience=experiment_specs['early_stopping'],
-            verbose=0,
-            mode='min')]
-        callbacks_list += [callbacks.ModelCheckpoint(
-            filepath=path + 'best_epoch_model_' + mode,
-            save_best_only=True,
-            save_weights_only=True,
-            verbose=0)]
+        if use_callbacks:
+            if tensor_board:
+                callbacks_list += [callbacks.TensorBoard(log_dir=path + mode + '_logs')]
+            callbacks_list += [callbacks.ReduceLROnPlateau(
+                monitor='val_loss',
+                factor=0.2,
+                patience=0,
+                min_lr=0.000000001,
+                verbose=0)]
+            callbacks_list += [callbacks.EarlyStopping(
+                monitor='val_loss',
+                min_delta=0,
+                patience=experiment_specs['early_stopping'],
+                verbose=0,
+                mode='min')]
+            callbacks_list += [callbacks.ModelCheckpoint(
+                filepath=path + 'best_epoch_model_' + mode,
+                save_best_only=True,
+                save_weights_only=True,
+                verbose=0)]
 
         # Train model
         model.fit(
@@ -124,7 +126,8 @@ class DeepNet(object):
             shuffle=True)
 
         # Best model
-        model.load_weights(filepath=path + 'best_epoch_model_' + mode)
+        if use_callbacks:
+            model.load_weights(filepath=path + 'best_epoch_model_' + mode)
 
         return model
 
@@ -142,9 +145,9 @@ class DeepNet(object):
             path=path,
             tensor_board=tensor_board)
 
-    def predict(self, x_pred):
+    def inference(self, x_pred):
 
-        # Predict
+        # Inference
         predictions = self.__model.predict(x_pred)
 
         return predictions
@@ -152,9 +155,7 @@ class DeepNet(object):
     def evaluate(self, x, y):
 
         # Predict
-        eval = self.__model.evaluate(
-            x=x,
-            y=y)
+        eval = self.__model.evaluate(x=x, y=y)
 
         return eval
 
