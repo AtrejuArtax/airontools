@@ -5,7 +5,7 @@ import random
 import math
 
 
-def to_prep_samples_targets(drivers_file_name, requests_file_name, length, target_delay, start_end_dates, n_samples):
+def to_prep_samples_targets(drivers_file_name, requests_file_name, length, target_delay, start_end_dates, max_n_samples):
     """From dataframes to a list of preprocessed samples.
 
         Parameters:
@@ -14,26 +14,32 @@ def to_prep_samples_targets(drivers_file_name, requests_file_name, length, targe
             length (int): Length of the samples.
             target_delay (timedelta): Delay between target request and driver suggestion.
             start_end_dates (list): Start end dates to to filter.
-            n_samples (int): Number of samples.
+            min_max_latitudes (list): Minimum and ma.
+            start_end_dates (list): Start end dates to to filter.
+            max_n_samples (int): Maximum number of samples.
 
         Returns:
-            A list.
+            2 pd.DataFrame.
     """
 
     # Load datasets
     datasets = []
     for file_name, data_type in zip([drivers_file_name, requests_file_name], ['drivers', 'requests']):
         def valid(chunks):
+            count = 0
             for chunk in chunks:
+                if count >= max_n_samples * length:
+                    break
                 for key, values in conds.items():
                     if values['type'] == 'date':
                         chunk[key] = pd.to_datetime(chunk[key]).dt.tz_localize(None)
                     chunk = chunk.loc[chunk[key] >= values['cond'][0]]
                     chunk = chunk.loc[chunk[key] <= values['cond'][1]]
+                count += chunk.shape[0]
                 yield chunk
         date_name = 'timestamp' if data_type == 'drivers' else 'created_at'
         conds = {date_name: {'type': 'date', 'cond': start_end_dates}}
-        n_chunks = 10 ** 5
+        n_chunks = 10 ** 3
         chunks = pd.read_csv(file_name, chunksize=n_chunks)
         datasets += [pd.concat(valid(chunks=chunks))]
     drivers, requests = datasets
@@ -49,41 +55,55 @@ def to_prep_samples_targets(drivers_file_name, requests_file_name, length, targe
     samples, targets = [], []
     for _, driver in drivers.iterrows():
 
-        # Select target and requests based on time delay with respect the driver
-        target = requests[requests['created_at'] >= driver['timestamp'] + target_delay]
-        target.index = np.arange(0, target.shape[0])
-        closest, closest_i = get_closest_latlon(
-            reference=driver.tolist()[1:3],
-            candidates=target.loc[0:100, ['latitude', 'longitude']].values.tolist())
-        target = pd.DataFrame(
-            data=[closest + target.loc[closest_i, ['created_at']].values.tolist()],
-            columns=target.columns)
-        requests_ = requests[requests['created_at'] <= driver['timestamp']]
-        requests_ = requests_.sort_values('created_at', ascending=False)
-        requests_.index = np.arange(0, requests_.shape[0])
-        requests_ = requests_.loc[:length, requests_.columns]
+        # Select target based on time delay with respect the driver
+        targets_ = requests[requests['created_at'] >= driver['timestamp'] + target_delay]
 
-        # Create the preprocessed sample
-        if requests_.shape[0] >= length:
+        # Continue in case you found a target
+        if len(targets_) > 0:
 
-            # Mean and standard deviation from the requests since they define where things happen
-            mean = requests_[:, ['latitude', 'longitude']].mean(axis=0).values.tolist()
-            std = requests_[:, ['latitude', 'longitude']].std(axis=0).values.tolist()
+            # Adjust target and select requests based on time delay with respect the driver
+            targets_.index = np.arange(0, len(targets_))
+            closest, closest_i = get_closest_latlon(
+                reference=driver[['lat', 'lon']].tolist(),
+                candidates=targets_.loc[0:100, ['latitude', 'longitude']].values.tolist())
+            target = pd.Series(
+                data=closest + targets_.loc[closest_i, ['created_at']].values.tolist(),
+                index=targets_.columns)
+            requests_ = requests[requests['created_at'] <= driver['timestamp']]
+            requests_ = requests_.sort_values('created_at', ascending=False)
 
-            # Preprocess (standardize) driver request's data given mean and std
-            prep_driver = driver.copy()
-            prep_driver[:, ['latitude', 'longitude']] = (driver[:, ['lat', 'lon']] - mean) / std
-            prep_requests = requests_.copy()
-            prep_requests[:, ['latitude', 'longitude']] = (requests_[:, ['latitude', 'longitude']] - mean) / std
-            prep_target = target.copy()
-            prep_requests[:, ['latitude', 'longitude']] = (target[:, ['latitude', 'longitude']] - mean) / std
-            samples += [prep_driver.tolist(), prep_requests.values.tolist()]
-            targets += prep_target.tolist()
+            # Create the preprocessed sample
+            if len(requests_) >= length:
 
-    if n_samples < len(targets):
-        random_inds = random.sample(list(np.arange(0, len(targets))), n_samples)
+                # Adjustments of requests_
+                requests_.index = np.arange(0, len(requests_))
+                requests_ = requests_.loc[:length - 1, requests_.columns]
+
+                # Mean and standard deviation from the requests since they define where things happen
+                mean = requests_.loc[:, ['latitude', 'longitude']].mean(axis=0).values.tolist()
+                std = requests_.loc[:, ['latitude', 'longitude']].std(axis=0).values.tolist()
+
+                # Preprocess (standardize) driver request's data given mean and std
+                prep_driver = driver.copy()
+                prep_driver[['lat', 'lon']] = (driver[['lat', 'lon']] - mean) / std
+                prep_requests = requests_.copy()
+                prep_requests.loc[:, ['latitude', 'longitude']] =\
+                    (requests_.loc[:, ['latitude', 'longitude']] - mean) / std
+                prep_target = target.copy()
+                prep_target[['latitude', 'longitude']] = (prep_target[['latitude', 'longitude']] - mean) / std
+                samples += [[[prep_driver['id_driver']],
+                             prep_driver[['lat', 'lon']].tolist(),
+                             prep_requests.loc[:, ['latitude', 'longitude']].values.tolist()]]
+                targets += [[prep_target[['latitude', 'longitude']].tolist()]]
+
+    if max_n_samples < len(targets):
+        random_inds = random.sample(list(np.arange(0, len(targets))), max_n_samples)
+        random_inds.sort()
         samples = [samples[i] for i in random_inds]
         targets = [targets[i] for i in random_inds]
+
+    samples = pd.DataFrame(data=samples, columns=['id_driver', 'driver_features', 'requests_features'])
+    targets = pd.DataFrame(data=targets, columns=['driver_target'])
 
     return samples, targets
 
