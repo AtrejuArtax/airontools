@@ -4,6 +4,7 @@ from hyperopt import Trials, STATUS_OK
 import hyperopt
 from tensorflow.keras import callbacks
 from tensorflow.keras import models
+import pickle
 
 
 class DeepNet(object):
@@ -58,10 +59,10 @@ class DeepNet(object):
                 tensor_board=tensor_board)
 
             # Train and validation losses
-            val_loss = model.evaluate(
-                    x=x_val,
-                    y=y_val)[0]\
-                       / self.__parallel_models * len(self.__device)
+            val_loss = model.evaluate(x=x_val, y=y_val)
+            if isinstance(val_loss, list):
+                val_loss = sum(val_loss)
+            val_loss /= self.__parallel_models * len(self.__device)
 
             print('\n')
             print('Validation Loss:', val_loss)
@@ -80,6 +81,8 @@ class DeepNet(object):
                 verbose=1)
             lowest_loss_ind = np.argmin(trials.losses())
             best_model = trials.trials[lowest_loss_ind]['result']['model']
+            with open(path + 'trials.hyperopt', 'wb') as f:
+                pickle.dump(trials, f)
 
             print('best hyperparameters: ' + str(best_param))
 
@@ -114,6 +117,8 @@ class DeepNet(object):
                 verbose=0)]
 
         # Train model
+        class_weight = None if 'class_weight' not in experiment_specs.keys() \
+            else {output_name: experiment_specs['class_weight'] for output_name in model.output_names}
         model.fit(
             x=x_train,
             y=y_train,
@@ -122,7 +127,7 @@ class DeepNet(object):
             epochs=experiment_specs['epochs'],
             verbose=0,
             callbacks=callbacks_list,
-            class_weight={output_name: experiment_specs['class_weight'] for output_name in model.output_names},
+            class_weight=class_weight,
             shuffle=True)
 
         # Best model
