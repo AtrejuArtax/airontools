@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow.keras import regularizers
 from tensorflow.keras.layers import LeakyReLU, PReLU, Input, BatchNormalization, Dense, Dropout, Activation, GRU, \
-    Lambda, Bidirectional
+    Lambda, Bidirectional, Concatenate
 from tensorflow.keras import models
 from tensorflow.python.ops import init_ops
 import tensorflow.keras.backend as K
@@ -12,14 +12,13 @@ from sklearn.metrics import classification_report
 def customized_net(specs, net_name='', compile_model=True, metrics=None):
 
     # Define units per hidden layer
-    if specs['sequential']:
-        input_shape = (specs['units'][0], specs['length'],)
-    else:
-        input_shape = (specs['units'][0],)
-    n_units = specs['n_input'] if not 'compression' in specs.keys() \
-        else int(specs['n_input'] * (1 - specs['compression']) + 1)
-    specs['units'] = [specs['n_input']] \
-                     + [int(units) for units in np.linspace(n_units, specs['n_output'], specs['n_layers'] + 1)][1:]
+    input_dim = sum([input_specs['dim'] for _, input_specs in specs['input_specs'].items()])
+    output_dim = sum([input_specs['dim'] for _, input_specs in specs['output_specs'].items()])
+    n_units = input_dim if not 'compression' in specs.keys() \
+        else int(input_dim * (1 - specs['compression']) + 1)
+    n_units = n_units if n_units >= output_dim else output_dim
+    specs['units'] = [input_dim] \
+                     + [int(units) for units in np.linspace(n_units, output_dim, specs['n_layers'] + 2)][1:]
 
     # Make the ensemble of models
     inputs = []
@@ -35,44 +34,64 @@ def customized_net(specs, net_name='', compile_model=True, metrics=None):
             # Parallel models per device
             for parallel_model in np.arange(0, specs['parallel_models']):
 
+                # Initializations of blocks
+                input_blocks, output_blocks = [], []
+
                 # Name
                 name = device_name + '_' + net_name + '_' + str(parallel_model)
 
-                # Input layer
-                x = Input(
-                    shape=input_shape,
-                    name=name + '_input')
+                # Input Block
+                i = None
+                for input_name, input_specs in specs['input_specs'].items():
+                    i_block_name = name + '_' + input_name
+                    if input_specs['sequential']:
+                        input_shape = (input_specs['length'], input_specs['dim'],)
+                    else:
+                        input_shape = (input_specs['dim'],)
+                    x = Input(
+                        shape=input_shape,
+                        name=i_block_name + '_input')
+                    inputs += [x]
 
-                # Hidden layers
-                output = models.Sequential(name=name)
-                i = 0
-                for i in range(1, len(specs['units']) - 1):
-                    output = customized_layer(
-                        x=output,
-                        input_dim=specs['units'][i-1],
-                        units=specs['units'][i],
-                        activation=specs['hidden_activation'],
-                        specs=specs,
-                        name=name,
-                        i=i,
-                        return_sequences=True,
-                        bidirectional=specs['bidirectional'] if specs['sequential'] else False)
+                    # Hidden layers
+                    input_block = models.Sequential(name=i_block_name)
+                    for i in range(1, len(specs['units']) - 1):
+                        return_sequences = True if i != len(specs['units']) - 2 else False
+                        input_block = customized_layer(
+                            x=input_block,
+                            input_dim=input_specs['dim'] if i == 1 else specs['units'][i-1],
+                            units=specs['units'][i],
+                            activation=specs['hidden_activation'],
+                            specs=specs,
+                            name=i_block_name,
+                            i=i,
+                            sequential=input_specs['sequential'],
+                            length=None if not input_specs['sequential'] else input_specs['length'],
+                            return_sequences=return_sequences,
+                            bidirectional=specs['bidirectional'] if input_specs['sequential'] else False)
+                    input_blocks += [input_block(x)]
 
-                # Output Layer
+                # Concat input blocks
+                if len(input_blocks) > 1:
+                    conc_input_blocks = Concatenate(name=i_block_name + '_conc', axis=-1)(input_blocks)
+                else:
+                    conc_input_blocks = input_blocks[0]
+
+                # Output Blocks
                 i += 1
-                output = customized_layer(
-                    x=output,
-                    input_dim=specs['units'][-2],
-                    units=specs['units'][-1],
-                    activation=specs['output_activation'],
-                    specs=specs,
-                    name=name + '_output',
-                    i=i,
-                    dropout=False)
-
-                # Inputs and outputs
-                inputs += [x]
-                outputs += [output(x)]
+                for output_name, output_specs in specs['output_specs'].items():
+                    o_block_name = name + '_' + output_name
+                    output_block = models.Sequential(name=o_block_name)
+                    output_block = customized_layer(
+                        x=output_block,
+                        input_dim=K.int_shape(conc_input_blocks)[-1],
+                        units=specs['units'][-1],
+                        activation=specs['output_activation'],
+                        specs=specs,
+                        name=o_block_name + '_output',
+                        i=i,
+                        dropout=False)
+                    outputs += [output_block(conc_input_blocks)]
 
     # Define model and compile
     model = models.Model(
@@ -91,11 +110,11 @@ def customized_net(specs, net_name='', compile_model=True, metrics=None):
 
 
 def customized_layer(x, input_dim, units, activation, specs, name, i, dropout=True, return_sequences=False,
-                     bidirectional=False):
+                     sequential=False, length=None, bidirectional=False):
 
     # Input shape
-    if specs['sequential']:
-        input_shape = (specs['length'], input_dim,)
+    if sequential:
+        input_shape = (length, input_dim,)
     else:
         input_shape = (input_dim,)
 
@@ -107,7 +126,7 @@ def customized_layer(x, input_dim, units, activation, specs, name, i, dropout=Tr
             input_shape=input_shape))
 
     # Recurrent
-    if specs['sequential']:
+    if sequential:
         if bidirectional:
             x.add(Bidirectional(GRU(
                 name=name + '_gru_' + str(i),
