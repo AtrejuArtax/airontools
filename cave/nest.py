@@ -26,6 +26,7 @@ class DeepNet(object):
 
         self.__parallel_models = model_specs['parallel_models']
         self.__device = model_specs['device']
+        trials = Trials()
 
         def objective(space):
 
@@ -67,11 +68,17 @@ class DeepNet(object):
             print('\n')
             print('Validation Loss:', val_loss)
 
+            # Save trials
+            try:
+                with open(path + 'trials.hyperopt', 'wb') as f:
+                    pickle.dump(trials, f)
+            except:
+                print('could not save trials, perhaps it is running on Windows')
+
             return {'loss': val_loss, 'status': STATUS_OK, 'model': model}
 
         def optimize():
 
-            trials = Trials()
             best_param = hyperopt.fmin(
                 objective,
                 space=space,
@@ -81,8 +88,6 @@ class DeepNet(object):
                 verbose=1)
             lowest_loss_ind = np.argmin(trials.losses())
             best_model = trials.trials[lowest_loss_ind]['result']['model']
-            with open(path + 'trials.hyperopt', 'wb') as f:
-                pickle.dump(trials, f)
 
             print('best hyperparameters: ' + str(best_param))
 
