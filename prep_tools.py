@@ -4,39 +4,50 @@ from datetime import timedelta, datetime
 import random
 import math
 import itertools
+from sklearn.model_selection import KFold
 
 
-def to_prep_samples_targets(drivers_file_name, requests_file_name, length, target_delay, start_end_dates,
-                            min_max_latitude, min_max_longitude, max_n_samples=None, return_stats=False):
-    """From dataframes to a list of preprocessed samples.
+def to_prep_samples_targets(length, target_delay, start_end_dates, min_max_latitude, min_max_longitude,
+                            requests_file_name, drivers_file_name=None, drivers=None, max_n_samples=None,
+                            return_stats=False, sample_frac=None):
+    """From raw to processed data.
 
         Parameters:
-            drivers_file_name (str): Drivers file name.
-            requests_file_name (str): Requests file name.
             length (int): Length of the samples.
             target_delay (timedelta): Delay between target request and driver suggestion.
             start_end_dates (list): Start end dates to to filter.
             min_max_longitudes (list): Minimum and maximum longitudes.
             min_max_latitudes (list): Minimum and maximum latitudes.
             start_end_dates (list): Start end dates to to filter.
+            requests_file_name (str): Requests file name.
+            drivers_file_name (str): Drivers file name.
+            drivers (pd.DataFrame): Drivers data.
             max_n_samples (int): Maximum number of samples.
             return_stats (bool): Whether to return stats or not.
+            sample_frac (float): Sample fraction of the data.
 
         Returns:
             2 pd.DataFrame.
     """
+
+    assert(not all([element is None for element in [drivers, drivers_file_name]]))
 
     drivers_features, drivers_date_name = ['lon', 'lat'], 'timestamp'
     requests_features, requests_date_name = ['longitude', 'latitude'], 'created_at'
     reference_lonlat = [sum(min_max_longitude) / 2, sum(min_max_latitude) / 2]
 
     # Load datasets
+    file_names, feature_names = [requests_file_name], [requests_features + [requests_date_name]]
+    if drivers_file_name is not None:
+        file_names += [drivers_file_name]
+        feature_names += [drivers_features + [drivers_date_name]]
     datasets = []
-    selected_
-    for file_name, feature_info in zip([drivers_file_name, requests_file_name], [drivers_date_name, requests_date_name]):
-        def valid(chunks):
+    for file_name, feat_names in zip(file_names, feature_names):
+        def valid(chunks_):
             count = 0
-            for chunk in chunks:
+            for chunk in chunks_:
+                if sample_frac is not None:
+                    chunk = chunk.sample(frac=sample_frac)
                 if max_n_samples is not None and count >= max_n_samples * length:
                     break
                 for key, values in conds.items():
@@ -46,13 +57,15 @@ def to_prep_samples_targets(drivers_file_name, requests_file_name, length, targe
                     chunk = chunk.loc[chunk[key] <= values['cond'][1]]
                 count += chunk.shape[0]
                 yield chunk
-        conds = {}
-        for feature_name, feature_type, min_max in feature_info[0]:
-            conds.update({feature_name: {'type': 'date', 'cond': start_end_dates}})
-        n_chunks = 10 ** 3
-        chunks = pd.read_csv(file_name, chunksize=n_chunks)
-        datasets += [pd.concat(valid(chunks=chunks))]
-    drivers, requests = datasets
+        conds = {feat_names[2]: {'type': 'date', 'cond': start_end_dates},
+                 feat_names[0]: {'type': 'num', 'cond': min_max_longitude},
+                 feat_names[1]: {'type': 'num', 'cond': min_max_latitude}}
+        chunksize = 10 ** 6
+        chunks = pd.read_csv(file_name, chunksize=chunksize)
+        datasets += [pd.concat(valid(chunks_=chunks))]
+    requests = datasets[0]
+    if drivers_file_name is not None:
+        drivers = datasets[1]
 
     # Sort input datasets based on time
     drivers[drivers_date_name] = pd.to_datetime(drivers[drivers_date_name])
@@ -78,7 +91,7 @@ def to_prep_samples_targets(drivers_file_name, requests_file_name, length, targe
                 candidates=targets_.loc[0:100, requests_features].values.tolist())
             target = pd.Series(
                 data=closest + targets_.loc[closest_i, [requests_date_name]].values.tolist(),
-                index=targets_.columns)
+                index=requests_features + [requests_date_name])
             requests_ = requests[requests[requests_date_name] <= driver[drivers_date_name]]
             requests_ = requests_.sort_values(requests_date_name, ascending=False)
 
@@ -155,10 +168,10 @@ def to_prep_samples_targets(drivers_file_name, requests_file_name, length, targe
         means = pd.DataFrame(data=means, columns=['means'])
         stds = pd.DataFrame(data=stds, columns=['stds'])
 
-    returns = [samples, targets]
     if return_stats:
-        returns += [means, stds, requests_features_]
-    return returns
+        return samples, targets, [means, stds, requests_features_]
+    else:
+        return samples, targets
 
 
 def get_closest_latlon(reference, candidates):
@@ -224,3 +237,70 @@ def time_to_trigonometric(date, trigo_type):
         return np.sin(radians)
     elif trigo_type == 'cosine':
         return np.cos(radians)
+
+
+def dataframe_to_list(dataset, targets, n_parallel_models, data_specs, do_kfolds=False, val_ratio=0.2):
+    """From dataframes to list of numpys.
+
+        Parameters:
+            dataset (pd.DataFrame): Dataset.
+            targets (pd.DataFrame): Targets.
+            n_parallel_models (int): Number of parallel models.
+            data_specs (dict): Dataset specifications.
+            do_kfolds (bool): Whether to do kfolds for cross-validation or not.
+            val_ratio (float): Ratio for validation.
+
+        Returns:
+            4 lists.
+    """
+    x_train, x_val, y_train, y_val = [], [], [], []
+    if do_kfolds and not n_parallel_models == 1:
+        kf = KFold(n_splits=n_parallel_models)
+        train_val_inds = [[train_inds, val_inds] for train_inds, val_inds in kf.split(range(dataset.shape[0]))]
+    else:
+        inds = np.arange(0, dataset.shape[0])
+        line = int(len(inds) * (1 - val_ratio))
+        train_val_inds = [[inds[0:line], inds[line:]] for _ in np.arange(0, n_parallel_models)]
+    for train_inds, val_inds in train_val_inds:
+        for input_name, input_specs in data_specs['input_specs'].items():
+            if input_specs['sequential']:
+                dim = input_specs['dim']
+                x_train += [np.vstack(
+                    [np.array(dataset.loc[train_inds, [input_name]].values[i][0]).reshape(
+                        (1, input_specs['length'], dim)) for i in np.arange(0, len(train_inds))])]
+                if val_ratio > 0:
+                    x_val += [np.vstack(
+                        [np.array(dataset.loc[val_inds, [input_name]].values[i][0]).reshape(
+                            (1, input_specs['length'], dim)) for i in np.arange(0, len(val_inds))])]
+            else:
+                x_train += [np.vstack([dataset.loc[train_inds, [input_name]].values[i][0]
+                                       for i in np.arange(0, len(train_inds))])]
+                if val_ratio > 0:
+                    x_val += [np.vstack([dataset.loc[val_inds, [input_name]].values[i][0]
+                                         for i in np.arange(0, len(val_inds))])]
+        for output_name in data_specs['output_specs'].keys():
+            y_train += [np.vstack([targets.loc[train_inds, [output_name]].values[i][0]
+                                   for i in np.arange(0, len(train_inds))])]
+            if val_ratio > 0:
+                y_val += [np.vstack([targets.loc[val_inds, [output_name]].values[i][0]
+                                     for i in np.arange(0, len(val_inds))])]
+
+    return x_train, x_val, y_train, y_val
+
+
+def update_specs(data_specs, prep_dataset, prep_targets):
+    """Update specs given preprocessed dataset and targets.
+
+        Parameters:
+            data_specs (dict): Data specifications.
+            prep_dataset (pd.DataFrame): Preprocessed dataset.
+            prep_targets (pd.DataFrame): Preprocessed targets.
+    """
+    for input_name, input_specs in data_specs['input_specs'].items():
+        if input_specs['sequential']:
+            sample = prep_dataset.loc[0, [input_name]][0][0]
+            input_specs.update({'dim': len(sample)})
+        else:
+            sample = prep_dataset.loc[0, [input_name]][0]
+            input_specs.update({'dim': len(sample)})
+    data_specs['output_specs']['driver_target'].update({'dim': len(prep_targets.loc[0, ['driver_target']][0])})
