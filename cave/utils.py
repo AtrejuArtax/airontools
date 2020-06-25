@@ -1,7 +1,8 @@
 import tensorflow as tf
 from tensorflow.keras import regularizers
 from tensorflow.keras.layers import LeakyReLU, PReLU, Input, BatchNormalization, Dense, Dropout, Activation, GRU, \
-    Lambda, Bidirectional, Concatenate
+    Bidirectional, Concatenate
+from tensorflow.keras.optimizers import Adam
 from tensorflow.keras import models
 from tensorflow.python.ops import init_ops
 import tensorflow.keras.backend as K
@@ -102,7 +103,7 @@ def customized_net(specs, net_name='', compile_model=True, metrics=None):
 
         # Compile
         model.compile(
-            optimizer=specs['optimizer'],
+            optimizer=Adam(learning_rate=specs['lr']),
             loss=specs['loss'],
             metrics=metrics)
 
