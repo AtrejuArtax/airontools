@@ -5,11 +5,7 @@ import random
 import math
 import itertools
 from sklearn.model_selection import KFold
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.feature_extraction.text import TfidfVectorizer
-import re
-import string
-import nltk
+from scipy.optimize import minimize, Bounds
 
 
 def to_prep_samples_targets(length, target_delay, start_end_dates, min_max_latitude, min_max_longitude,
@@ -32,7 +28,7 @@ def to_prep_samples_targets(length, target_delay, start_end_dates, min_max_latit
             sample_frac (float): Sample fraction of the data.
 
         Returns:
-            2 pd.DataFrame.
+            2 pd.DataFrame and a list.
     """
 
     assert(not all([element is None for element in [drivers, drivers_file_name]]))
@@ -80,7 +76,7 @@ def to_prep_samples_targets(length, target_delay, start_end_dates, min_max_latit
     requests = requests.sort_values(requests_date_name, ascending=True)
 
     # Create the samples
-    samples, targets, means, stds, requests_features_ = [], [], [], [], []
+    samples, targets, means, stds, requests_features_, target_dates = [], [], [], [], [], []
     for _, driver in drivers.iterrows():
 
         # Select target based on time delay with respect the driver
@@ -117,10 +113,11 @@ def to_prep_samples_targets(length, target_delay, start_end_dates, min_max_latit
                         [['requests_', requests_features_], ['driver', drivers_features_], ['target', target_features_]]):
                     data = requests_ if data_info[0] == 'requests_' else driver if data_info[0] == 'driver' else target
                     reference_lonlat_ = [reference_lonlat[0], None] if new_name == 'x' else [None, reference_lonlat[1]]
+                    ref_ = reference_lonlat[0] if new_name == 'x' else reference_lonlat[1]
                     coord_name = data_info[1][0] if new_name == 'x' else data_info[1][1]
                     new_values = data[coord_name].apply(distance_f, args=(reference_lonlat_,))\
                         if data_info[0] == 'requests_' else distance_f(data[coord_name], reference_lonlat_)
-                    data[new_name] = new_values
+                    data[new_name] = new_values * np.sign(ref_ - data[coord_name])
                     feature_ind = [i for i, feature_name in enumerate(data_info[1]) if feature_name == coord_name][0]
                     data_info[1][feature_ind] = new_name
 
@@ -155,6 +152,7 @@ def to_prep_samples_targets(length, target_delay, start_end_dates, min_max_latit
                 if return_stats:
                     means += [[mean[requests_features_].tolist()]]
                     stds += [[std[requests_features_].tolist()]]
+                    target_dates += [[target[requests_date_name]]]
 
     # Subsample
     if max_n_samples is not None and max_n_samples < len(targets):
@@ -165,6 +163,7 @@ def to_prep_samples_targets(length, target_delay, start_end_dates, min_max_latit
         if return_stats:
             means = [means[i] for i in random_inds]
             stds = [stds[i] for i in random_inds]
+            target_dates = [target_dates[i] for i in random_inds]
 
     # Create dataframes
     samples = pd.DataFrame(data=samples, columns=['id_driver', 'driver_features', 'requests_features'])
@@ -172,9 +171,10 @@ def to_prep_samples_targets(length, target_delay, start_end_dates, min_max_latit
     if return_stats:
         means = pd.DataFrame(data=means, columns=['means'])
         stds = pd.DataFrame(data=stds, columns=['stds'])
+        target_dates = pd.DataFrame(data=target_dates, columns=[requests_date_name])
 
     if return_stats:
-        return samples, targets, [means, stds, requests_features_]
+        return samples, targets, [means, stds, requests_features_, target_dates]
     else:
         return samples, targets
 
@@ -223,6 +223,36 @@ def distance_f(here, there):
     a = math.sin(dlat / 2) ** 2 + math.cos(lat_there) * math.cos(lat_here) * math.sin(dlon / 2) ** 2
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return R * c
+
+
+def xy_to_lonlat(x_y, lon_lat_ref):
+    """X, Y to longitude and latitude given a reference.
+
+        Parameters:
+            x_y (list): X, Y coordinates from reference point.
+            lon_lat_ref (list): Reference point [longitude, latitude].
+
+        Returns:
+            A list.
+    """
+    res_lon_lat = []
+    for km, coord_type in zip(x_y, ['lon', 'lat']):
+        def objective(teta):
+            if (km > 0 and teta < teta_ref_num) or (km < 0 and teta > teta_ref_num):
+                return_ = np.inf
+            else:
+                return_ = np.abs(np.abs(km) - distance_f(here=float(teta), there=teta_ref))
+            return np.abs(np.abs(km) - distance_f(here=float(teta), there=teta_ref))
+        teta_ref_num = lon_lat_ref[0] if coord_type == 'lon' else lon_lat_ref[1]
+        teta0 = teta_ref_num + 1 if km > 0 else teta_ref_num - 1
+        teta_ref = [teta_ref_num, None] if coord_type == 'lon' else [None, teta_ref_num]
+        if km > 0:
+            bounds = Bounds(teta_ref_num, np.inf)
+        else:
+            bounds = Bounds(-np.inf, teta_ref_num)
+        res_lon_lat += [minimize(objective, np.array(teta0).reshape(1,), bounds=bounds, method='L-BFGS-B')['x'][0]]
+
+    return res_lon_lat
 
 
 def time_to_trigonometric(date, trigo_type):
@@ -309,120 +339,3 @@ def update_specs(data_specs, prep_dataset, prep_targets):
             sample = prep_dataset.loc[0, [input_name]][0]
             input_specs.update({'dim': len(sample)})
     data_specs['output_specs']['driver_target'].update({'dim': len(prep_targets.loc[0, ['driver_target']][0])})
-
-
-class PreProcessing(object):
-
-    def __init__(self, num_features=None, cat_features=None, text_features=None, language='english'):
-        self.num_features = num_features
-        self.cat_features = cat_features
-        self.text_features = text_features
-        self.prep_features = []
-        self.mean = None
-        self.std = None
-        self.cat_encoder = None
-        self.vectorizer = {}
-        self.language = language
-
-    def fit(self, x):
-
-        # Numerical features: mean and std
-        if self.num_features is not None and len(self.num_features) > 0:
-            sub_x = x.loc[:, self.num_features].values
-            mean, std = [], []
-            for i in np.arange(0, sub_x.shape[1]):
-                updated_array = sub_x[:, i][~np.isnan(sub_x[:, i])]
-                mean += [np.mean(updated_array, axis=0)]
-                std += [np.std(updated_array, axis=0)]
-            self.mean, self.std = np.array(mean), np.array(std)
-            self.prep_features += self.num_features
-
-        # Categorical features: encoder
-        if self.cat_features is not None and len(self.cat_features) > 0:
-            sub_x = x.loc[:, self.cat_features].values.astype(str)
-            sub_x = np.where(sub_x == '0', 'No', sub_x)
-            sub_x = np.where(sub_x == '1', 'Yes', sub_x)
-            sub_x = np.nan_to_num(sub_x)
-            self.cat_encoder = OneHotEncoder(handle_unknown='ignore')
-            self.cat_encoder.fit(sub_x)
-            new_categories = []
-            for array, cat_feature in zip(self.cat_encoder.categories_, self.cat_features):
-                if 'nan' in array:
-                    array = array.tolist()
-                    array.remove('nan')
-                    array = np.array(array)
-                new_categories += [array]
-                self.prep_features += [cat_feature + '_' + category for category in array.tolist()]
-            self.cat_encoder.categories_ = new_categories
-
-        # Text features: vectorizer
-        if self.text_features is not None and len(self.text_features) > 0:
-            for text_feature in self.text_features:
-                sub_x = x[text_feature]
-                sub_x = sub_x.apply(preprocessor)
-                self.vectorizer.update({text_feature: TfidfVectorizer(stop_words=self.language, max_features=5000)})
-                self.vectorizer[text_feature].fit(sub_x)
-                self.prep_features += [text_feature]
-
-    def transform(self, x):
-
-        x_arrays = []
-
-        # Numerical features
-        if self.num_features is not None and len(self.num_features) > 0:
-            sub_x = x.loc[:, self.num_features]
-            x_arrays += [np.nan_to_num(sub_x.values)]
-            x_arrays[-1] = (x_arrays[-1] - self.mean) / self.std
-
-        # Categorical features
-        if self.cat_features is not None and len(self.cat_features) > 0:
-            sub_x = x.loc[:, self.cat_features]
-            x_arrays += [sub_x.values.astype(str)]
-            x_arrays[-1] = np.where(x_arrays[-1] == '0', 'No', x_arrays[-1])
-            x_arrays[-1] = np.where(x_arrays[-1] == '1', 'Yes', x_arrays[-1])
-            x_arrays[-1] = np.nan_to_num(x_arrays[-1])
-            x_arrays[-1] = self.cat_encoder.transform(x_arrays[-1]).toarray()
-
-        # Text features
-        if self.text_features is not None and len(self.text_features) > 0:
-            for text_feature in self.text_features:
-                sub_x = x[text_feature]
-                sub_x = sub_x.apply(preprocessor)
-                x_arrays += [self.vectorizer[text_feature].transform(sub_x)]
-        if len(x_arrays) == 1:
-            x_arrays = x_arrays[0]
-        else:
-            x_arrays = np.concatenate(tuple(x_arrays), axis=1)
-        return x_arrays
-
-
-def preprocessor(sentence):
-    sentence = sentence.strip().lower()
-    sentence = re.sub(r"\d+", "", sentence)
-    sentence = sentence.translate(sentence.maketrans(string.punctuation, ' ' * len(string.punctuation)))
-    sentence = " ".join([w for w in nltk.word_tokenize(sentence) if len(w) > 1])
-    return sentence
-
-
-def get_processed_data_(files_for, file_names, target_column, skip_columns, features, mult=1):
-    X, Y, prep, target_prep = {}, {}, None, None
-    for file_name, file_for in zip(file_names, files_for):
-        # Load
-        dataset = pd.read_csv(file_name, sep="\t", encoding="utf-8").reset_index(drop=True)
-        n = dataset.shape[0] if file_for != 'train' and mult != 1 else dataset.shape[0] - dataset.shape[0] % mult
-        dataset = dataset.sample(n=n)
-        X.update({file_for: dataset.loc[:, [header for header in dataset.keys()
-                                            if header not in [target_column] + skip_columns]]})
-        Y.update({file_for: dataset.loc[:, [target_column]]})
-        # Preprocess/Transform
-        if file_for == 'train':
-            prep = PreProcessing(text_features=features['text'], language='english')
-            prep.fit(X[file_for])
-            target_prep = PreProcessing(cat_features=[target_column])
-            target_prep.fit(Y[file_for])
-        X[file_for] = prep.transform(X[file_for])
-        Y['raw_' + file_for] = Y[file_for].copy()
-        Y['raw_' + file_for] = Y[file_for].copy()
-        Y[file_for] = target_prep.transform(Y[file_for])
-    return X, Y, prep, target_prep
-
