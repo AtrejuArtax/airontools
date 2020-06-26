@@ -133,7 +133,8 @@ class DeepNet(object):
                  'epochs': experiment_specs['epochs'],
                  'callbacks': callbacks_list,
                  'class_weight': class_weight,
-                 'shuffle': True}
+                 'shuffle': True,
+                 'verbose': 0}
         if not any([val_ is None for val_ in [x_val, y_val]]):
             kargs.update({'validation_data': (x_val, y_val)})
         model.fit(**kargs)
