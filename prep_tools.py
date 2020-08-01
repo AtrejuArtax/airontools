@@ -8,278 +8,134 @@ from sklearn.model_selection import KFold
 from scipy.optimize import minimize, Bounds
 
 
-def to_prep_samples_targets(length, target_delay, start_end_dates, min_max_latitude, min_max_longitude,
-                            requests_file_name, drivers_file_name=None, drivers=None, max_n_samples=None,
-                            return_stats=False, sample_frac=None):
+def to_prep_data(start_week, end_week, t_plus, n_w_gone, test_from_w, static_data_file_name, sequential_data_file_name,
+                 max_n_samples=None, nan_to=0):
     """From raw to processed data.
 
         Parameters:
-            length (int): Length of the samples.
-            target_delay (timedelta): Delay between target request and driver suggestion.
-            start_end_dates (list): Start end dates to to filter.
-            min_max_longitudes (list): Minimum and maximum longitudes.
-            min_max_latitudes (list): Minimum and maximum latitudes.
-            start_end_dates (list): Start end dates to to filter.
-            requests_file_name (str): Requests file name.
-            drivers_file_name (str): Drivers file name.
-            drivers (pd.DataFrame): Drivers data.
+            start_week (int): Start week.
+            end_week (int): End week.
+            t_plus (int): Time plus value for prediction.
+            n_w_gone (int): Number of weeks to consider gone.
+            test_from_w (int): Test from specified week.
+            static_data_file_name (str): Static data file name.
+            sequential_data_file_name (str): Sequential data file name.
             max_n_samples (int): Maximum number of samples.
-            return_stats (bool): Whether to return stats or not.
-            sample_frac (float): Sample fraction of the data.
 
         Returns:
             2 pd.DataFrame and a list.
     """
 
-    assert(not all([element is None for element in [drivers, drivers_file_name]]))
-
-    drivers_features, drivers_date_name = ['lon', 'lat'], 'timestamp'
-    requests_features, requests_date_name = ['longitude', 'latitude'], 'created_at'
-    reference_lonlat = [sum(min_max_longitude) / 2, sum(min_max_latitude) / 2]
+    # Define features and others
+    driver = 'week'
+    identifier = 'courier'
+    static_cat_features = ['feature_1']
+    static_num_features = ['feature_2']
+    static_features, static_name = static_cat_features + static_num_features, 'static'
+    sequential_cat_features = ['feature_16']
+    sequential_num_features = ['feature_{}'.format(i) for i in np.arange(1, 18) if i != 16]
+    sequential_features, sequential_name = sequential_cat_features + sequential_num_features, 'sequential'
 
     # Load datasets
-    file_names, feature_names = [requests_file_name], [requests_features + [requests_date_name]]
-    if drivers_file_name is not None:
-        file_names += [drivers_file_name]
-        feature_names += [drivers_features + [drivers_date_name]]
+    file_names = [static_data_file_name, sequential_data_file_name]
+    feature_names = [[identifier] + static_features, [identifier, driver] + sequential_features]
     datasets = []
     for file_name, feat_names in zip(file_names, feature_names):
-        def valid(chunks_):
-            count = 0
-            for chunk in chunks_:
-                if sample_frac is not None:
-                    chunk = chunk.sample(frac=sample_frac)
-                if max_n_samples is not None and count >= max_n_samples * length:
-                    break
-                for key, values in conds.items():
-                    if values['type'] == 'date':
-                        chunk[key] = pd.to_datetime(chunk[key]).dt.tz_localize(None)
-                    chunk = chunk.loc[chunk[key] >= values['cond'][0]]
-                    chunk = chunk.loc[chunk[key] <= values['cond'][1]]
-                count += chunk.shape[0]
-                yield chunk
-        conds = {feat_names[2]: {'type': 'date', 'cond': start_end_dates},
-                 feat_names[0]: {'type': 'num', 'cond': min_max_longitude},
-                 feat_names[1]: {'type': 'num', 'cond': min_max_latitude}}
-        chunksize = 10 ** 6
-        chunks = pd.read_csv(file_name, chunksize=chunksize)
-        datasets += [pd.concat(valid(chunks_=chunks))]
-    requests = datasets[0]
-    if drivers_file_name is not None:
-        drivers = datasets[1]
+        datasets += [pd.read_csv(file_name, usecols=feat_names)]
+    static_data, sequential_data = datasets
 
-    # Sort input datasets based on time
-    drivers[drivers_date_name] = pd.to_datetime(drivers[drivers_date_name])
-    drivers[drivers_date_name] = drivers[drivers_date_name].dt.tz_localize(None)
-    drivers = drivers.sort_values(drivers_date_name, ascending=True)
-    requests[requests_date_name] = pd.to_datetime(requests[requests_date_name])
-    requests = requests.sort_values(requests_date_name, ascending=True)
+    # Filter sequential data based on start end weeks
+    sequential_data = sequential_data[sequential_data[driver] >= start_week]
+    sequential_data = sequential_data[sequential_data[driver] <= end_week]
 
-    # Create the samples
-    samples, targets, means, stds, requests_features_, target_dates = [], [], [], [], [], []
-    for _, driver in drivers.iterrows():
+    # Replace nans by to_nan
+    sequential_data = sequential_data.fillna(nan_to)
+    static_data = static_data.fillna(nan_to)
 
-        # Select target based on time delay with respect the driver
-        targets_ = requests[requests[requests_date_name] >= driver[drivers_date_name] + target_delay]
+    # Reduce dataset to maximum amount of samples ( at least number of couriers)
+    if max_n_samples is not None:
+        couriers = sequential_data[identifier].unique()[:max_n_samples]
+        sequential_data = sequential_data[sequential_data[identifier].isin(couriers)]
+        static_data = static_data[static_data[identifier].isin(couriers)]
 
-        # Continue in case you found a target
-        if len(targets_) > 0:
+    # Sort sequential data based on week
+    sequential_data = sequential_data.sort_values(driver, ascending=False)
+    sequential_data.index = np.arange(0, sequential_data.shape[0])
 
-            # Adjust target and select requests based on time delay with respect the driver
-            targets_.index = np.arange(0, len(targets_))
-            closest, closest_i = get_closest_latlon(
-                reference=driver[drivers_features].tolist(),
-                candidates=targets_.loc[0:100, requests_features].values.tolist())
-            target = pd.Series(
-                data=closest + targets_.loc[closest_i, [requests_date_name]].values.tolist(),
-                index=requests_features + [requests_date_name])
-            requests_ = requests[requests[requests_date_name] <= driver[drivers_date_name]]
-            requests_ = requests_.sort_values(requests_date_name, ascending=False)
+    # Get preprocessing parameters from training data (everything before end_week - t_plus - n_w_gone)
+    sequential_data_ = sequential_data[sequential_data[driver] <= test_from_w]
+    static_data_ = static_data[static_data[identifier].isin(sequential_data_[identifier].unique())]
+    seq_mean, seq_std = sequential_data_[sequential_num_features].mean(), sequential_data_[sequential_num_features].std()
+    seq_unique = [list(sequential_data_[cat_feature].unique()) for cat_feature in sequential_cat_features]
+    static_mean, static_std = static_data_[static_num_features].mean(), static_data_[static_num_features].std()
+    static_unique = [list(static_data_[cat_feature].unique()) for cat_feature in static_cat_features]
+    static_unique = [n if nan_to in n else n + [nan_to] for n in static_unique]
+    del sequential_data_, static_data_
 
-            # Create new features and pre-process the sample
-            if len(requests_) >= length:
+    # Generate input and output data
+    train_i_data, train_o_data = [], []
+    test_i_data, test_o_data = [], []
+    for end_week_ in np.arange(start_week, end_week + 1)[::-1]:
+        filt_seq_data = sequential_data[sequential_data[driver] <= end_week_]
+        groups = filt_seq_data.groupby(identifier)
+        o_data_ = test_o_data if test_from_w <= end_week_ - t_plus - n_w_gone else train_o_data
+        i_data_ = test_i_data if test_from_w <= end_week_ - t_plus - n_w_gone else train_i_data
+        for key in groups.groups:
+            future_weeks = [i for i in np.arange(end_week_ - n_w_gone + 1, end_week_ + 1)]
+            past_weeks = [i for i in np.arange(start_week, end_week_ - t_plus - n_w_gone + 1)]
+            group_ = groups.get_group(key)
+            complete_seq_data = group_.copy()
+            for i in past_weeks:
+                if not any(list(complete_seq_data['week'].isin([i]))):
+                    empty_data = [key, i] + [nan_to] * len(sequential_features)
+                    complete_seq_data = pd.concat([complete_seq_data,
+                                                   pd.DataFrame(data=np.array(empty_data).reshape((1, len(empty_data))),
+                                                                columns=complete_seq_data.columns)])
+            complete_seq_data = complete_seq_data.sort_values(driver, ascending=False)[sequential_features]
+            complete_seq_data.index = np.arange(0, complete_seq_data.shape[0])
+            static_data_ = static_data[static_data[identifier] == key]
 
-                # Adjustments of requests_
-                requests_.index = np.arange(0, len(requests_))
-                requests_ = requests_.loc[:length - 1, requests_.columns]
+            # Preprocess
+            prep_static_cat = static_data_[static_cat_features]
+            prep_static_num = (static_data_[static_num_features] - static_mean) / static_std
+            prep_sequential_cat = complete_seq_data[sequential_cat_features]
+            prep_sequential_num = (complete_seq_data[sequential_num_features] - seq_mean) / seq_std
 
-                # Make a copy of feature names
-                drivers_features_, requests_features_, target_features_ = \
-                    drivers_features.copy(), requests_features.copy(), requests_features.copy()
+            i_data_ += [[prep_static_cat.values.tolist(),
+                         prep_static_num.values.tolist(),
+                         prep_sequential_cat.values.tolist(),
+                         prep_sequential_num.values.tolist()]]
+            o_data_ += [int(any(list(group_[driver].isin(future_weeks))))]
 
-                # From longitude and latitude to x and y as kms
-                for new_name, data_info in itertools.product(
-                        ['x', 'y'],
-                        [['requests_', requests_features_], ['driver', drivers_features_], ['target', target_features_]]):
-                    data = requests_ if data_info[0] == 'requests_' else driver if data_info[0] == 'driver' else target
-                    reference_lonlat_ = [reference_lonlat[0], None] if new_name == 'x' else [None, reference_lonlat[1]]
-                    ref_ = reference_lonlat[0] if new_name == 'x' else reference_lonlat[1]
-                    coord_name = data_info[1][0] if new_name == 'x' else data_info[1][1]
-                    new_values = data[coord_name].apply(distance_f, args=(reference_lonlat_,))\
-                        if data_info[0] == 'requests_' else distance_f(data[coord_name], reference_lonlat_)
-                    data[new_name] = new_values * np.sign(ref_ - data[coord_name])
-                    feature_ind = [i for i, feature_name in enumerate(data_info[1]) if feature_name == coord_name][0]
-                    data_info[1][feature_ind] = new_name
+    # # Sub sample given max_n_samples
+    # if max_n_samples is not None and max_n_samples < len(train_samples) + len(test_i_data):
+    #     train_inds = random.sample(list(np.arange(0, len(train_i_data))), int(max_n_samples * 0.8))
+    #     train_inds.sort()
+    #     train_o_data = [train_o_data[i] for i in train_inds]
+    #     train_i_data = [train_i_data[i] for i in train_inds]
+    #     test_inds = random.sample(list(np.arange(0, len(test_i_data))), int(max_n_samples * 0.2))
+    #     test_inds.sort()
+    #     test_o_data = [train_o_data[i] for i in test_inds]
+    #     test_i_data = [train_i_data[i] for i in test_inds]
 
-                # Create new features based on time
-                for trigo_type, data_info in itertools.product(
-                        ['sine', 'cosine'], [['requests_', requests_features_], ['driver', drivers_features_]]):
-                    data, date_name = [requests_, requests_date_name] \
-                        if data_info[0] == 'requests_' else [driver, drivers_date_name]
-                    new_values = data[date_name].apply(time_to_trigonometric, args=(trigo_type,))\
-                        if data_info[0] == 'requests_' else time_to_trigonometric(data[date_name], trigo_type)
-                    data[''.join([date_name, '_', trigo_type, '_teta'])] = new_values
-                    data_info[1] += [''.join([date_name, '_', trigo_type, '_teta'])]
+    # To data frames
+    train_i_data = pd.DataFrame(data=train_i_data, columns=['static_cat', 'static_num', 'sequential_cat', 'sequential_num'])
+    train_o_data = pd.DataFrame(data=train_o_data, columns=['y'])
+    test_i_data = pd.DataFrame(data=test_i_data, columns=['static_cat', 'static_num', 'sequential_cat', 'sequential_num'])
+    test_o_data = pd.DataFrame(data=test_o_data, columns=['y'])
+    cat_dictionary = static_unique + seq_unique + [[0, 1]]
+    cat_dictionary = pd.DataFrame(data=np.array(cat_dictionary).reshape((1, len(cat_dictionary))),
+                         columns=['static_cat_dictionary', 'sequential_cat_dictionary', 'y_dictionary'])
 
-                # Mean and standard deviation from the requests since they define where things happen
-                mean = requests_.loc[:, requests_features_].mean(axis=0)
-                std = requests_.loc[:, requests_features_].std(axis=0)
-
-                # Preprocess (standardize) driver request's data given mean and std
-                prep_driver = driver.copy()
-                prep_driver[drivers_features_] =\
-                    (driver[drivers_features_] - mean.values.tolist()) / std.values.tolist()
-                prep_requests = requests_.copy()
-                prep_requests.loc[:, requests_features_] =\
-                    (requests_.loc[:, requests_features_] - mean) / std
-                prep_target = target.copy()
-                prep_target[target_features_] = \
-                    (prep_target[target_features_] - mean[target_features_]) / std[target_features_]
-                samples += [[[prep_driver['id_driver']],
-                             prep_driver[drivers_features_].tolist(),
-                             prep_requests.loc[:, requests_features_].values.tolist()]]
-                targets += [[prep_target[target_features_].tolist()]]
-                if return_stats:
-                    means += [[mean[requests_features_].tolist()]]
-                    stds += [[std[requests_features_].tolist()]]
-                    target_dates += [[target[requests_date_name]]]
-
-    # Subsample
-    if max_n_samples is not None and max_n_samples < len(targets):
-        random_inds = random.sample(list(np.arange(0, len(targets))), max_n_samples)
-        random_inds.sort()
-        samples = [samples[i] for i in random_inds]
-        targets = [targets[i] for i in random_inds]
-        if return_stats:
-            means = [means[i] for i in random_inds]
-            stds = [stds[i] for i in random_inds]
-            target_dates = [target_dates[i] for i in random_inds]
-
-    # Create dataframes
-    samples = pd.DataFrame(data=samples, columns=['id_driver', 'driver_features', 'requests_features'])
-    targets = pd.DataFrame(data=targets, columns=['driver_target'])
-    if return_stats:
-        means = pd.DataFrame(data=means, columns=['means'])
-        stds = pd.DataFrame(data=stds, columns=['stds'])
-        target_dates = pd.DataFrame(data=target_dates, columns=[requests_date_name])
-
-    if return_stats:
-        return samples, targets, [means, stds, requests_features_, target_dates]
-    else:
-        return samples, targets
+    return train_i_data, train_o_data, test_i_data, test_o_data, cat_dictionary
 
 
-def get_closest_latlon(reference, candidates):
-    """Get closest candidate considering Earth surface.
-
-        Parameters:
-            reference (list): Reference angles [longitude, latitude].
-            candidates (list): Candidates.
-
-        Returns:
-            A list and an integer.
-    """
-    closest, closest_i = 2 * [None]
-    closest_distance = np.inf
-    for candidate, i in zip(candidates, np.arange(0, len(candidates))):
-        distance = distance_f(here=reference, there=candidate)
-        if distance < closest_distance:
-            closest_distance = distance
-            closest = candidate
-            closest_i = i
-    return closest, closest_i
-
-
-def distance_f(here, there):
-    """Distance between two points on the Earth's surface.
-
-        Parameters:
-            here (list, float): Here point [longitude, latitude].
-            there (list): There point [longitude, latitude].
-
-        Returns:
-            A list.
-    """
-
-    assert(not all([there_ is None for there_ in there]))
-    if isinstance(here, float) and any([there_ is None for there_ in there]):
-        here, there = [[0, here], [0, there[1]]] if there[0] is None else [[here, 0], [there[0], 0]]
-
-    R = 6373.0
-    lon_there, lat_there = math.radians(there[0]), math.radians(there[1])
-    lon_here, lat_here = math.radians(here[0]), math.radians(here[1])
-    dlon = lon_here - lon_there
-    dlat = lat_here - lat_there
-    a = math.sin(dlat / 2) ** 2 + math.cos(lat_there) * math.cos(lat_here) * math.sin(dlon / 2) ** 2
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    return R * c
-
-
-def xy_to_lonlat(x_y, lon_lat_ref):
-    """X, Y to longitude and latitude given a reference.
-
-        Parameters:
-            x_y (list): X, Y coordinates from reference point.
-            lon_lat_ref (list): Reference point [longitude, latitude].
-
-        Returns:
-            A list.
-    """
-    res_lon_lat = []
-    for km, coord_type in zip(x_y, ['lon', 'lat']):
-        def objective(teta):
-            if (km > 0 and teta < teta_ref_num) or (km < 0 and teta > teta_ref_num):
-                return_ = np.inf
-            else:
-                return_ = np.abs(np.abs(km) - distance_f(here=float(teta), there=teta_ref))
-            return np.abs(np.abs(km) - distance_f(here=float(teta), there=teta_ref))
-        teta_ref_num = lon_lat_ref[0] if coord_type == 'lon' else lon_lat_ref[1]
-        teta0 = teta_ref_num + 1 if km > 0 else teta_ref_num - 1
-        teta_ref = [teta_ref_num, None] if coord_type == 'lon' else [None, teta_ref_num]
-        if km > 0:
-            bounds = Bounds(teta_ref_num, np.inf)
-        else:
-            bounds = Bounds(-np.inf, teta_ref_num)
-        res_lon_lat += [minimize(objective, np.array(teta0).reshape(1,), bounds=bounds, method='L-BFGS-B')['x'][0]]
-
-    return res_lon_lat
-
-
-def time_to_trigonometric(date, trigo_type):
-    """From time (24 hours clock) to trigonometric value (cosine or sine).
-
-        Parameters:
-            date (datetime): Date.
-            trigo_type (str): Trigonometric function to be used.
-
-        Returns:
-            A float number.
-    """
-    radians = math.radians(
-        date.hour * float(360) / 24 + date.minute * float(360) / (24 * 60) + date.second * float(
-            360) / (24 * 60 * 60))
-    if trigo_type == 'sine':
-        return np.sin(radians)
-    elif trigo_type == 'cosine':
-        return np.cos(radians)
-
-
-def dataframe_to_list(dataset, targets, n_parallel_models, data_specs, do_kfolds=False, val_ratio=0.2):
+def dataframe_to_list(input_data, output_data, n_parallel_models, data_specs, do_kfolds=False, val_ratio=0.2):
     """From dataframes to list of numpys.
 
         Parameters:
-            dataset (pd.DataFrame): Dataset.
-            targets (pd.DataFrame): Targets.
+            input_data (pd.DataFrame): Input data.
+            output_data (pd.DataFrame): Output data.
             n_parallel_models (int): Number of parallel models.
             data_specs (dict): Dataset specifications.
             do_kfolds (bool): Whether to do kfolds for cross-validation or not.
@@ -293,7 +149,7 @@ def dataframe_to_list(dataset, targets, n_parallel_models, data_specs, do_kfolds
         kf = KFold(n_splits=n_parallel_models)
         train_val_inds = [[train_inds, val_inds] for train_inds, val_inds in kf.split(range(dataset.shape[0]))]
     else:
-        inds = np.arange(0, dataset.shape[0])
+        inds = np.arange(0, input_data.shape[0])
         line = int(len(inds) * (1 - val_ratio))
         train_val_inds = [[inds[0:line], inds[line:]] for _ in np.arange(0, n_parallel_models)]
     for train_inds, val_inds in train_val_inds:
@@ -301,41 +157,40 @@ def dataframe_to_list(dataset, targets, n_parallel_models, data_specs, do_kfolds
             if input_specs['sequential']:
                 dim = input_specs['dim']
                 x_train += [np.vstack(
-                    [np.array(dataset.loc[train_inds, [input_name]].values[i][0]).reshape(
+                    [np.array(input_data.loc[train_inds, [input_name]].values[i][0]).reshape(
                         (1, input_specs['length'], dim)) for i in np.arange(0, len(train_inds))])]
                 if val_ratio > 0:
                     x_val += [np.vstack(
-                        [np.array(dataset.loc[val_inds, [input_name]].values[i][0]).reshape(
+                        [np.array(input_data.loc[val_inds, [input_name]].values[i][0]).reshape(
                             (1, input_specs['length'], dim)) for i in np.arange(0, len(val_inds))])]
             else:
-                x_train += [np.vstack([dataset.loc[train_inds, [input_name]].values[i][0]
+                x_train += [np.vstack([input_data.loc[train_inds, [input_name]].values[i][0]
                                        for i in np.arange(0, len(train_inds))])]
                 if val_ratio > 0:
-                    x_val += [np.vstack([dataset.loc[val_inds, [input_name]].values[i][0]
+                    x_val += [np.vstack([input_data.loc[val_inds, [input_name]].values[i][0]
                                          for i in np.arange(0, len(val_inds))])]
         for output_name in data_specs['output_specs'].keys():
-            y_train += [np.vstack([targets.loc[train_inds, [output_name]].values[i][0]
+            y_train += [np.vstack([output_data.loc[train_inds, [output_name]].values[i][0]
                                    for i in np.arange(0, len(train_inds))])]
             if val_ratio > 0:
-                y_val += [np.vstack([targets.loc[val_inds, [output_name]].values[i][0]
+                y_val += [np.vstack([output_data.loc[val_inds, [output_name]].values[i][0]
                                      for i in np.arange(0, len(val_inds))])]
 
     return x_train, x_val, y_train, y_val
 
 
-def update_specs(data_specs, prep_dataset, prep_targets):
-    """Update specs given preprocessed dataset and targets.
+def update_specs(data_specs, input_data, output_data, cat_dictionary):
+    """Update specs given data specs and input and output data.
 
         Parameters:
             data_specs (dict): Data specifications.
-            prep_dataset (pd.DataFrame): Preprocessed dataset.
-            prep_targets (pd.DataFrame): Preprocessed targets.
+            input_data (pd.DataFrame): Input data.
+            output_data (pd.DataFrame): Output data.
+            cat_dictionary (pd.DataFrame): Categorical dictionary.
     """
-    for input_name, input_specs in data_specs['input_specs'].items():
-        if input_specs['sequential']:
-            sample = prep_dataset.loc[0, [input_name]][0][0]
-            input_specs.update({'dim': len(sample)})
-        else:
-            sample = prep_dataset.loc[0, [input_name]][0]
-            input_specs.update({'dim': len(sample)})
-    data_specs['output_specs']['driver_target'].update({'dim': len(prep_targets.loc[0, ['driver_target']][0])})
+    for specs_name, prep_data in zip(data_specs.keys(), [input_data, output_data]):
+        specs = data_specs[specs_name]
+        for feature_name, feature_specs in specs.items():
+            dim = prep_data[feature_name][0].shape[-1] if not feature_specs['type'] == 'cat' \
+                else len(cat_dictionary[feature_name + '_dictionary'][0])
+            feature_specs.update({'dim': dim})

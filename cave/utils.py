@@ -12,19 +12,17 @@ from sklearn.metrics import classification_report
 
 def customized_net(specs, net_name='', compile_model=True, metrics=None):
 
-    # Define units per hidden layer
-    input_dim = sum([input_specs['dim'] for _, input_specs in specs['input_specs'].items()])
-    output_dim = sum([input_specs['dim'] for _, input_specs in specs['output_specs'].items()])
-    n_units = input_dim if not 'compression' in specs.keys() \
-        else int(input_dim * (1 - specs['compression']) + 1)
-    n_units = n_units if n_units >= output_dim else output_dim
-    specs['units'] = [input_dim] \
-                     + [int(units) for units in np.linspace(n_units, output_dim, specs['n_layers'] + 2)][1:]
-
     # Make the ensemble of models
     inputs = []
     outputs = []
     for device in specs['device']:
+
+        # Define number of units per layer
+        specs['units'] = get_layer_units(
+            input_dim=sum([input_specs['dim'] for _, input_specs in specs['input_specs'].items()]),
+            output_dim=sum([input_specs['dim'] for _, input_specs in specs['output_specs'].items()]),
+            n_layers=specs['n_layers'],
+            compression=None if not 'compression' in specs.keys() else specs['compression'])
 
         # Device name
         device_name = device.replace('/', '').replace(':', '')
@@ -49,9 +47,8 @@ def customized_net(specs, net_name='', compile_model=True, metrics=None):
                         input_shape = (input_specs['length'], input_specs['dim'],)
                     else:
                         input_shape = (input_specs['dim'],)
-                    x = Input(
-                        shape=input_shape,
-                        name=i_block_name + '_input')
+                    x = Input(shape=input_shape,
+                              name=i_block_name + '_input')
                     inputs += [x]
 
                     # Hidden layers
@@ -95,17 +92,14 @@ def customized_net(specs, net_name='', compile_model=True, metrics=None):
                     outputs += [output_block(conc_input_blocks)]
 
     # Define model and compile
-    model = models.Model(
-        inputs=inputs,
-        outputs=outputs)
+    model = models.Model( inputs=inputs, outputs=outputs)
 
     if compile_model:
 
         # Compile
-        model.compile(
-            optimizer=Adam(learning_rate=specs['lr']),
-            loss=specs['loss'],
-            metrics=metrics)
+        model.compile(optimizer=Adam(learning_rate=specs['lr']),
+                      loss=specs['loss'],
+                      metrics=metrics)
 
     return model
 
@@ -221,3 +215,8 @@ def inference(cat_encoder, model, x):
         inf = np.mean(inf, axis=-1)
     return cat_encoder.inverse_transform(inf)
 
+
+def get_layer_units(input_dim, output_dim, n_layers, compression=None):
+    n_units = input_dim if compression is None else int(input_dim * (1 - compression) + 1)
+    n_units = n_units if n_units >= output_dim else output_dim
+    return [input_dim] + [int(units) for units in np.linspace(n_units, output_dim, n_layers + 2)][1:]

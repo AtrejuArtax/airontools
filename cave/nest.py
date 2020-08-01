@@ -18,10 +18,7 @@ class DeepNet(object):
         self.__device = None
 
     def create(self, specs, metrics=None):
-        self.__model = customized_net(
-            specs=specs,
-            metrics=metrics,
-            net_name='NN')
+        self.__model = customized_net(specs=specs, metrics=metrics, net_name='NN')
 
     def explore(self, x_train, y_train, x_val, y_val, space, model_specs, experiment_specs, path, max_evals,
                 print_model=False, tensor_board=False, metrics=None, trials=None):
@@ -37,10 +34,7 @@ class DeepNet(object):
             specs = space.copy()
             specs.update(model_specs)
             specs.update(experiment_specs)
-            model = customized_net(
-                specs=specs,
-                metrics=metrics,
-                net_name='NN')
+            model = customized_net(specs=specs, metrics=metrics, net_name='NN')
 
             # Print model
             if print_model:
@@ -51,17 +45,16 @@ class DeepNet(object):
                 print(model.summary())
 
             # Train model
-            model = self.__train(
-                x_train=x_train,
-                y_train=y_train,
-                x_val=x_val,
-                y_val=y_val,
-                model=model,
-                experiment_specs=experiment_specs,
-                mode='exploration',
-                path=path,
-                use_callbacks=True,
-                tensor_board=tensor_board)
+            self.__train(x_train=x_train,
+                         y_train=y_train,
+                         x_val=x_val,
+                         y_val=y_val,
+                         model=model,
+                         experiment_specs=experiment_specs,
+                         mode='exploration',
+                         path=path,
+                         use_callbacks=True,
+                         tensor_board=tensor_board)
 
             # Train and validation losses
             val_loss = model.evaluate(x=x_val, y=y_val)
@@ -73,11 +66,8 @@ class DeepNet(object):
             print('Validation Loss:', val_loss)
 
             # Save trials
-            try:
-                with open(path + 'trials.hyperopt', 'wb') as f:
-                    pickle.dump(trials, f)
-            except:
-                print('could not save trials, perhaps it is running on Windows')
+            with open(path + 'trials.hyperopt', 'wb') as f:
+                pickle.dump(trials, f)
 
             return {'loss': val_loss, 'status': STATUS_OK, 'model': model}
 
@@ -89,7 +79,7 @@ class DeepNet(object):
                 algo=hyperopt.tpe.suggest,
                 max_evals=max_evals,
                 trials=trials,
-                verbose=1)
+                verbose=True)
             lowest_loss_ind = np.argmin(trials.losses())
             best_model = trials.trials[lowest_loss_ind]['result']['model']
 
@@ -143,13 +133,11 @@ class DeepNet(object):
         if use_callbacks:
             model.load_weights(filepath=path + 'best_epoch_model_' + mode)
 
-        return model
-
     def train(self, x_train, y_train, experiment_specs, use_callbacks, x_val=None, y_val=None, path=None,
               tensor_board=False):
 
         # Train model
-        self.__model = self.__train(
+        self.__train(
             x_train=x_train,
             y_train=y_train,
             x_val=x_val,
