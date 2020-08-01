@@ -6,10 +6,11 @@ import math
 import itertools
 from sklearn.model_selection import KFold
 from scipy.optimize import minimize, Bounds
+from tensorflow.keras.preprocessing.text import Tokenizer
 
 
 def to_prep_data(start_week, end_week, t_plus, n_w_gone, test_from_w, static_data_file_name, sequential_data_file_name,
-                 max_n_samples=None, nan_to=0):
+                 max_n_samples=None, nan_to=0, seq_length=None):
     """From raw to processed data.
 
         Parameters:
@@ -52,6 +53,9 @@ def to_prep_data(start_week, end_week, t_plus, n_w_gone, test_from_w, static_dat
     sequential_data = sequential_data.fillna(nan_to)
     static_data = static_data.fillna(nan_to)
 
+    # Format
+    sequential_data[sequential_cat_features] = sequential_data[sequential_cat_features].astype(str)
+
     # Reduce dataset to maximum amount of samples ( at least number of couriers)
     if max_n_samples is not None:
         couriers = sequential_data[identifier].unique()[:max_n_samples]
@@ -65,11 +69,14 @@ def to_prep_data(start_week, end_week, t_plus, n_w_gone, test_from_w, static_dat
     # Get preprocessing parameters from training data (everything before end_week - t_plus - n_w_gone)
     sequential_data_ = sequential_data[sequential_data[driver] <= test_from_w]
     static_data_ = static_data[static_data[identifier].isin(sequential_data_[identifier].unique())]
-    seq_mean, seq_std = sequential_data_[sequential_num_features].mean(), sequential_data_[sequential_num_features].std()
-    seq_unique = [list(sequential_data_[cat_feature].unique()) for cat_feature in sequential_cat_features]
     static_mean, static_std = static_data_[static_num_features].mean(), static_data_[static_num_features].std()
     static_unique = [list(static_data_[cat_feature].unique()) for cat_feature in static_cat_features]
-    static_unique = [n if nan_to in n else n + [nan_to] for n in static_unique]
+    static_tokenizers = [Tokenizer() for _ in static_cat_features]
+    [t.fit_on_texts(dictionary) for t, dictionary in zip(static_tokenizers, static_unique)]
+    seq_mean, seq_std = sequential_data_[sequential_num_features].mean(), sequential_data_[sequential_num_features].std()
+    seq_unique = [list(sequential_data_[cat_feature].unique()) for cat_feature in sequential_cat_features]
+    seq_tokenizers = [Tokenizer() for _ in sequential_cat_features]
+    [t.fit_on_texts(dictionary) for t, dictionary in zip(seq_tokenizers, seq_unique)]
     del sequential_data_, static_data_
 
     # Generate input and output data
@@ -83,24 +90,34 @@ def to_prep_data(start_week, end_week, t_plus, n_w_gone, test_from_w, static_dat
         for key in groups.groups:
             future_weeks = [i for i in np.arange(end_week_ - n_w_gone + 1, end_week_ + 1)]
             past_weeks = [i for i in np.arange(start_week, end_week_ - t_plus - n_w_gone + 1)]
+            if seq_length is not None:
+                past_weeks = [i for i in np.arange(-seq_length, 0)] + past_weeks
+                past_weeks = past_weeks[-seq_length:]
             group_ = groups.get_group(key)
             complete_seq_data = group_.copy()
+            complete_seq_data = complete_seq_data[complete_seq_data[driver].isin(past_weeks)]
             for i in past_weeks:
-                if not any(list(complete_seq_data['week'].isin([i]))):
+                if not any(list(complete_seq_data[driver].isin([i]))):
                     empty_data = [key, i] + [nan_to] * len(sequential_features)
                     complete_seq_data = pd.concat([complete_seq_data,
                                                    pd.DataFrame(data=np.array(empty_data).reshape((1, len(empty_data))),
                                                                 columns=complete_seq_data.columns)])
             complete_seq_data = complete_seq_data.sort_values(driver, ascending=False)[sequential_features]
             complete_seq_data.index = np.arange(0, complete_seq_data.shape[0])
+            complete_seq_data[sequential_cat_features] = complete_seq_data[sequential_cat_features].astype(str)
             static_data_ = static_data[static_data[identifier] == key]
 
             # Preprocess
-            prep_static_cat = static_data_[static_cat_features]
+            prep_static_cat = pd.DataFrame(
+                data=tokenize_it(static_data_[static_cat_features[0]], tokenizer=static_tokenizers[0]),
+                columns=[static_cat_features[0]])
             prep_static_num = (static_data_[static_num_features] - static_mean) / static_std
-            prep_sequential_cat = complete_seq_data[sequential_cat_features]
+            prep_sequential_cat = pd.DataFrame(
+                data=tokenize_it(complete_seq_data[sequential_cat_features[0]], tokenizer=seq_tokenizers[0]),
+                columns=[sequential_cat_features[0]])
             prep_sequential_num = (complete_seq_data[sequential_num_features] - seq_mean) / seq_std
 
+            # Define samples
             i_data_ += [[prep_static_cat.values.tolist(),
                          prep_static_num.values.tolist(),
                          prep_sequential_cat.values.tolist(),
@@ -147,7 +164,7 @@ def dataframe_to_list(input_data, output_data, n_parallel_models, data_specs, do
     x_train, x_val, y_train, y_val = [], [], [], []
     if do_kfolds and not n_parallel_models == 1:
         kf = KFold(n_splits=n_parallel_models)
-        train_val_inds = [[train_inds, val_inds] for train_inds, val_inds in kf.split(range(dataset.shape[0]))]
+        train_val_inds = [[train_inds, val_inds] for train_inds, val_inds in kf.split(range(input_data.shape[0]))]
     else:
         inds = np.arange(0, input_data.shape[0])
         line = int(len(inds) * (1 - val_ratio))
@@ -194,3 +211,8 @@ def update_specs(data_specs, input_data, output_data, cat_dictionary):
             dim = prep_data[feature_name][0].shape[-1] if not feature_specs['type'] == 'cat' \
                 else len(cat_dictionary[feature_name + '_dictionary'][0])
             feature_specs.update({'dim': dim})
+
+
+def tokenize_it(data, tokenizer):
+    t_data = tokenizer.texts_to_matrix(data.to_list(), mode='binary')[:, 1:]
+    return [[t_data[i].tolist()] for i in np.arange(0, t_data.shape[0])]
