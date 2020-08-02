@@ -210,9 +210,10 @@ def update_specs(data_specs, input_data, output_data, cat_dictionary):
         for feature_name, feature_specs in specs.items():
             dim = prep_data[feature_name][0].shape[-1] if not feature_specs['type'] == 'cat' \
                 else len(cat_dictionary[feature_name + '_dictionary'][0])
+            dim = 1 if dim == 2 and feature_specs['type'] == 'cat' else dim
             feature_specs.update({'dim': dim})
 
 
-def tokenize_it(data, tokenizer):
+def tokenize_it(data, tokenizer, sequential=False):
     t_data = tokenizer.texts_to_matrix(data.to_list(), mode='binary')[:, 1:]
     return [[t_data[i].tolist()] for i in np.arange(0, t_data.shape[0])]
