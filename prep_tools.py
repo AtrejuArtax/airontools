@@ -1,11 +1,6 @@
 import pandas as pd
 import numpy as np
-from datetime import timedelta, datetime
-import random
-import math
-import itertools
 from sklearn.model_selection import KFold
-from scipy.optimize import minimize, Bounds
 from tensorflow.keras.preprocessing.text import Tokenizer
 
 
@@ -122,32 +117,38 @@ def to_prep_data(start_week, end_week, t_plus, n_w_gone, test_from_w, static_dat
                          prep_static_num.values.tolist(),
                          prep_sequential_cat.values.tolist(),
                          prep_sequential_num.values.tolist()]]
-            o_data_ += [int(any(list(group_[driver].isin(future_weeks))))]
-
-    # # Sub sample given max_n_samples
-    # if max_n_samples is not None and max_n_samples < len(train_samples) + len(test_i_data):
-    #     train_inds = random.sample(list(np.arange(0, len(train_i_data))), int(max_n_samples * 0.8))
-    #     train_inds.sort()
-    #     train_o_data = [train_o_data[i] for i in train_inds]
-    #     train_i_data = [train_i_data[i] for i in train_inds]
-    #     test_inds = random.sample(list(np.arange(0, len(test_i_data))), int(max_n_samples * 0.2))
-    #     test_inds.sort()
-    #     test_o_data = [train_o_data[i] for i in test_inds]
-    #     test_i_data = [train_i_data[i] for i in test_inds]
+            o_data_ += [[[1, 0] if any(list(group_[driver].isin(future_weeks))) else [0, 1]]]
 
     # To data frames
-    train_i_data = pd.DataFrame(data=train_i_data, columns=['static_cat', 'static_num', 'sequential_cat', 'sequential_num'])
+    train_i_data = pd.DataFrame(data=train_i_data,
+                                columns=['static_cat', 'static_num', 'sequential_cat', 'sequential_num'])
     train_o_data = pd.DataFrame(data=train_o_data, columns=['y'])
-    test_i_data = pd.DataFrame(data=test_i_data, columns=['static_cat', 'static_num', 'sequential_cat', 'sequential_num'])
+    test_i_data = pd.DataFrame(data=test_i_data,
+                               columns=['static_cat', 'static_num', 'sequential_cat', 'sequential_num'])
     test_o_data = pd.DataFrame(data=test_o_data, columns=['y'])
     cat_dictionary = static_unique + seq_unique + [[0, 1]]
     cat_dictionary = pd.DataFrame(data=np.array(cat_dictionary).reshape((1, len(cat_dictionary))),
                          columns=['static_cat_dictionary', 'sequential_cat_dictionary', 'y_dictionary'])
 
+    # Sample to get max number of samples
+    if max_n_samples is not None:
+        train_perc = 0.8
+        train_n = int(max_n_samples * train_perc)
+        test_n = max_n_samples - train_n
+        train_i_data, train_o_data = sub_sample(train_i_data, train_n), sub_sample(train_o_data, train_n)
+        test_i_data, test_o_data = sub_sample(test_i_data, test_n), sub_sample(test_o_data, test_n)
+
     return train_i_data, train_o_data, test_i_data, test_o_data, cat_dictionary
 
 
-def dataframe_to_list(input_data, output_data, n_parallel_models, data_specs, do_kfolds=False, val_ratio=0.2):
+def sub_sample(data, n):
+    data_ = data.copy()
+    data_.index = np.arange(data_.shape[0])
+    return data.loc[:n-1, data_.columns]
+
+
+def dataframe_to_list(input_data, output_data, n_parallel_models, data_specs, do_kfolds=False, val_ratio=0.2,
+                      shuffle=True, seed_val=0):
     """From dataframes to list of numpys.
 
         Parameters:
@@ -157,16 +158,22 @@ def dataframe_to_list(input_data, output_data, n_parallel_models, data_specs, do
             data_specs (dict): Dataset specifications.
             do_kfolds (bool): Whether to do kfolds for cross-validation or not.
             val_ratio (float): Ratio for validation.
+            shuffle (bool): Whether to shuffle or not.
+            seed_val (int): Seed value.
 
         Returns:
             4 lists.
     """
     x_train, x_val, y_train, y_val = [], [], [], []
-    if do_kfolds and not n_parallel_models == 1:
-        kf = KFold(n_splits=n_parallel_models)
+    if do_kfolds and n_parallel_models > 1:
+        kf = KFold(n_splits=n_parallel_models, shuffle=True, random_state=seed_val)
         train_val_inds = [[train_inds, val_inds] for train_inds, val_inds in kf.split(range(input_data.shape[0]))]
     else:
         inds = np.arange(0, input_data.shape[0])
+        if shuffle:
+            import random
+            from random import seed
+            random.shuffle(inds, random=seed(seed_val))
         line = int(len(inds) * (1 - val_ratio))
         train_val_inds = [[inds[0:line], inds[line:]] for _ in np.arange(0, n_parallel_models)]
     for train_inds, val_inds in train_val_inds:
@@ -210,7 +217,7 @@ def update_specs(data_specs, input_data, output_data, cat_dictionary):
         for feature_name, feature_specs in specs.items():
             dim = prep_data[feature_name][0].shape[-1] if not feature_specs['type'] == 'cat' \
                 else len(cat_dictionary[feature_name + '_dictionary'][0])
-            dim = 1 if dim == 2 and feature_specs['type'] == 'cat' else dim
+            dim = 1 if dim == 2 and feature_specs['type'] == 'cat' and specs_name != 'output_specs' else dim
             feature_specs.update({'dim': dim})
 
 
