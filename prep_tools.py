@@ -167,7 +167,10 @@ def dataframe_to_list(input_data, output_data, n_parallel_models, data_specs, do
     x_train, x_val, y_train, y_val = [], [], [], []
     if do_kfolds and n_parallel_models > 1:
         kf = KFold(n_splits=n_parallel_models, shuffle=True, random_state=seed_val)
-        train_val_inds = [[train_inds, val_inds] for train_inds, val_inds in kf.split(range(input_data.shape[0]))]
+        n_train = min([data[0].shape[0] for data in kf.split(range(input_data.shape[0]))])
+        n_val = min([data[1].shape[0] for data in kf.split(range(input_data.shape[0]))])
+        train_val_inds = [[train_inds[:n_train, ...], val_inds[:n_val, ...]]
+                          for train_inds, val_inds in kf.split(range(input_data.shape[0]))]
     else:
         inds = np.arange(0, input_data.shape[0])
         if shuffle:

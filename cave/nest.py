@@ -60,20 +60,23 @@ class DeepNet(object):
                          tensor_board=tensor_board)
 
             # Exploration loss
+            total_n_models = self.__parallel_models * len(self.__device)
             exp_loss = None
             if metric is None:
                 exp_loss = model.evaluate(x=x_val, y=y_val)
                 if isinstance(exp_loss, list):
                     exp_loss = sum(exp_loss)
-                exp_loss /= (self.__parallel_models * len(self.__device))
-            elif metric == 'i_auc': # ToDo: make it functional with any given metric (for now only i_auc)
+                exp_loss /= total_n_models
+            elif metric == 'i_auc':
                 y_pred = model.predict(x_val)
-                if isinstance(y_pred, list):
-                    y_pred = np.mean([y_pred_[:, -1] for y_pred_ in y_pred], axis=0)
-                else:
-                    y_pred = y_pred[:, -1]
-                fpr, tpr, thresholds = metrics.roc_curve(y_val[0][:, -1], y_pred)
-                exp_loss = 1 - metrics.auc(fpr, tpr)
+                if not isinstance(y_pred, list):
+                    y_pred = [y_pred]
+                exp_loss = []
+                for i in np.arange(0, total_n_models):
+                    if len(np.bincount(y_val[i][:,-1])) > 1:
+                        fpr, tpr, thresholds = metrics.roc_curve(y_val[i][:, -1], y_pred[i][:, -1])
+                        exp_loss += [(1 - metrics.auc(fpr, tpr))]
+                exp_loss = np.mean(exp_loss) if len(exp_loss) > 0 else 0
             if verbose > 0:
                 print('\n')
                 print('Exploration Loss: ', exp_loss)
