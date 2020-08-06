@@ -65,14 +65,20 @@ def to_prep_data(start_week, end_week, t_plus, n_w_gone, test_from_w, static_dat
     sequential_data_ = sequential_data[sequential_data[driver] <= test_from_w]
     static_data_ = static_data[static_data[identifier].isin(sequential_data_[identifier].unique())]
     static_mean, static_std = static_data_[static_num_features].mean(), static_data_[static_num_features].std()
+    filt_static_num_data = static_data_[static_num_features][
+        (static_data_[static_num_features] - static_mean).abs() <= 3 * static_std]
+    static_mean, static_std = filt_static_num_data.mean(), filt_static_num_data.std()
     static_unique = [list(static_data_[cat_feature].unique()) for cat_feature in static_cat_features]
     static_tokenizers = [Tokenizer() for _ in static_cat_features]
     [t.fit_on_texts(dictionary) for t, dictionary in zip(static_tokenizers, static_unique)]
     seq_mean, seq_std = sequential_data_[sequential_num_features].mean(), sequential_data_[sequential_num_features].std()
+    filt_seq_num_data = sequential_data_[sequential_num_features][
+        (sequential_data_[sequential_num_features] - seq_mean).abs() <= 3 * seq_std]
+    seq_mean, seq_std = filt_seq_num_data.mean(), filt_seq_num_data.std()
     seq_unique = [list(sequential_data_[cat_feature].unique()) for cat_feature in sequential_cat_features]
     seq_tokenizers = [Tokenizer() for _ in sequential_cat_features]
     [t.fit_on_texts(dictionary) for t, dictionary in zip(seq_tokenizers, seq_unique)]
-    del sequential_data_, static_data_
+    del sequential_data_, static_data_, filt_static_num_data, filt_seq_num_data
 
     # Generate input and output data
     train_i_data, train_o_data = [], []
@@ -83,41 +89,55 @@ def to_prep_data(start_week, end_week, t_plus, n_w_gone, test_from_w, static_dat
         o_data_ = test_o_data if test_from_w <= end_week_ - t_plus - n_w_gone else train_o_data
         i_data_ = test_i_data if test_from_w <= end_week_ - t_plus - n_w_gone else train_i_data
         for key in groups.groups:
+
+            # Define week range
             future_weeks = [i for i in np.arange(end_week_ - n_w_gone + 1, end_week_ + 1)]
             past_weeks = [i for i in np.arange(start_week, end_week_ - t_plus - n_w_gone + 1)]
             if seq_length is not None:
                 past_weeks = [i for i in np.arange(-seq_length, 0)] + past_weeks
                 past_weeks = past_weeks[-seq_length:]
+
+            # Get group
             group_ = groups.get_group(key)
-            complete_seq_data = group_.copy()
-            complete_seq_data = complete_seq_data[complete_seq_data[driver].isin(past_weeks)]
-            for i in past_weeks:
-                if not any(list(complete_seq_data[driver].isin([i]))):
-                    empty_data = [key, i] + [nan_to] * len(sequential_features)
-                    complete_seq_data = pd.concat([complete_seq_data,
-                                                   pd.DataFrame(data=np.array(empty_data).reshape((1, len(empty_data))),
-                                                                columns=complete_seq_data.columns)])
-            complete_seq_data = complete_seq_data.sort_values(driver, ascending=False)[sequential_features]
-            complete_seq_data.index = np.arange(0, complete_seq_data.shape[0])
-            complete_seq_data[sequential_cat_features] = complete_seq_data[sequential_cat_features].astype(str)
+            sub_group = group_[group_[driver].isin(past_weeks)]
+            sub_group.index = np.arange(0, sub_group.shape[0])
             static_data_ = static_data[static_data[identifier] == key]
 
-            # Preprocess
-            prep_static_cat = pd.DataFrame(
-                data=tokenize_it(static_data_[static_cat_features[0]], tokenizer=static_tokenizers[0]),
-                columns=[static_cat_features[0]])
-            prep_static_num = (static_data_[static_num_features] - static_mean) / static_std
-            prep_sequential_cat = pd.DataFrame(
-                data=tokenize_it(complete_seq_data[sequential_cat_features[0]], tokenizer=seq_tokenizers[0]),
-                columns=[sequential_cat_features[0]])
-            prep_sequential_num = (complete_seq_data[sequential_num_features] - seq_mean) / seq_std
+            # If there is data from past weeks go for it
+            if sub_group.shape[0] > 0:
 
-            # Define samples
-            i_data_ += [[prep_static_cat.values.tolist(),
-                         prep_static_num.values.tolist(),
-                         prep_sequential_cat.values.tolist(),
-                         prep_sequential_num.values.tolist()]]
-            o_data_ += [[[1, 0] if any(list(group_[driver].isin(future_weeks))) else [0, 1]]]
+                # Preprocess
+                prep_static_cat = pd.DataFrame(
+                    data=tokenize_it(static_data_[static_cat_features[0]], tokenizer=static_tokenizers[0]),
+                    columns=[static_cat_features[0]])
+                prep_static_num = (static_data_[static_num_features] - static_mean) / static_std
+                prep_sequential_cat = pd.DataFrame(
+                    data=tokenize_it(sub_group[sequential_cat_features[0]], tokenizer=seq_tokenizers[0]),
+                    columns=[sequential_cat_features[0]])
+                prep_sequential_num = (sub_group[sequential_num_features] - seq_mean) / seq_std
+                prep_sequential_num.index = np.arange(0, prep_sequential_num.shape[0])
+                prep_sequential_data = pd.concat(
+                    [sub_group.loc[:, [identifier, driver]], prep_sequential_cat, prep_sequential_num], axis=1)
+
+                # Complete data given missing weeks per group
+                complete_seq_data = prep_sequential_data.copy()
+                for i in past_weeks:
+                    if not any(list(sub_group[driver].isin([i]))):
+                        empty_data = [key, i]
+                        empty_data += [[nan_to] * len(seq_unique[0])]
+                        empty_data += [nan_to] * len(sequential_num_features)
+                        complete_seq_data = pd.concat([complete_seq_data,
+                                                       pd.DataFrame(data=np.array(empty_data).reshape((1, len(empty_data))),
+                                                                    columns=complete_seq_data.columns)])
+                complete_seq_data = complete_seq_data.sort_values(driver, ascending=False)[sequential_features]
+                complete_seq_data.index = np.arange(0, complete_seq_data.shape[0])
+
+                # Define samples
+                i_data_ += [[prep_static_cat.values.tolist(),
+                             prep_static_num.values.tolist(),
+                             complete_seq_data.loc[:, sequential_cat_features].values.tolist(),
+                             complete_seq_data.loc[:, sequential_num_features].values.tolist()]]
+                o_data_ += [[[1, 0] if any(list(group_[driver].isin(future_weeks))) else [0, 1]]]
 
     # To data frames
     train_i_data = pd.DataFrame(data=train_i_data,

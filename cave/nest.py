@@ -7,9 +7,11 @@ from tensorflow.keras import models
 import tensorflow.keras.backend as K
 from tensorflow.keras.optimizers import Adam
 from sklearn import metrics
+import pandas as pd
 import pickle
 import math
 import os
+import glob
 
 
 class DeepNet(object):
@@ -40,9 +42,10 @@ class DeepNet(object):
             model = customized_net(specs=specs, net_name=net_name)
 
             # Print some information
+            iteration = len(trials.losses())
             if verbose > 0:
                 print('\n')
-                print('iteration : {}'.format(0 if trials.losses() is None else len(trials.losses())))
+                print('iteration : {}'.format(0 if trials.losses() is None else iteration))
                 [print('{}: {}'.format(key, value)) for key, value in specs.items()]
                 print(model.summary(line_length=200))
 
@@ -57,7 +60,8 @@ class DeepNet(object):
                          path=path,
                          use_callbacks=True,
                          verbose=verbose,
-                         tensor_board=tensor_board)
+                         tensor_board=tensor_board,
+                         ext=iteration)
 
             # Exploration loss
             total_n_models = self.__parallel_models * len(self.__device)
@@ -73,10 +77,10 @@ class DeepNet(object):
                     y_pred = [y_pred]
                 exp_loss = []
                 for i in np.arange(0, total_n_models):
-                    if len(np.bincount(y_val[i][:,-1])) > 1:
+                    if len(np.bincount(y_val[i][:,-1])) > 1 and not math.isnan(np.sum(y_pred[i])):
                         fpr, tpr, thresholds = metrics.roc_curve(y_val[i][:, -1], y_pred[i][:, -1])
                         exp_loss += [(1 - metrics.auc(fpr, tpr))]
-                exp_loss = np.mean(exp_loss) if len(exp_loss) > 0 else 0
+                exp_loss = np.mean(exp_loss) if len(exp_loss) > 0 else 1
             if verbose > 0:
                 print('\n')
                 print('Exploration Loss: ', exp_loss)
@@ -87,14 +91,20 @@ class DeepNet(object):
                 pickle.dump(trials, f)
 
             # Save model if it is the best so far
-            if status == STATUS_OK and \
-                    ((len(trials.losses()) == 1 and trials.losses()[0] is None) or
-                     exp_loss < min([loss for loss in trials.losses() if loss is not None])):
+            best_exp_losss_name = path + 'best_' + net_name + '_exp_loss'
+            best_exp_loss = None \
+                if not os.path.isfile(best_exp_losss_name) else pd.read_pickle(best_exp_losss_name).values[0][0]
+            if status == STATUS_OK and (best_exp_loss is None or exp_loss < best_exp_loss):
+                df = pd.DataFrame(data=[exp_loss], columns=['best_exp_loss'])
+                df.to_pickle(best_exp_losss_name)
                 self.__save_json(filepath=path + 'best_exp_' + net_name + '_json', model=model)
                 self.__save_weights(filepath=path + 'best_exp_' + net_name + '_weights', model=model)
                 for dict_, name in zip([specs, space], ['_specs', '_hparams']):
                     with open(path + 'best_exp_' + net_name + name, 'wb') as f:
                         pickle.dump(dict_, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+            K.clear_session()
+            del model
 
             return {'loss': exp_loss, 'status': status}
 
@@ -124,7 +134,7 @@ class DeepNet(object):
         self.__model = optimize()
 
     def __train(self, x_train, y_train, x_val, y_val, model, experiment_specs, mode, path, use_callbacks,
-                verbose, tensor_board):
+                verbose, tensor_board, ext=None):
 
         best_model_name = path + 'best_epoch_model_' + mode
 
@@ -132,11 +142,14 @@ class DeepNet(object):
         callbacks_list = []
         if use_callbacks:
             if tensor_board:
-                callbacks_list += [callbacks.TensorBoard(log_dir=path + mode + '_logs')]
+                board_dir = path + mode + '_logs'
+                if ext is not None:
+                    board_dir += '_' + str(ext)
+                callbacks_list += [callbacks.TensorBoard(log_dir=board_dir)]
             callbacks_list += [callbacks.ReduceLROnPlateau(
                 monitor='val_loss',
                 factor=0.2,
-                patience=0,
+                patience=int(experiment_specs['early_stopping'] / 2),
                 min_lr=0.0000001,
                 verbose=verbose)]
             callbacks_list += [callbacks.EarlyStopping(
@@ -150,6 +163,10 @@ class DeepNet(object):
                 save_best_only=True,
                 save_weights_only=True,
                 verbose=verbose)]
+            best_model_files = glob.glob(best_model_name + '*')
+            if len(best_model_files) > 0:
+                for filename in glob.glob(best_model_name + '*'):
+                    os.remove(filename)
 
         # Train model
         class_weight = None if 'class_weight' not in experiment_specs.keys() \
@@ -166,9 +183,13 @@ class DeepNet(object):
         model.fit(**kargs)
 
         # Best model
-        if use_callbacks and os.path.isfile(best_model_name):
-            model.load_weights(filepath=best_model_name)
-            os.remove(best_model_name)
+        if use_callbacks:
+            best_model_files = glob.glob(best_model_name + '*')
+            if len(best_model_files) > 0:
+                model.load_weights(filepath=best_model_name)
+                for filename in glob.glob(best_model_name + '*'):
+                    os.remove(filename)
+
 
     def train(self, x_train, y_train, experiment_specs, use_callbacks, x_val=None, y_val=None, path=None,
               verbose=0, tensor_board=False):

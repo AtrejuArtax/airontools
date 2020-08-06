@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow.keras import regularizers
 from tensorflow.keras.layers import LeakyReLU, PReLU, Input, BatchNormalization, Dense, Dropout, Activation, GRU, \
-    Bidirectional, Concatenate, Reshape, Conv1D
+    Bidirectional, Concatenate, Reshape, Conv1D, Flatten
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras import models
 from tensorflow.python.ops import init_ops
@@ -53,9 +53,27 @@ def customized_net(specs, net_name='', compile_model=True, metrics=None):
                         x_ = x
                     if i_specs['sequential'] and not specs['sequential_block']:
                         x_ = Conv1D(name=i_block_name + '_cnn1d',
-                                    filters=K.int_shape(x_)[2],
-                                    kernel_size=K.int_shape(x_)[1])(x_)
-                        x_ = Reshape((K.int_shape(x_)[-1],), name=i_block_name + '_cnn1d_reshape')(x_)
+                                    filters=int(K.int_shape(x_)[2] / 2) + 1,
+                                    kernel_size=int(K.int_shape(x_)[1] / 2) + 1,
+                                    use_bias=True,
+                                    kernel_regularizer=regularizers.l1_l2(
+                                       l1=specs['kernel_regularizer_l1'],
+                                       l2=specs['kernel_regularizer_l2']),
+                                    bias_regularizer=regularizers.l1_l2(
+                                       l1=specs['bias_regularizer_l1'],
+                                       l2=specs['bias_regularizer_l2']))(x_)
+                        x_ = Flatten(name=i_block_name + '_flatten')(x_)
+                        x_ = Dense(name=i_block_name + '_dense',
+                                   units=i_specs['dim'],
+                                   use_bias=True,
+                                   kernel_initializer=init_ops.random_normal_initializer(),
+                                   bias_initializer=init_ops.zeros_initializer(),
+                                   kernel_regularizer=regularizers.l1_l2(
+                                       l1=specs['kernel_regularizer_l1'],
+                                       l2=specs['kernel_regularizer_l2']),
+                                   bias_regularizer=regularizers.l1_l2(
+                                       l1=specs['bias_regularizer_l1'],
+                                       l2=specs['bias_regularizer_l2']))(x_)
                     inputs += [x]
 
                     # Define input block units
@@ -227,10 +245,13 @@ def customized_layer(x, input_dim, units, activation, specs, name, l, dropout=Tr
             name = name + '_' + activation + '_' + str(l),
             input_shape=input_shape,
             alpha=specs['alpha']))
-    if activation == 'prelu':
+    elif activation == 'prelu':
         x.add(PReLU(
             name = name + '_' + activation + '_' + str(l),
-            input_shape=input_shape))
+            input_shape=input_shape,
+            alpha_regularizer=regularizers.l1_l2(
+                l1=specs['bias_regularizer_l1'],
+                l2=specs['bias_regularizer_l2'])))
     else:
         x.add(Activation(
             name = name + '_' + activation + '_' + str(l),
