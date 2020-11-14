@@ -1,10 +1,7 @@
-import pandas as pd
 import numpy as np
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.feature_extraction.text import TfidfVectorizer
-import re
-import string
-import nltk
+import pandas as pd
 
 
 class PreProcessing(object):
@@ -70,7 +67,7 @@ class PreProcessing(object):
             x_arrays += [np.nan_to_num(sub_x.values)]
             x_arrays[-1] = (x_arrays[-1] - self.mean) / self.std
 
-        # Categorical features
+        # Categorical featuresprep_tools_general
         if self.cat_features is not None and len(self.cat_features) > 0:
             sub_x = x.loc[:, self.cat_features]
             x_arrays += [sub_x.values.astype(str)]
@@ -90,6 +87,11 @@ class PreProcessing(object):
         else:
             x_arrays = np.concatenate(tuple(x_arrays), axis=1)
         return x_arrays
+
+
+def tokenize_it(data, tokenizer, sequential=False):
+    t_data = tokenizer.texts_to_matrix(data.to_list(), mode='binary')[:, 1:]
+    return [[t_data[i].tolist()] for i in np.arange(0, t_data.shape[0])]
 
 
 def preprocessor(sentence):
