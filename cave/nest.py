@@ -61,6 +61,7 @@ class DeepNet(object):
                          use_callbacks=True,
                          verbose=verbose,
                          tensor_board=tensor_board,
+                         batch_size=specs['batch_size'],
                          ext=iteration)
 
             # Exploration loss
@@ -134,7 +135,7 @@ class DeepNet(object):
         self.__model = optimize()
 
     def __train(self, x_train, y_train, x_val, y_val, model, experiment_specs, mode, path, use_callbacks,
-                verbose, tensor_board, ext=None):
+                verbose, tensor_board, batch_size, ext=None):
 
         best_model_name = path + 'best_epoch_model_' + mode
 
@@ -177,7 +178,8 @@ class DeepNet(object):
                  'callbacks': callbacks_list,
                  'class_weight': class_weight,
                  'shuffle': True,
-                 'verbose': verbose}
+                 'verbose': verbose,
+                 'batch_size': batch_size}
         if not any([val_ is None for val_ in [x_val, y_val]]):
             kargs.update({'validation_data': (x_val, y_val)})
         model.fit(**kargs)
@@ -191,7 +193,7 @@ class DeepNet(object):
                     os.remove(filename)
 
 
-    def train(self, x_train, y_train, experiment_specs, use_callbacks, x_val=None, y_val=None, path=None,
+    def train(self, x_train, y_train, experiment_specs, use_callbacks, batch_size=30, x_val=None, y_val=None, path=None,
               verbose=0, tensor_board=False):
 
         # Train model
@@ -206,7 +208,8 @@ class DeepNet(object):
             path=path,
             use_callbacks=use_callbacks,
             verbose=verbose,
-            tensor_board=tensor_board)
+            tensor_board=tensor_board,
+            batch_size=batch_size)
 
     def inference(self, x_pred):
         return self.__model.predict(x_pred)
