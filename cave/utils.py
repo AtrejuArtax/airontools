@@ -99,7 +99,7 @@ def customized_net(specs, net_name='', compile_model=True, metrics=None):
                         l=l,
                         sequential=sequential,
                         length=None if not i_specs['sequential'] else i_specs['length'],
-                        return_sequences=True if l < to_l - 1 else False,
+                        return_sequences=True if l < to_l - 1 and i_specs['sequential'] else False,
                         bidirectional=specs['bidirectional'] if sequential else False)
                     pre_n = n
                 i_blocks += [i_block(x_)]
