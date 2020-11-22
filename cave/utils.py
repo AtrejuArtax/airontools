@@ -1,20 +1,27 @@
-import tensorflow as tf
 from tensorflow.keras import regularizers
 from tensorflow.keras.layers import LeakyReLU, PReLU, Input, BatchNormalization, Dense, Dropout, Activation, GRU, \
-    Bidirectional, Concatenate, Reshape, Conv1D, Flatten
+    Bidirectional, Concatenate, Reshape, Conv1D, Flatten, Softmax, Lambda
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras import models
 from tensorflow.python.ops import init_ops
 import tensorflow.keras.backend as K
 import numpy as np
 from sklearn.metrics import classification_report
-tf.keras.backend.set_floatx('float16')
+import tensorflow as tf
+from tensorflow.keras.mixed_precision import experimental as mixed_precision
 
 
 def customized_net(specs, net_name='', compile_model=True, metrics=None):
 
+    # Set precision
+    if 'float16' in specs['precision']:
+        if specs['precision'] == 'mixed_float16':
+            policy = mixed_precision.Policy('mixed_float16')
+            mixed_precision.set_policy(policy)
+        else:
+            tf.keras.backend.set_floatx('float16')
+
     # Make the ensemble of models
-    to_l = None
     inputs = []
     outputs = []
     for device in specs['device']:
@@ -29,7 +36,7 @@ def customized_net(specs, net_name='', compile_model=True, metrics=None):
         for parallel_model in np.arange(0, specs['parallel_models']):
 
             # Initializations of blocks
-            i_blocks, c_block, o_blocks = [], [], []
+            i_blocks, c_block, o_blocks, to_l = [], [], [], []
 
             # Name
             name = device_name + '_' + net_name + '_' + str(parallel_model)
@@ -82,26 +89,18 @@ def customized_net(specs, net_name='', compile_model=True, metrics=None):
                     n_layers=specs['i_n_layers'])[1:]
                 i_units = rm_redundant(values=i_units, value=1)
 
-                # Hidden layers
-                i_block = models.Sequential(name=i_block_name)
-                from_l = 1
-                to_l = from_l + len(i_units)
-                pre_n = None
+                # Post Input Block
                 sequential = specs['sequential_block'] and i_specs['sequential']
-                for l, n in zip(range(from_l, to_l), i_units):
-                    i_block = customized_layer(
-                        x=i_block,
-                        input_dim=i_specs['dim'] if l == from_l else pre_n,
-                        units=n,
-                        activation=specs['hidden_activation'],
-                        specs=specs,
-                        name=i_block_name,
-                        l=l,
-                        sequential=sequential,
-                        length=None if not i_specs['sequential'] else i_specs['length'],
-                        return_sequences=True if l < to_l - 1 and i_specs['sequential'] else False,
-                        bidirectional=specs['bidirectional'] if sequential else False)
-                    pre_n = n
+                length = None if not i_specs['sequential'] else i_specs['length']
+                bidirectional = specs['bidirectional'] if sequential else False
+                to_l += [len(i_units)]
+                i_block = custom_block(units=i_units,
+                                       name=i_block_name,
+                                       specs=specs,
+                                       input_shape=tuple([d for d in x.shape][1:]),
+                                       sequential=sequential,
+                                       length=length,
+                                       bidirectional=bidirectional)
                 i_blocks += [i_block(x_)]
 
             # Concat input blocks
@@ -117,37 +116,25 @@ def customized_net(specs, net_name='', compile_model=True, metrics=None):
                 n_layers=specs['c_n_layers'])[1:]
 
             # Core block
-            c_block_name = name + '_c_block'
-            c_block = models.Sequential(name=c_block_name)
-            from_l = to_l
+            from_l = max(to_l)
             to_l = from_l + len(c_units)
-            pre_n = None
-            for l, n in zip(range(from_l, to_l), c_units):
-                c_block = customized_layer(
-                    x=c_block,
-                    input_dim=K.int_shape(i_blocks)[-1] if l == from_l else pre_n,
-                    units=n,
-                    activation=specs['hidden_activation'],
-                    specs=specs,
-                    name=c_block_name,
-                    l=l)
-                pre_n = n
+            c_block_name = name + '_c_block'
+            c_block = custom_block(units=c_units,
+                                   name=c_block_name,
+                                   specs=specs,
+                                   input_shape=tuple([d for d in i_blocks.shape][1:]),
+                                   from_l=from_l)
             c_block = c_block(i_blocks)
 
             # Output Blocks
-            from_l = to_l
+            from_l = to_l + len(c_units)
             for o_name, o_specs in specs['output_specs'].items():
                 o_block_name = name + '_' + o_name
-                o_block = models.Sequential(name=o_block_name)
-                o_block = customized_layer(
-                    x=o_block,
-                    input_dim=K.int_shape(c_block)[-1],
-                    units=o_dim,
-                    activation=specs['output_activation'],
-                    specs=specs,
-                    name=o_block_name + '_output',
-                    l=from_l,
-                    dropout=False)
+                o_block = custom_block(units=[o_dim],
+                                       name=o_block_name,
+                                       specs=specs,
+                                       input_shape=tuple([d for d in c_block.shape][1:]),
+                                       from_l=from_l)
                 outputs += [o_block(c_block)]
 
     # Define model and compile
@@ -163,26 +150,50 @@ def customized_net(specs, net_name='', compile_model=True, metrics=None):
     return model
 
 
-def customized_layer(x, input_dim, units, activation, specs, name, l, dropout=True, return_sequences=False,
-                     sequential=False, length=None, bidirectional=False):
+def custom_block(units, name, specs, input_shape, sequential=False, length=None, bidirectional=False, from_l=1):
 
-    # Input shape
-    if sequential:
-        input_shape = (length, input_dim,)
-    else:
-        input_shape = (input_dim,)
+    # Hidden layers
+    i_l, o_l = Input(shape=input_shape, name=name + '_input'), None
+    to_l = from_l + len(units)
+    pre_o_dim = None
+    for l, o_dim in zip(range(from_l, to_l), units):
+        if l > from_l:
+            input_shape = (length, pre_o_dim,) if sequential else (pre_o_dim,)
+        else:
+            o_l = i_l
+        o_l = customized_layer(
+            x=o_l,
+            input_shape=input_shape,
+            units=o_dim,
+            activation=specs['hidden_activation'],
+            specs=specs,
+            name=name,
+            l=l,
+            sequential=sequential,
+            return_sequences=True if l < to_l - 1 and sequential else False,
+            bidirectional=bidirectional)
+        pre_o_dim = o_dim
+
+    # Model
+    model = models.Model(inputs=i_l, outputs=o_l)
+
+    return model
+
+
+def customized_layer(x, input_shape, units, activation, specs, name, l, dropout=True, return_sequences=False,
+                     sequential=False, bidirectional=False):
 
     # Dropout
     if dropout:
-        x.add(Dropout(
-            name=name + '_dropout' + '_' + str(l),
+        x = Dropout(
+            name=name + '_dropout_' + str(l),
             rate=specs['dropout_rate'],
-            input_shape=input_shape))
+            input_shape=input_shape)(x)
 
     # Recurrent
     if sequential:
         if bidirectional:
-            x.add(Bidirectional(GRU(
+            x = Bidirectional(GRU(
                 name=name + '_gru_' + str(l),
                 input_shape=input_shape,
                 units=units,
@@ -197,9 +208,9 @@ def customized_layer(x, input_dim, units, activation, specs, name, l, dropout=Tr
                     l2=specs['bias_regularizer_l2']),
                 return_sequences=return_sequences,
                 activation='linear'),
-            input_shape=input_shape))
+            input_shape=input_shape)(x)
         else:
-            x.add(GRU(
+            x = GRU(
                 name=name + '_gru_' + str(l),
                 input_shape=input_shape,
                 units=units,
@@ -213,11 +224,11 @@ def customized_layer(x, input_dim, units, activation, specs, name, l, dropout=Tr
                     l1=specs['bias_regularizer_l1'],
                     l2=specs['bias_regularizer_l2']),
                 return_sequences=return_sequences,
-                activation='linear'))
+                activation='linear')(x)
 
     # Dense
     else:
-        x.add(Dense(
+        x = Dense(
             name=name + '_dense_' + str(l),
             input_shape=input_shape,
             units=units,
@@ -229,32 +240,37 @@ def customized_layer(x, input_dim, units, activation, specs, name, l, dropout=Tr
                 l2=specs['kernel_regularizer_l2']),
             bias_regularizer=regularizers.l1_l2(
                 l1=specs['bias_regularizer_l1'],
-                l2=specs['bias_regularizer_l2'])))
+                l2=specs['bias_regularizer_l2']))(x)
 
     # Batch Normalization
     if specs['bn']:
-        x.add(BatchNormalization(
+        x = BatchNormalization(
             name=name + '_batch_normalization_' + str(l),
-            input_shape=input_shape))
+            input_shape=input_shape)(x)
 
     # Activation
     if activation == 'leakyrelu':
-        x.add(LeakyReLU(
+        x = LeakyReLU(
             name = name + '_' + activation + '_' + str(l),
             input_shape=input_shape,
-            alpha=specs['alpha']))
+            alpha=specs['alpha'])(x)
     elif activation == 'prelu':
-        x.add(PReLU(
-            name = name + '_' + activation + '_' + str(l),
+        x = PReLU(
+            name=name + '_' + activation + '_' + str(l),
             input_shape=input_shape,
             alpha_regularizer=regularizers.l1_l2(
                 l1=specs['bias_regularizer_l1'],
-                l2=specs['bias_regularizer_l2'])))
-    else:
-        x.add(Activation(
-            name = name + '_' + activation + '_' + str(l),
+                l2=specs['bias_regularizer_l2']))(x)
+    elif activation == 'softmax':
+        x = Softmax(
+            name=name + '_' + activation + '_' + str(l),
             input_shape=input_shape,
-            activation=activation))
+            dtype='float32')(x)
+    else:
+        x = Activation(
+            name=name + '_' + activation + '_' + str(l),
+            input_shape=input_shape,
+            activation=activation)(x)
 
     return x
 
