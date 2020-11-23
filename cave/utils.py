@@ -142,10 +142,17 @@ def customized_net(specs, net_name='', compile_model=True, metrics=None):
 
     if compile_model:
 
+        # Metrics
+        metrics_ = []
+        if metrics == 'accuracy':
+            metrics_ += [tf.keras.metrics.Accuracy()]
+        elif metrics == 'auc':
+            metrics_ += [tf.keras.metrics.AUC()]
+
         # Compile
         model.compile(optimizer=Adam(learning_rate=specs['lr']),
                       loss=specs['loss'],
-                      metrics=metrics)
+                      metrics=metrics_)
 
     return model
 

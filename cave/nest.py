@@ -39,7 +39,7 @@ class DeepNet(object):
             specs = space.copy()
             specs.update(model_specs)
             specs.update(experiment_specs)
-            model = customized_net(specs=specs, net_name=net_name)
+            model = customized_net(specs=specs, net_name=net_name, metrics=metric)
 
             # Print some information
             iteration = len(trials.losses())
@@ -67,11 +67,12 @@ class DeepNet(object):
             # Exploration loss
             total_n_models = self.__parallel_models * len(self.__device)
             exp_loss = None
-            if metric is None:
+            if metric in [None, 'accuracy']:
                 exp_loss = model.evaluate(x=x_val, y=y_val)
                 if isinstance(exp_loss, list):
                     exp_loss = sum(exp_loss)
                 exp_loss /= total_n_models
+                exp_loss = 1 - exp_loss
             elif metric == 'i_auc':
                 y_pred = model.predict(x_val)
                 if not isinstance(y_pred, list):
