@@ -67,8 +67,8 @@ class DeepNet(object):
             # Exploration loss
             total_n_models = self.__parallel_models * len(self.__device)
             exp_loss = None
-            if metric in [None, 'accuracy']:
-                exp_loss = model.evaluate(x=x_val, y=y_val)
+            if metric in [None, 'categorical_accuracy']:
+                exp_loss = model.evaluate(x=x_val, y=y_val)[1:]
                 if isinstance(exp_loss, list):
                     exp_loss = sum(exp_loss)
                 exp_loss /= total_n_models
@@ -112,15 +112,16 @@ class DeepNet(object):
 
         def optimize():
 
-            hyperopt.fmin(
-                objective,
-                rstate=None if seed is None else np.random.RandomState(seed),
-                space=space,
-                algo=hyperopt.tpe.suggest,
-                max_evals=max_evals,
-                trials=trials,
-                verbose=True,
-                return_argmin=False)
+            if len(trials.trials) < max_evals:
+                hyperopt.fmin(
+                    objective,
+                    rstate=None if seed is None else np.random.RandomState(seed),
+                    space=space,
+                    algo=hyperopt.tpe.suggest,
+                    max_evals=max_evals,
+                    trials=trials,
+                    verbose=True,
+                    return_argmin=False)
             with open(path + 'best_exp_' + net_name + '_hparams', 'rb') as f:
                 best_hparams = pickle.load(f)
             with open(path + 'best_exp_' + net_name + '_specs', 'rb') as f:

@@ -134,7 +134,8 @@ def customized_net(specs, net_name='', compile_model=True, metrics=None):
                                        name=o_block_name,
                                        specs=specs,
                                        input_shape=tuple([d for d in c_block.shape][1:]),
-                                       from_l=from_l)
+                                       from_l=from_l,
+                                       activation=specs['output_activation'])
                 outputs += [o_block(c_block)]
 
     # Define model and compile
@@ -146,6 +147,8 @@ def customized_net(specs, net_name='', compile_model=True, metrics=None):
         metrics_ = []
         if metrics == 'accuracy':
             metrics_ += [tf.keras.metrics.Accuracy()]
+        elif metrics == 'categorical_accuracy':
+            metrics_ += [tf.keras.metrics.CategoricalAccuracy()]
         elif metrics == 'auc':
             metrics_ += [tf.keras.metrics.AUC()]
 
@@ -157,7 +160,8 @@ def customized_net(specs, net_name='', compile_model=True, metrics=None):
     return model
 
 
-def custom_block(units, name, specs, input_shape, sequential=False, length=None, bidirectional=False, from_l=1):
+def custom_block(units, name, specs, input_shape, sequential=False, length=None, bidirectional=False, from_l=1,
+                 activation=None):
 
     # Hidden layers
     i_l, o_l = Input(shape=input_shape, name=name + '_input'), None
@@ -172,7 +176,7 @@ def custom_block(units, name, specs, input_shape, sequential=False, length=None,
             x=o_l,
             input_shape=input_shape,
             units=o_dim,
-            activation=specs['hidden_activation'],
+            activation=specs['hidden_activation'] if activation is None else activation,
             specs=specs,
             name=name,
             l=l,
