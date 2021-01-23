@@ -8,13 +8,13 @@ def sub_sample(data, n):
     return data.loc[:n-1, data_.columns]
 
 
-def dataframe_to_list(input_data, output_data, n_parallel_models, data_specs, do_kfolds=False, val_ratio=0.2,
+def array_to_list(input_data, output_data, n_parallel_models, data_specs, do_kfolds=False, val_ratio=0.2,
                       shuffle=True, seed_val=0):
-    """From dataframes to list of numpys.
+    """From array to list of numpy.
 
         Parameters:
-            input_data (pd.DataFrame): Input data.
-            output_data (pd.DataFrame): Output data.
+            input_data (np.ndarray): Input data.
+            output_data (np.ndarray): Output data.
             n_parallel_models (int): Number of parallel models.
             data_specs (dict): Dataset specifications.
             do_kfolds (bool): Whether to do kfolds for cross-validation or not.

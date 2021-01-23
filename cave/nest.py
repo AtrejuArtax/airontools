@@ -26,7 +26,8 @@ class DeepNet(object):
         self.__model = customized_net(specs=specs, metrics=metrics, net_name=net_name)
 
     def explore(self, x_train, y_train, x_val, y_val, space, model_specs, experiment_specs, path, max_evals,
-                tensor_board=False, metric=None, trials=None, net_name='NN', verbose=0, seed=None):
+                tensor_board=False, metric=None, trials=None, net_name='NN', verbose=0, seed=None,
+                val_inference_in_path=None):
 
         self.__parallel_models = model_specs['parallel_models']
         self.__device = model_specs['device']
@@ -39,7 +40,8 @@ class DeepNet(object):
             specs = space.copy()
             specs.update(model_specs)
             specs.update(experiment_specs)
-            model = customized_net(specs=specs, net_name=net_name, metrics=metric)
+            model = customized_net(specs=specs, net_name=net_name,
+                                   metrics=metric if metric is not None else specs['loss'])
 
             # Print some information
             iteration = len(trials.losses())
@@ -68,11 +70,12 @@ class DeepNet(object):
             total_n_models = self.__parallel_models * len(self.__device)
             exp_loss = None
             if metric in [None, 'categorical_accuracy']:
-                exp_loss = model.evaluate(x=x_val, y=y_val)[1:]
+                exp_loss = model.evaluate(x=x_val, y=y_val, verbose=verbose)
                 if isinstance(exp_loss, list):
                     exp_loss = sum(exp_loss)
                 exp_loss /= total_n_models
-                exp_loss = 1 - exp_loss
+                if metric == 'categorical_accuracy':
+                    exp_loss = 1 - exp_loss
             elif metric == 'i_auc':
                 y_pred = model.predict(x_val)
                 if not isinstance(y_pred, list):
@@ -96,6 +99,9 @@ class DeepNet(object):
             best_exp_losss_name = path + 'best_' + net_name + '_exp_loss'
             best_exp_loss = None \
                 if not os.path.isfile(best_exp_losss_name) else pd.read_pickle(best_exp_losss_name).values[0][0]
+            print('best val loss so far: ', best_exp_loss)
+            print('curren val loss: ', exp_loss)
+            print('save: ', STATUS_OK, exp_loss < best_exp_loss)
             if status == STATUS_OK and (best_exp_loss is None or exp_loss < best_exp_loss):
                 df = pd.DataFrame(data=[exp_loss], columns=['best_exp_loss'])
                 df.to_pickle(best_exp_losss_name)
@@ -104,6 +110,13 @@ class DeepNet(object):
                 for dict_, name in zip([specs, space], ['_specs', '_hparams']):
                     with open(path + 'best_exp_' + net_name + name, 'wb') as f:
                         pickle.dump(dict_, f, protocol=pickle.HIGHEST_PROTOCOL)
+                if val_inference_in_path is not None:
+
+                    np.savetxt(val_inference_in_path + 'val_target.csv', np.concatenate(y_val, axis=1), delimiter=',')
+                    y_inf = model.predict(x_val)
+                    y_inf = y_inf if isinstance(y_inf, list) else [y_inf]
+                    np.savetxt(val_inference_in_path + 'val_target_inference.csv',
+                               np.concatenate(y_inf, axis=1), delimiter=',')
 
             K.clear_session()
             del model
