@@ -101,8 +101,9 @@ class DeepNet(object):
                 if not os.path.isfile(best_exp_losss_name) else pd.read_pickle(best_exp_losss_name).values[0][0]
             print('best val loss so far: ', best_exp_loss)
             print('curren val loss: ', exp_loss)
-            print('save: ', STATUS_OK, exp_loss < best_exp_loss)
-            if status == STATUS_OK and (best_exp_loss is None or exp_loss < best_exp_loss):
+            best_exp_loss_cond = best_exp_loss is None or exp_loss < best_exp_loss
+            print('save: ', status, best_exp_loss_cond)
+            if status == STATUS_OK and best_exp_loss_cond:
                 df = pd.DataFrame(data=[exp_loss], columns=['best_exp_loss'])
                 df.to_pickle(best_exp_losss_name)
                 self.__save_json(filepath=path + 'best_exp_' + net_name + '_json', model=model)

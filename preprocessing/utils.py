@@ -48,7 +48,7 @@ def array_to_list(input_data, output_data, n_parallel_models, data_specs, do_kfo
         if val_ratio > 0:
             y_val += [output_data[val_inds, ...]]
 
-    return x_train, x_val, y_train, y_val
+    return x_train, x_val, y_train, y_val, train_val_inds
 
 
 def update_specs(data_specs, input_data, output_data, cat_dictionary):
