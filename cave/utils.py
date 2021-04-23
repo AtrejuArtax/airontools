@@ -11,7 +11,7 @@ import tensorflow as tf
 from tensorflow.keras.mixed_precision import experimental as mixed_precision
 
 
-def customized_net(specs, net_name='', compile_model=True, metrics=None):
+def net_constructor(specs, net_name='', compile_model=True, metrics=None):
 
     # Set precision
     if 'float16' in specs['precision']:
@@ -153,7 +153,7 @@ def customized_net(specs, net_name='', compile_model=True, metrics=None):
             metrics_ += [tf.keras.metrics.AUC()]
 
         # Compile
-        model.compile(optimizer=Adam(learning_rate=specs['lr']),
+        model.compile(optimizer=specs['optimizer'],
                       loss=specs['loss'],
                       metrics=metrics_)
 
