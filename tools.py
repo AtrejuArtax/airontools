@@ -13,7 +13,7 @@ def path_preparation(paths, new_preprocessing=True, new_exploration=True):
     """
     for path in paths:
         make_dirtree(path)
-        if (new_preprocessing and 'PrepDatasets' in path) or (new_exploration and 'O' in path):
+        if (new_preprocessing and 'PrepDatasets' in path) or (new_exploration and 'outputs' in path):
             shutil.rmtree(path)
             make_dirtree(path)
 
