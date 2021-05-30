@@ -3,29 +3,19 @@ import numpy as np
 import shutil
 
 
-def path_preparation(paths, new_preprocessing=True, new_exploration=True):
+def path_management(path, modes=None):
     """Path preparation.
 
         Parameters:
-            paths (list): Paths to prepare.
-            new_preprocessing (bool): Whether it requires new pre-processing or not.
-            new_exploration (bool): Whether it requires new exploration or not.
+            path (str): Path to manage.
+            modes (list): List of mode per path.
     """
-    for path in paths:
-        make_dirtree(path)
-        if (new_preprocessing and 'PrepDatasets' in path) or (new_exploration and 'outputs' in path):
+    available_modes = ['rm', 'make']
+    if not modes:
+        modes = ['make']
+    for mode in modes:
+        assert mode in available_modes
+        if os.path.isdir(path) and mode == 'rm':
             shutil.rmtree(path)
-            make_dirtree(path)
-
-
-def make_dirtree(path):
-    """Make a tree of directories
-
-        Parameters:
-            path (str): Paths to prepare.
-    """
-    path_list = path.split('/')[1:-1]
-    for i in np.arange(0, len(path_list)):
-        path_ = '/' + '/'.join(path_list[0:i + 1]) + '/'
-        if not os.path.isdir(path_):
-            os.mkdir(path_)
+        elif mode == 'make':
+            os.makedirs(path)
