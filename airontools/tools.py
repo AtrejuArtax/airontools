@@ -3,7 +3,7 @@ import numpy as np
 import shutil
 
 
-def path_management(path, modes=None):
+def path_management(path, modes=None, exist_ok=True):
     """Path preparation.
 
         Parameters:
@@ -18,4 +18,4 @@ def path_management(path, modes=None):
         if os.path.isdir(path) and mode == 'rm':
             shutil.rmtree(path)
         elif mode == 'make':
-            os.makedirs(path)
+            os.makedirs(path, exist_ok=True)
