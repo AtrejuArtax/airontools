@@ -15,6 +15,7 @@ setuptools.setup(
     long_description_content_type='text/markdown',
     url='https://github.com/AtrejuArtax/airontools',
     packages=setuptools.find_packages(),
+    install_requires=['tensorflow', 'sklearn'],
     classifiers=['Programming Language :: Python :: 3',
                  'License :: BSD 3-Clause',
                  'Operating System :: OS Independent'])
