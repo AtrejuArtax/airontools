@@ -18,7 +18,7 @@ setuptools.setup(
     scripts=[],
     author='Claudi Ruiz Camps',
     author_email='claudi_ruiz@hotmail.com',
-    description='Tools to complement the AIronSuit package.',
+    description='Machine learning tools to complement the AIronSuit package.',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/AtrejuArtax/airontools',
