@@ -14,11 +14,11 @@ else:
 
 setuptools.setup(
     name=PACKAGE_NAME,
-    version='0.1.0',
+    version='0.1.2',
     scripts=[],
     author='Claudi Ruiz Camps',
     author_email='claudi_ruiz@hotmail.com',
-    description='Tools to complement the AIronSuit package.',
+    description='Machine learning tools to complement the AIronSuit package.',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/AtrejuArtax/airontools',
