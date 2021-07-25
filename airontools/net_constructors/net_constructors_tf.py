@@ -42,11 +42,11 @@ def custom_block(units, name, specs, input_shape, sequential=False, length=None,
     return model
 
 
-def customized_layer(x, input_shape, units, activation, specs, name, l, dropout=True, return_sequences=False,
+def customized_layer(x, input_shape, units, activation, specs, name, l, return_sequences=False,
                      sequential=False, bidirectional=False):
 
     # Dropout
-    if dropout:
+    if specs['dropout_rate'] != 0:
         x = Dropout(
             name=name + '_dropout_' + str(l),
             rate=specs['dropout_rate'],
