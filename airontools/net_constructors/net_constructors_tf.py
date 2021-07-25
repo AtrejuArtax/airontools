@@ -42,7 +42,7 @@ def custom_block(units, name, specs, input_shape, sequential=False, length=None,
     return model
 
 
-def customized_layer(x, input_shape, units, activation, specs, name, l, return_sequences=False,
+def customized_layer(x, input_shape, units, specs, name, l, activation='prelu', return_sequences=False,
                      sequential=False, bidirectional=False):
 
     # Dropout
