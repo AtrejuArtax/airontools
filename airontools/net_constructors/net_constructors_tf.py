@@ -321,7 +321,7 @@ def net_constructor(input_specs, output_specs, devices, net_name='', compile_mod
                 outputs += [o_block(c_block)]
 
     # Define model and compile
-    model = models.Model(inputs=inputs, outputs=outputs)
+    model = models.Model(inputs=inputs, outputs=outputs, name=net_name)
 
     if compile_model:
 
