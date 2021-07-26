@@ -2,7 +2,7 @@ import os
 import shutil
 
 
-def path_management(path, modes=None, exist_ok=True):
+def path_management(path, modes=None):
     """Path preparation.
 
         Parameters:
