@@ -42,11 +42,11 @@ def custom_block(units, name, specs, input_shape, sequential=False, length=None,
     return model
 
 
-def customized_layer(x, input_shape, units, activation, specs, name, l, dropout=True, return_sequences=False,
+def customized_layer(x, input_shape, units, specs, name, l, activation=None, return_sequences=False,
                      sequential=False, bidirectional=False):
 
     # Dropout
-    if dropout:
+    if specs['dropout_rate'] != 0:
         x = Dropout(
             name=name + '_dropout_' + str(l),
             rate=specs['dropout_rate'],
@@ -111,28 +111,34 @@ def customized_layer(x, input_shape, units, activation, specs, name, l, dropout=
             input_shape=input_shape)(x)
 
     # Activation
-    if activation == 'leakyrelu':
+    activation_ = activation if activation else 'prelu'
+    if activation_ == 'leakyrelu':
         x = LeakyReLU(
-            name = name + '_' + activation + '_' + str(l),
+            name = name + '_' + activation_ + '_' + str(l),
             input_shape=input_shape,
             alpha=specs['alpha'])(x)
-    elif activation == 'prelu':
+    elif activation_ == 'prelu':
         x = PReLU(
-            name=name + '_' + activation + '_' + str(l),
+            name=name + '_' + activation_ + '_' + str(l),
             input_shape=input_shape,
             alpha_regularizer=regularizers.l1_l2(
                 l1=specs['bias_regularizer_l1'],
                 l2=specs['bias_regularizer_l2']))(x)
-    elif activation == 'softmax':
+    elif activation_ == 'softmax':
         x = Softmax(
-            name=name + '_' + activation + '_' + str(l),
+            name=name + '_' + activation_ + '_' + str(l),
             input_shape=input_shape,
             dtype='float32')(x)
     else:
-        x = Activation(
-            name=name + '_' + activation + '_' + str(l),
-            input_shape=input_shape,
-            activation=activation)(x)
+        if isinstance(activation_, str):
+            x = Activation(
+                name=name + '_' + activation_ + '_' + str(l),
+                input_shape=input_shape,
+                activation=activation_)(x)
+        else:
+            x = activation_(
+                name=name + '_' + activation_.name + '_' + str(l),
+                input_shape=input_shape)(x)
 
     return x
 
@@ -315,7 +321,7 @@ def net_constructor(input_specs, output_specs, devices, net_name='', compile_mod
                 outputs += [o_block(c_block)]
 
     # Define model and compile
-    model = models.Model(inputs=inputs, outputs=outputs)
+    model = models.Model(inputs=inputs, outputs=outputs, name=net_name)
 
     if compile_model:
 

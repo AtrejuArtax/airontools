@@ -6,7 +6,7 @@ as a backend.
 
 Key features:
 
-1. Net constructor that allows multiple models to be optimized in parallel across multiple gpus. 
+1. Net constructor that allows multiple models to be optimized in parallel across multiple GPUs. 
 2. Customized blocks to build models.
 3. Customized layers to build blocks/models.
 4. Preprocessing utils.
