@@ -14,7 +14,7 @@ def sub_sample(data, n):
 
 
 def array_to_list(input_data, output_data, n_parallel_models, do_kfolds=False, val_ratio=0.2,
-                      shuffle=True, seed_val=0):
+                      shuffle=True, seed_val=None):
     """From array to list of numpy.
 
         Parameters:
