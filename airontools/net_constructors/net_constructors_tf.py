@@ -37,7 +37,7 @@ def custom_block(units, name, specs, input_shape, sequential=False, length=None,
         pre_o_dim = o_dim
 
     # Model
-    model = models.Model(inputs=i_l, outputs=o_l)
+    model = models.Model(inputs=i_l, outputs=o_l, name=name)
 
     return model
 
