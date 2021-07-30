@@ -3,6 +3,8 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.feature_extraction.text import TfidfVectorizer
 import pandas as pd
 from sklearn.model_selection import KFold
+import random
+from random import seed
 
 
 def sub_sample(data, n):
@@ -37,8 +39,6 @@ def array_to_list(input_data, output_data, n_parallel_models, do_kfolds=False, v
     else:
         inds = np.arange(0, input_data.shape[0])
         if shuffle:
-            import random
-            from random import seed
             random.shuffle(inds, random=seed(seed_val))
         line = int(len(inds) * (1 - val_ratio))
         train_val_inds = [[inds[0:line], inds[line:]] for _ in np.arange(0, n_parallel_models)]
