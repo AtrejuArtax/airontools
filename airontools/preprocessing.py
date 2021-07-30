@@ -11,7 +11,7 @@ def sub_sample(data, n):
     return data.loc[:n-1, data_.columns]
 
 
-def array_to_list(input_data, output_data, n_parallel_models, data_specs, do_kfolds=False, val_ratio=0.2,
+def array_to_list(input_data, output_data, n_parallel_models, do_kfolds=False, val_ratio=0.2,
                       shuffle=True, seed_val=0):
     """From array to list of numpy.
 
@@ -19,7 +19,6 @@ def array_to_list(input_data, output_data, n_parallel_models, data_specs, do_kfo
             input_data (np.ndarray): Input data.
             output_data (np.ndarray): Output data.
             n_parallel_models (int): Number of parallel models.
-            data_specs (dict): Dataset specifications.
             do_kfolds (bool): Whether to do kfolds for cross-validation or not.
             val_ratio (float): Ratio for validation.
             shuffle (bool): Whether to shuffle or not.
