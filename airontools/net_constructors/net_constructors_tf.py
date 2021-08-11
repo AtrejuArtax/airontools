@@ -327,7 +327,7 @@ def net_constructor(input_specs, output_specs, devices, net_name='', compile_mod
 
         # Metrics
         metrics_ = []
-        if 'accuracy' in metrics:
+        if metrics and 'accuracy' in metrics:
             metrics_ += [tf.keras.metrics.Accuracy()]
         elif 'categorical_accuracy' in metrics:
             metrics_ += [tf.keras.metrics.CategoricalAccuracy()]
