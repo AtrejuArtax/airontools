@@ -6,10 +6,10 @@ PACKAGE_NAME = 'airontools'
 with open('README.md', 'r') as fh:
     long_description = fh.read()
 
-if 'AIRONSUIT_BACKEND' in os.environ:
-    EXTRA_PKGS = [os.environ['AIRONSUIT_BACKEND']]
-else:
-    EXTRA_PKGS = ['tensorflow', 'torch']
+# if 'AIRONSUIT_BACKEND' in os.environ:
+#     EXTRA_PKGS = [os.environ['AIRONSUIT_BACKEND']]
+# else:
+#     EXTRA_PKGS = ['tensorflow', 'torch']
 
 
 setuptools.setup(
@@ -26,7 +26,7 @@ setuptools.setup(
         include=[PACKAGE_NAME] + [PACKAGE_NAME + '.' + name
                                   for name in os.listdir(os.path.join(os.getcwd(), PACKAGE_NAME))
                                   if not any([str_ in name for str_ in ['.py', '__']])]),
-    install_requires=['sklearn'] + EXTRA_PKGS,
+    install_requires=['sklearn'],  # + EXTRA_PKGS,
     classifiers=['Programming Language :: Python :: 3',
                  'License :: OSI Approved :: BSD License',
                  'Operating System :: OS Independent'],
