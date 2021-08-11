@@ -6,15 +6,10 @@ PACKAGE_NAME = 'airontools'
 with open('README.md', 'r') as fh:
     long_description = fh.read()
 
-# if 'AIRONSUIT_BACKEND' in os.environ:
-#     EXTRA_PKGS = [os.environ['AIRONSUIT_BACKEND']]
-# else:
-#     EXTRA_PKGS = ['tensorflow', 'torch']
-
 
 setuptools.setup(
     name=PACKAGE_NAME,
-    version='0.1.4',
+    version='0.1.5',
     scripts=[],
     author='Claudi Ruiz Camps',
     author_email='claudi_ruiz@hotmail.com',
