@@ -37,7 +37,7 @@ def custom_block(units, name, specs, input_shape, sequential=False, length=None,
         pre_o_dim = o_dim
 
     # Model
-    model = models.Model(inputs=i_l, outputs=o_l)
+    model = models.Model(inputs=i_l, outputs=o_l, name=name)
 
     return model
 
@@ -327,12 +327,13 @@ def net_constructor(input_specs, output_specs, devices, net_name='', compile_mod
 
         # Metrics
         metrics_ = []
-        if metrics == 'accuracy':
-            metrics_ += [tf.keras.metrics.Accuracy()]
-        elif metrics == 'categorical_accuracy':
-            metrics_ += [tf.keras.metrics.CategoricalAccuracy()]
-        elif metrics == 'auc':
-            metrics_ += [tf.keras.metrics.AUC()]
+        if metrics:
+            if 'accuracy' in metrics:
+                metrics_ += [tf.keras.metrics.Accuracy()]
+            elif 'categorical_accuracy' in metrics:
+                metrics_ += [tf.keras.metrics.CategoricalAccuracy()]
+            elif 'auc' in metrics:
+                metrics_ += [tf.keras.metrics.AUC()]
 
         # Compile
         model.compile(optimizer=optimizer,
