@@ -179,7 +179,7 @@ def rm_redundant(values, value):
     return values_
 
 
-def net_constructor(input_specs, output_specs, devices, net_name='', compile_model=True, metrics=None, lr=0.001, **specs):
+def net_constructor(input_specs, output_specs, devices, model_name='', compile_model=True, metrics=None, lr=0.001, **specs):
 
     precision = specs['precision'] if 'precision' in specs else 'float32'
     parallel_models = specs['parallel_models'] if 'parallel_models' in specs else 1
@@ -222,7 +222,7 @@ def net_constructor(input_specs, output_specs, devices, net_name='', compile_mod
             i_blocks, c_block, o_blocks, to_l = [], [], [], []
 
             # Name
-            name = device_name + '_' + net_name + '_' + str(parallel_model)
+            name = device_name + '_' + model_name + '_' + str(parallel_model)
 
             # Input Blocks
             for i_name, i_specs in input_specs.items():
@@ -321,7 +321,7 @@ def net_constructor(input_specs, output_specs, devices, net_name='', compile_mod
                 outputs += [o_block(c_block)]
 
     # Define model and compile
-    model = models.Model(inputs=inputs, outputs=outputs, name=net_name)
+    model = models.Model(inputs=inputs, outputs=outputs, name=model_name)
 
     if compile_model:
 
