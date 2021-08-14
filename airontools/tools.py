@@ -3,7 +3,7 @@ import shutil
 
 
 def path_management(path, modes=None):
-    """Path preparation.
+    """ Path preparation.
 
         Parameters:
             path (str): Path to manage.
