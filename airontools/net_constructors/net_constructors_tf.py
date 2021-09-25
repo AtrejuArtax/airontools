@@ -162,9 +162,10 @@ def inference(cat_encoder, model, x):
     return cat_encoder.inverse_transform(inf)
 
 
-def get_layer_units(input_dim, output_dim, n_layers):
-    n_units = input_dim if input_dim >= output_dim else output_dim
-    return [int(units) for units in np.linspace(n_units, output_dim, n_layers + 1)]
+def get_layer_units(input_dim, output_dim, n_layers, min_hidden_units=2):
+    units = [max(int(units), min_hidden_units) for units in np.linspace(input_dim, output_dim, n_layers + 1)]
+    units[0], units[-1] = input_dim, output_dim
+    return units
 
 
 def rm_redundant(values, value):
