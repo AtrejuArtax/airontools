@@ -1,6 +1,6 @@
 from tensorflow.keras import regularizers
 from tensorflow.keras.layers import Concatenate, Reshape, Conv1D, Flatten, LeakyReLU, PReLU, Input, BatchNormalization,\
-    Dense, Dropout, Activation, GRU, Bidirectional, Softmax
+    Dense, Dropout, Activation, GRU, Bidirectional, Softmax, Conv2D
 from tensorflow.keras import models
 from tensorflow.python.ops import init_ops
 import tensorflow.keras.backend as K
@@ -43,7 +43,15 @@ def custom_block(units, name, specs, input_shape, sequential=False, length=None,
 
 
 def customized_layer(x, input_shape, units, specs, name, l, activation=None, return_sequences=False,
-                     sequential=False, bidirectional=False):
+                     sequential=False, bidirectional=False, use_dense=True, use_conv=False, filters=None):
+
+    # Flatten
+    if use_conv:
+        filters = filters if filters else 3
+        kernerl_size = max([1, int(units / filters)])
+        x = Flatten(name=name + '_input_flatten_' + str(l))(x)
+    else:
+        kernel_size = None
 
     # Dropout
     if specs['dropout_rate'] != 0:
@@ -51,6 +59,24 @@ def customized_layer(x, input_shape, units, specs, name, l, activation=None, ret
             name=name + '_dropout_' + str(l),
             rate=specs['dropout_rate'],
             input_shape=input_shape)(x)
+
+    # Conv
+    if use_conv:
+        x = Reshape(name=name + '_preconv_reshape_' + str(l), target_shape=input_shape)(x)
+        x = Conv2D(name=name + '_dense_' + str(l),
+                   input_shape=input_shape,
+                   filters=filters,
+                   kernel_size=kernel_size,
+                   use_bias=True,
+                   kernel_initializer=init_ops.random_normal_initializer(),
+                   bias_initializer=init_ops.zeros_initializer(),
+                   kernel_regularizer=regularizers.l1_l2(
+                       l1=specs['kernel_regularizer_l1'],
+                       l2=specs['kernel_regularizer_l2']),
+                   bias_regularizer=regularizers.l1_l2(
+                       l1=specs['bias_regularizer_l1'],
+                       l2=specs['bias_regularizer_l2']))(x)
+        x = Flatten(name=name + '_postconv_flatten_' + str(l))(x)
 
     # Recurrent
     if sequential:
@@ -70,7 +96,7 @@ def customized_layer(x, input_shape, units, specs, name, l, activation=None, ret
                     l2=specs['bias_regularizer_l2']),
                 return_sequences=return_sequences,
                 activation='linear'),
-            input_shape=input_shape)(x)
+                input_shape=input_shape)(x)
         else:
             x = GRU(
                 name=name + '_gru_' + str(l),
@@ -89,7 +115,7 @@ def customized_layer(x, input_shape, units, specs, name, l, activation=None, ret
                 activation='linear')(x)
 
     # Dense
-    else:
+    elif use_dense:
         x = Dense(
             name=name + '_dense_' + str(l),
             input_shape=input_shape,
@@ -139,6 +165,9 @@ def customized_layer(x, input_shape, units, specs, name, l, activation=None, ret
             x = activation_(
                 name=name + '_' + activation_.name + '_' + str(l),
                 input_shape=input_shape)(x)
+
+    if use_conv:
+        x = Reshape(name=name + '_output_reshape_' + str(l), target_shape=(kernel_size, filters,))(x)
 
     return x
 
