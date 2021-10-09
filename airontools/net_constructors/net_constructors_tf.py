@@ -28,12 +28,12 @@ def custom_block(units, name, specs, input_shape, sequential=False, length=None,
             input_shape=input_shape,
             units=o_dim,
             activation=specs['hidden_activation'] if activation is None else activation,
-            specs=specs,
             name=name,
-            l=l,
+            name_ext=l,
             sequential=sequential,
             return_sequences=True if l < to_l - 1 and sequential else False,
-            bidirectional=bidirectional)
+            bidirectional=bidirectional,
+            **specs)
         pre_o_dim = o_dim
 
     # Model
@@ -42,132 +42,111 @@ def custom_block(units, name, specs, input_shape, sequential=False, length=None,
     return model
 
 
-def customized_layer(x, input_shape, units, specs, name, l, activation=None, return_sequences=False,
-                     sequential=False, bidirectional=False, use_dense=True, use_conv=False, filters=None):
+def customized_layer(x, input_shape, units=None, name=None, name_ext=None, activation=None, return_sequences=False,
+                     sequential=False, bidirectional=False, filters=None, kernel_size=None, dropout_rate=None,
+                     kernel_regularizer_l1=None, kernel_regularizer_l2=None, bias_regularizer_l1=None,
+                     bias_regularizer_l2=None, bn=False):
+
+    name = name + '_' if name else ''
+    name_ext = '_' + str(name_ext) if name_ext else ''
 
     # Flatten
-    if use_conv:
-        filters = filters if filters else 3
-        kernerl_size = max([1, int(units / filters)])
-        x = Flatten(name=name + '_input_flatten_' + str(l))(x)
-    else:
-        kernel_size = None
+    if filters and kernel_size:
+        x = Flatten(name=name + 'input_flatten' + name_ext)(x)
 
     # Dropout
-    if specs['dropout_rate'] != 0:
+    if dropout_rate and dropout_rate != 0:
         x = Dropout(
-            name=name + '_dropout_' + str(l),
-            rate=specs['dropout_rate'],
+            name=name + 'dropout' + name_ext,
+            rate=dropout_rate,
             input_shape=input_shape)(x)
 
     # Conv
-    if use_conv:
-        x = Reshape(name=name + '_preconv_reshape_' + str(l), target_shape=input_shape)(x)
-        x = Conv2D(name=name + '_dense_' + str(l),
+    if filters and kernel_size:
+        x = Reshape(name=name + 'preconv_reshape' + name_ext, target_shape=input_shape)(x)
+        x = Conv2D(name=name + 'conv2d' + name_ext,
                    input_shape=input_shape,
                    filters=filters,
                    kernel_size=kernel_size,
                    use_bias=True,
                    kernel_initializer=init_ops.random_normal_initializer(),
                    bias_initializer=init_ops.zeros_initializer(),
-                   kernel_regularizer=regularizers.l1_l2(
-                       l1=specs['kernel_regularizer_l1'],
-                       l2=specs['kernel_regularizer_l2']),
-                   bias_regularizer=regularizers.l1_l2(
-                       l1=specs['bias_regularizer_l1'],
-                       l2=specs['bias_regularizer_l2']))(x)
-        x = Flatten(name=name + '_postconv_flatten_' + str(l))(x)
+                   kernel_regularizer=get_regularizer(kernel_regularizer_l1, kernel_regularizer_l2),
+                   bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2))(x)
+        x = Flatten(name=name + 'postconv_flatten' + name_ext)(x)
 
     # Recurrent
     if sequential:
         if bidirectional:
             x = Bidirectional(GRU(
-                name=name + '_gru_' + str(l),
+                name=name + 'gru' + name_ext,
                 input_shape=input_shape,
                 units=units,
                 use_bias=True,
                 kernel_initializer=init_ops.random_normal_initializer(),
                 bias_initializer=init_ops.zeros_initializer(),
-                kernel_regularizer=regularizers.l1_l2(
-                    l1=specs['kernel_regularizer_l1'],
-                    l2=specs['kernel_regularizer_l2']),
-                bias_regularizer=regularizers.l1_l2(
-                    l1=specs['bias_regularizer_l1'],
-                    l2=specs['bias_regularizer_l2']),
+                kernel_regularizer=get_regularizer(kernel_regularizer_l1, kernel_regularizer_l2),
+                bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
                 return_sequences=return_sequences,
                 activation='linear'),
                 input_shape=input_shape)(x)
         else:
             x = GRU(
-                name=name + '_gru_' + str(l),
+                name=name + 'gru' + name_ext,
                 input_shape=input_shape,
                 units=units,
                 use_bias=True,
                 kernel_initializer=init_ops.random_normal_initializer(),
                 bias_initializer=init_ops.zeros_initializer(),
-                kernel_regularizer=regularizers.l1_l2(
-                    l1=specs['kernel_regularizer_l1'],
-                    l2=specs['kernel_regularizer_l2']),
-                bias_regularizer=regularizers.l1_l2(
-                    l1=specs['bias_regularizer_l1'],
-                    l2=specs['bias_regularizer_l2']),
+                kernel_regularizer=get_regularizer(kernel_regularizer_l1, kernel_regularizer_l2),
+                bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
                 return_sequences=return_sequences,
                 activation='linear')(x)
 
     # Dense
-    elif use_dense:
+    elif units:
         x = Dense(
-            name=name + '_dense_' + str(l),
+            name=name + 'dense' + name_ext,
             input_shape=input_shape,
             units=units,
             use_bias=True,
             kernel_initializer=init_ops.random_normal_initializer(),
             bias_initializer=init_ops.zeros_initializer(),
-            kernel_regularizer=regularizers.l1_l2(
-                l1=specs['kernel_regularizer_l1'],
-                l2=specs['kernel_regularizer_l2']),
-            bias_regularizer=regularizers.l1_l2(
-                l1=specs['bias_regularizer_l1'],
-                l2=specs['bias_regularizer_l2']))(x)
+            kernel_regularizer=get_regularizer(kernel_regularizer_l1, kernel_regularizer_l2),
+            bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2))(x)
 
     # Batch Normalization
-    if specs['bn']:
+    if bn:
         x = BatchNormalization(
-            name=name + '_batch_normalization_' + str(l),
+            name=name + 'batch_normalization' + name_ext,
             input_shape=input_shape)(x)
 
     # Activation
     activation_ = activation if activation else 'prelu'
     if activation_ == 'leakyrelu':
         x = LeakyReLU(
-            name = name + '_' + activation_ + '_' + str(l),
-            input_shape=input_shape,
-            alpha=specs['alpha'])(x)
+            name=name + activation_ + '' + name_ext,
+            input_shape=input_shape)(x)
     elif activation_ == 'prelu':
         x = PReLU(
-            name=name + '_' + activation_ + '_' + str(l),
+            name=name + activation_ + '' + name_ext,
             input_shape=input_shape,
-            alpha_regularizer=regularizers.l1_l2(
-                l1=specs['bias_regularizer_l1'],
-                l2=specs['bias_regularizer_l2']))(x)
+            alpha_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2))(x)
     elif activation_ == 'softmax':
         x = Softmax(
-            name=name + '_' + activation_ + '_' + str(l),
+            name=name + activation_ + '' + name_ext,
             input_shape=input_shape,
             dtype='float32')(x)
     else:
         if isinstance(activation_, str):
             x = Activation(
-                name=name + '_' + activation_ + '_' + str(l),
+                name=name + activation_ + '' + name_ext,
                 input_shape=input_shape,
                 activation=activation_)(x)
         else:
             x = activation_(
-                name=name + '_' + activation_.name + '_' + str(l),
+                name=name + activation_.name + '' + name_ext,
                 input_shape=input_shape)(x)
-
-    if use_conv:
-        x = Reshape(name=name + '_output_reshape_' + str(l), target_shape=(kernel_size, filters,))(x)
 
     return x
 
@@ -371,3 +350,15 @@ def net_constructor(input_specs, output_specs, devices, model_name='', compile_m
                       metrics=metrics_)
 
     return model
+
+
+def get_regularizer(l1=None, l2=None):
+    if l1 and l2:
+        regularizer = regularizers.l1_l2(l1=l1, l2=l2)
+    elif l1:
+        regularizer = regularizers.l1(l1)
+    elif l2:
+        regularizer = regularizers.l2(l2)
+    else:
+        regularizer = None
+    return regularizer
