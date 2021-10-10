@@ -42,13 +42,23 @@ def custom_block(units, name, specs, input_shape, sequential=False, length=None,
     return model
 
 
-def customized_layer(x, input_shape, units=None, name=None, name_ext=None, activation=None, return_sequences=False,
-                     sequential=False, bidirectional=False, filters=None, kernel_size=None, dropout_rate=None,
-                     kernel_regularizer_l1=None, kernel_regularizer_l2=None, bias_regularizer_l1=None,
-                     bias_regularizer_l2=None, bn=False):
+def customized_layer(x, input_shape, **kwargs):
 
-    name = name + '_' if name else ''
-    name_ext = '_' + str(name_ext) if name_ext else ''
+    units = kwargs['units'] if 'units' in kwargs.keys() else None
+    name =  kwargs['name'] + '_' if 'name' in kwargs.keys() else None
+    name_ext = '_' + kwargs['name_ext'] if 'name_ext' in kwargs.keys() else None
+    activation = kwargs['activation'] if 'activation' in kwargs.keys() else None
+    return_sequences = kwargs['return_sequences'] if 'return_sequences' in kwargs.keys() else False
+    sequential = kwargs['sequential'] if 'sequential' in kwargs.keys() else False
+    bidirectional = kwargs['bidirectional'] if 'bidirectional' in kwargs.keys() else False
+    filters = kwargs['filters'] if 'filters' in kwargs.keys() else None
+    kernel_size = kwargs['kernel_size'] if 'kernel_size' in kwargs.keys() else None
+    dropout_rate = kwargs['dropout_rate'] if 'dropout_rate' in kwargs.keys() else None
+    kernel_regularizer_l1 = kwargs['kernel_regularizer_l1'] if 'kernel_regularizer_l1' in kwargs.keys() else None
+    kernel_regularizer_l2 = kwargs['kernel_regularizer_l2'] if 'kernel_regularizer_l2' in kwargs.keys() else None
+    bias_regularizer_l1 = kwargs['bias_regularizer_l1'] if 'bias_regularizer_l1' in kwargs.keys() else None
+    bias_regularizer_l2 = kwargs['bias_regularizer_l2'] if 'bias_regularizer_l2' in kwargs.keys() else None
+    bn = kwargs['bn'] if 'bn' in kwargs.keys() else False
 
     # Flatten
     if filters and kernel_size:
@@ -122,7 +132,7 @@ def customized_layer(x, input_shape, units=None, name=None, name_ext=None, activ
             input_shape=input_shape)(x)
 
     # Activation
-    activation_ = activation if activation else 'prelu'
+    activation_ = activation if activation else PReLU
     if activation_ == 'leakyrelu':
         x = LeakyReLU(
             name=name + activation_ + '' + name_ext,
