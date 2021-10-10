@@ -45,8 +45,8 @@ def custom_block(units, name, specs, input_shape, sequential=False, length=None,
 def customized_layer(x, input_shape, **kwargs):
 
     units = kwargs['units'] if 'units' in kwargs.keys() else None
-    name =  kwargs['name'] + '_' if 'name' in kwargs.keys() else None
-    name_ext = '_' + kwargs['name_ext'] if 'name_ext' in kwargs.keys() else None
+    name = kwargs['name'] + '_' if 'name' in kwargs.keys() else ''
+    name_ext = '_' + kwargs['name_ext'] if 'name_ext' in kwargs.keys() else ''
     activation = kwargs['activation'] if 'activation' in kwargs.keys() else None
     return_sequences = kwargs['return_sequences'] if 'return_sequences' in kwargs.keys() else False
     sequential = kwargs['sequential'] if 'sequential' in kwargs.keys() else False
