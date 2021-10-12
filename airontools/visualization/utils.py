@@ -5,7 +5,12 @@ import tensorflow as tf
 from tensorboard.plugins import projector
 
 
-def save_insight(embeddings, metadata=None, path=os.path.join(tempfile.gettempdir(), 'insights')):
+def save_insights(embeddings, embeddings_names=None, metadata=None,
+                  path=os.path.join(tempfile.gettempdir(), 'insights')):
+
+    embeddings = embeddings if isinstance(embeddings, list) else [embeddings]
+    embeddings_names = embeddings_names if embeddings_names else list(['embeddings_' + str(i)
+                                                                       for i in range(len(embeddings))])
 
     # Path management
     path_management(path)
@@ -16,15 +21,16 @@ def save_insight(embeddings, metadata=None, path=os.path.join(tempfile.gettempdi
         with open(metadata_file_name, "w") as f:
             pass
 
-    # Sve data
-    checkpoint = tf.train.Checkpoint(embedding=embeddings)
-    checkpoint.save(os.path.join(path, 'data.ckpt'))
+    # Iterate over embeddings
+    for embedding, embeddings_name in zip(embeddings, embeddings_names):
 
-    # Set up config and embeddings
-    config = projector.ProjectorConfig()
-    embedding = config.embeddings.add()
+        # Sve data
+        checkpoint = tf.train.Checkpoint(embedding=embedding)
+        checkpoint.save(os.path.join(path, embeddings_name + '.ckpt'))
 
-    # The name of the tensor will be suffixed by `/.ATTRIBUTES/VARIABLE_VALUE`.
-    embedding.tensor_name = "embedding/.ATTRIBUTES/VARIABLE_VALUE"
-    embedding.metadata_path = metadata_file_name
-    projector.visualize_embeddings(path, config)
+        # Set up config and embeddings
+        config = projector.ProjectorConfig()
+        embedding = config.embeddings.add()
+        embedding.tensor_name = embeddings_name
+        embedding.metadata_path = metadata_file_name
+        projector.visualize_embeddings(path, config)
