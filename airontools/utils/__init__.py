@@ -1,4 +1,4 @@
-from aironsuit.backend import get_backend
+from airontools.backend import get_backend
 BACKEND = get_backend()
 if BACKEND == 'tensorflow':
     from airontools.utils.utils_tf import *
