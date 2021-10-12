@@ -7,6 +7,14 @@ from tensorboard.plugins import projector
 
 def save_insights(embeddings, embeddings_names=None, metadata=None,
                   path=os.path.join(tempfile.gettempdir(), 'insights')):
+    """ Save insights (embeddings or latent representations).
+
+        Parameters:
+            embeddings (list, array): Embeddings to be saved.
+            embeddings_names (list, str): Embeddings names.
+            metadata (list, array): Metadata.
+            path (str): Path to save insights.
+    """
 
     embeddings = embeddings if isinstance(embeddings, list) else [embeddings]
     embeddings_names = embeddings_names if embeddings_names else list(['embeddings_' + str(i)
