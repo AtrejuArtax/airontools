@@ -9,6 +9,7 @@ import tensorflow as tf
 from tensorflow.keras.mixed_precision import experimental as mixed_precision
 from tensorflow.keras.optimizers import Adam
 from sklearn.metrics import classification_report
+from tensorflow.keras.models import Model
 
 
 def custom_block(units, name, specs, input_shape, sequential=False, length=None, bidirectional=False, from_l=1,
