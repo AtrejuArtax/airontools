@@ -4,4 +4,5 @@ if BACKEND == 'tensorflow':
     from airontools.visualization.tensorboard_tf import *
     from airontools.visualization.utils_tf import *
 else:
-    pass
+    from airontools.visualization.tensorboard_torch import *
+    from airontools.visualization.utils_torch import *

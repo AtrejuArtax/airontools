@@ -4,4 +4,5 @@ if BACKEND == 'tensorflow':
     from airontools.model_constructors.model_constructors_tf import *
     from airontools.model_constructors.utils_tf import *
 else:
-    pass
+    from airontools.model_constructors.model_constructors_torch import *
+    from airontools.model_constructors.utils_torch import *
