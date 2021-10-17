@@ -1,7 +1,7 @@
 from tensorflow.keras import regularizers
 from tensorflow.keras.layers import Concatenate, Reshape, Conv1D, Flatten, LeakyReLU, PReLU, Input, BatchNormalization,\
     Dense, Dropout, Activation, GRU, Bidirectional, Softmax, Conv2D
-from tensorflow.keras import models
+from tensorflow.keras.models import Model
 from tensorflow.python.ops import init_ops
 import tensorflow.keras.backend as K
 import numpy as np
@@ -9,7 +9,6 @@ import tensorflow as tf
 from tensorflow.keras.mixed_precision import experimental as mixed_precision
 from tensorflow.keras.optimizers import Adam
 from sklearn.metrics import classification_report
-from tensorflow.keras.models import Model
 
 
 def custom_block(units, name, specs, input_shape, sequential=False, length=None, bidirectional=False, from_l=1,
@@ -38,7 +37,7 @@ def custom_block(units, name, specs, input_shape, sequential=False, length=None,
         pre_o_dim = o_dim
 
     # Model
-    model = models.Model(inputs=i_l, outputs=o_l, name=name)
+    model = Model(inputs=i_l, outputs=o_l, name=name)
 
     return model
 
@@ -341,7 +340,7 @@ def model_constructor(input_specs, output_specs, devices, model_name='', compile
                 outputs += [o_block(c_block)]
 
     # Define model and compile
-    model = models.Model(inputs=inputs, outputs=outputs, name=model_name)
+    model = Model(inputs=inputs, outputs=outputs, name=model_name)
 
     if compile_model:
 
