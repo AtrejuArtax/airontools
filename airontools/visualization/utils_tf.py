@@ -32,7 +32,7 @@ def save_insights(embeddings, embeddings_names=None, metadata=None,
     # Iterate over embeddings
     for embedding, embeddings_name in zip(embeddings, embeddings_names):
 
-        # Sve data
+        # Save data
         checkpoint = tf.train.Checkpoint(embedding=embedding)
         checkpoint.save(os.path.join(path, embeddings_name + '.ckpt'))
 
