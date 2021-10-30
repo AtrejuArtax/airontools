@@ -6,9 +6,9 @@ from tensorflow.python.ops import init_ops
 import tensorflow.keras.backend as K
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.mixed_precision import experimental as mixed_precision
 from tensorflow.keras.optimizers import Adam
 from sklearn.metrics import classification_report
+from airontools.model_constructors.utils_tf import set_precision
 
 
 def custom_block(units, name, specs, input_shape, sequential=False, length=None, bidirectional=False, from_l=1,
@@ -216,12 +216,7 @@ def model_constructor(input_specs, output_specs, devices, model_name='', compile
     loss = specs['loss'] if 'loss' in specs else 'mse'
 
     # Set precision
-    if 'float16' in precision:
-        if precision == 'mixed_float16':
-            policy = mixed_precision.Policy('mixed_float16')
-            mixed_precision.set_policy(policy)
-        else:
-            tf.keras.backend.set_floatx('float16')
+    set_precision(precision)
 
     # Make the ensemble of models
     inputs = []

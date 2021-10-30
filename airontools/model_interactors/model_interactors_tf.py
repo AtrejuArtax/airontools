@@ -1,20 +1,20 @@
-from tensorflow.keras.models import model_from_json, Model
+from tensorflow.keras.models import model_from_json, Model, load_model
 import tensorflow.keras.backend as bcknd
 
 
 def save_model(model, name):
     model.save_weights(filepath=name + '_weights')
-    with open(name + '_topology', "w") as json_file:
-        json_file.write(model.to_json())
+    # with open(name + '_topology', "w") as json_file:
+    #     json_file.write(model.to_json())
 
 
-def load_model(name, custom_objects=None):
-    json_file = open(name + '_topology', 'r')
-    loaded_model_json = json_file.read()
-    json_file.close()
-    model = model_from_json(loaded_model_json, custom_objects)
-    model.load_weights(filepath=name + '_weights')
-    return model
+# def load_model(name, custom_objects=None):
+#     json_file = open(name + '_topology', 'r')
+#     loaded_model_json = json_file.read()
+#     json_file.close()
+#     model = model_from_json(loaded_model_json, custom_objects)
+#     model.load_weights(filepath=name + '_weights')
+#     return model
 
 
 def clear_session():
