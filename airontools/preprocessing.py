@@ -11,7 +11,7 @@ def sub_sample(data, n):
     return data.loc[:n-1, data_.columns]
 
 
-def array_to_list(input_data, output_data, n_parallel_models, do_kfolds=False, val_ratio=0.2, shuffle=True,
+def array_to_list(input_data, output_data, n_parallel_models=1, do_kfolds=False, val_ratio=0.2, shuffle=True,
                   seed_val=None):
     """ From array to list of numpy.
 
