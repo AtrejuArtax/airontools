@@ -67,7 +67,7 @@ def custom_block(units, input_shape, name=None, sequential=False, length=None, b
     return model
 
 
-def customized_layer(x, name='', name_ext='', units=None, activation='prelu', use_bias=True, sequential=False,
+def customized_layer(x, name=None, name_ext=None, units=None, activation='prelu', use_bias=True, sequential=False,
                      bidirectional=False, return_sequences=False, filters=None, kernel_size=None, padding='valid',
                      conv_transpose=False, strides=(1,1), advanced_reg=False, **reg_kwargs):
     """ It builds a custom layer. reg_kwargs contain everything regarding regularization. For now only 2D convolutions
@@ -112,6 +112,8 @@ def customized_layer(x, name='', name_ext='', units=None, activation='prelu', us
     conv_condition = all([conv_param is not None for conv_param in [filters, kernel_size]])
     if conv_condition and len(input_shape) == 1:
         warnings.warn('if filters and kernel are set then the shape of x should be rank 4')
+    name = name + '_' if name else ''
+    name_ext = '_' + name_ext if name_ext else ''
 
     # Regularization parameters
     dropout_rate = reg_kwargs['dropout_rate'] if 'dropout_rate' in reg_kwargs.keys() \
