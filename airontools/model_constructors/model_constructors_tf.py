@@ -11,8 +11,10 @@ from sklearn.metrics import classification_report
 from airontools.model_constructors.utils_tf import set_precision
 
 
-def custom_block(units, name, specs, input_shape, sequential=False, length=None, bidirectional=False, from_l=1,
-                 activation=None):
+def custom_block(units, name, input_shape, sequential=False, length=None, bidirectional=False, from_l=1,
+                 output_activation=None, **kwargs):
+
+    hidden_activation = kwargs['hidden_activation'] if 'hidden_activation' in kwargs.keys() else 'prelu'
 
     # Hidden layers
     i_l, o_l = Input(shape=input_shape, name=name + '_input'), None
@@ -27,13 +29,13 @@ def custom_block(units, name, specs, input_shape, sequential=False, length=None,
             x=o_l,
             input_shape=input_shape,
             units=o_dim,
-            activation=specs['hidden_activation'] if activation is None else activation,
+            activation=hidden_activation if l == to_l - 1 is None else output_activation,
             name=name,
             name_ext=str(l),
             sequential=sequential,
             return_sequences=True if l < to_l - 1 and sequential else False,
             bidirectional=bidirectional,
-            **specs)
+            **kwargs)
         pre_o_dim = o_dim
 
     # Model
@@ -135,27 +137,27 @@ def customized_layer(x, input_shape, **kwargs):
     activation_ = activation if activation else PReLU
     if activation_ == 'leakyrelu':
         x = LeakyReLU(
-            name=name + activation_ + '' + name_ext,
+            name=name + activation_ + name_ext,
             input_shape=input_shape)(x)
     elif activation_ == 'prelu':
         x = PReLU(
-            name=name + activation_ + '' + name_ext,
+            name=name + activation_ + name_ext,
             input_shape=input_shape,
             alpha_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2))(x)
     elif activation_ == 'softmax':
         x = Softmax(
-            name=name + activation_ + '' + name_ext,
+            name=name + activation_ + name_ext,
             input_shape=input_shape,
             dtype='float32')(x)
     else:
         if isinstance(activation_, str):
             x = Activation(
-                name=name + activation_ + '' + name_ext,
+                name=name + activation_ + name_ext,
                 input_shape=input_shape,
                 activation=activation_)(x)
         else:
             x = activation_(
-                name=name + activation_.name + '' + name_ext,
+                name=name + 'activation' + name_ext,
                 input_shape=input_shape)(x)
 
     return x
@@ -198,22 +200,22 @@ def rm_redundant(values, value):
     return values_
 
 
-def model_constructor(input_specs, output_specs, devices, model_name='', compile_model=True, metrics=None, lr=0.001, **specs):
+def model_constructor(input_specs, output_specs, devices, model_name='', compile_model=True, metrics=None, lr=0.001, **kwargs):
 
-    precision = specs['precision'] if 'precision' in specs else 'float32'
-    parallel_models = specs['parallel_models'] if 'parallel_models' in specs else 1
-    sequential_block = specs['sequential_block'] if 'sequential_block' in specs else False
-    kernel_regularizer_l1 = specs['kernel_regularizer_l1'] if 'kernel_regularizer_l1' in specs else 0
-    kernel_regularizer_l2 = specs['kernel_regularizer_l2'] if 'kernel_regularizer_l2' in specs else 0
-    bias_regularizer_l1 = specs['bias_regularizer_l1'] if 'bias_regularizer_l1' in specs else 0
-    bias_regularizer_l2 = specs['bias_regularizer_l2'] if 'bias_regularizer_l2' in specs else 0
-    compression = specs['compression'] if 'compression' in specs else 0
-    i_n_layers = specs['i_n_layers'] if 'i_n_layers' in specs else 1
-    c_n_layers = specs['c_n_layers'] if 'c_n_layers' in specs else 1
-    bidirectional = specs['bidirectional'] if 'bidirectional' in specs else False
-    output_activation = specs['output_activation'] if 'output_activation' in specs else 'linear'
-    optimizer = specs['optimizer'] if 'optimizer' in specs else Adam(learning_rate=lr)
-    loss = specs['loss'] if 'loss' in specs else 'mse'
+    precision = kwargs['precision'] if 'precision' in kwargs else 'float32'
+    parallel_models = kwargs['parallel_models'] if 'parallel_models' in kwargs else 1
+    sequential_block = kwargs['sequential_block'] if 'sequential_block' in kwargs else False
+    kernel_regularizer_l1 = kwargs['kernel_regularizer_l1'] if 'kernel_regularizer_l1' in kwargs else 0
+    kernel_regularizer_l2 = kwargs['kernel_regularizer_l2'] if 'kernel_regularizer_l2' in kwargs else 0
+    bias_regularizer_l1 = kwargs['bias_regularizer_l1'] if 'bias_regularizer_l1' in kwargs else 0
+    bias_regularizer_l2 = kwargs['bias_regularizer_l2'] if 'bias_regularizer_l2' in kwargs else 0
+    compression = kwargs['compression'] if 'compression' in kwargs else 0
+    i_n_layers = kwargs['i_n_layers'] if 'i_n_layers' in kwargs else 1
+    c_n_layers = kwargs['c_n_layers'] if 'c_n_layers' in kwargs else 1
+    bidirectional = kwargs['bidirectional'] if 'bidirectional' in kwargs else False
+    output_activation = kwargs['output_activation'] if 'output_activation' in kwargs else 'linear'
+    optimizer = kwargs['optimizer'] if 'optimizer' in kwargs else Adam(learning_rate=lr)
+    loss = kwargs['loss'] if 'loss' in kwargs else 'mse'
 
     # Set precision
     set_precision(precision)
@@ -292,11 +294,11 @@ def model_constructor(input_specs, output_specs, devices, model_name='', compile
                 to_l += [len(i_units)]
                 i_block = custom_block(units=i_units,
                                        name=i_block_name,
-                                       specs=specs,
                                        input_shape=tuple([d for d in x.shape][1:]),
                                        sequential=sequential,
                                        length=length,
-                                       bidirectional=bidirectional_)
+                                       bidirectional=bidirectional_,
+                                       **kwargs)
                 i_blocks += [i_block(x_)]
 
             # Concat input blocks
@@ -317,9 +319,9 @@ def model_constructor(input_specs, output_specs, devices, model_name='', compile
             c_block_name = name + '_c_block'
             c_block = custom_block(units=c_units,
                                    name=c_block_name,
-                                   specs=specs,
                                    input_shape=tuple([d for d in i_blocks.shape][1:]),
-                                   from_l=from_l)
+                                   from_l=from_l,
+                                   **kwargs)
             c_block = c_block(i_blocks)
 
             # Output Blocks
@@ -328,10 +330,10 @@ def model_constructor(input_specs, output_specs, devices, model_name='', compile
                 o_block_name = name + '_' + o_name
                 o_block = custom_block(units=[o_dim],
                                        name=o_block_name,
-                                       specs=specs,
                                        input_shape=tuple([d for d in c_block.shape][1:]),
                                        from_l=from_l,
-                                       activation=output_activation)
+                                       activation=output_activation,
+                                       **kwargs)
                 outputs += [o_block(c_block)]
 
     # Define model and compile
