@@ -1,8 +1,7 @@
 from tensorflow.keras import regularizers
 from tensorflow.keras.layers import *
 from tensorflow.keras.models import Model
-from tensorflow.python.ops import init_ops
-import tensorflow.keras.backend as K
+import tensorflow.keras.backend as k_bcknd
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
@@ -65,7 +64,8 @@ def custom_block(units, input_shape, name=None, sequential=False, length=None, b
 
 
 def customized_layer(x, name='', name_ext='', units=None, activation='prelu', sequential=False, bidirectional=False,
-                     return_sequences=False, filters=None, kernel_size=None, conv_transpose=False, **reg_kwargs):
+                     return_sequences=False, filters=None, kernel_size=None, conv_transpose=False, strides=(1,1),
+                     **reg_kwargs):
     """ It builds a custom layer. reg_kwargs contain everything regarding regularization. For now only 2D convolutions
     are supported for input of rank 4. ToDo: add transformers.
 
@@ -86,6 +86,8 @@ def customized_layer(x, name='', name_ext='', units=None, activation='prelu', se
             kernel_size (int): Kernel size for the convolutional layer.
             conv_transpose (bool): Whether to use a transpose conv layer or not (only active if filters and
             kernel_size are set).
+            strides (tuple, int): Strides for the conv layer (only active if filters and
+            kernel_size are set).
             dropout_rate (float): Probability of each intput being disconnected.
             kernel_regularizer_l1 (float): Kernel regularization using l1 penalization (Lasso).
             kernel_regularizer_l2 (float): Kernel regularization using l2 penalization (Ridge).
@@ -100,20 +102,16 @@ def customized_layer(x, name='', name_ext='', units=None, activation='prelu', se
     input_shape = tuple(list(x.shape[1:]),)
 
     # Regularization parameters
-    dropout_rate = reg_kwargs['dropout_rate'] if 'dropout_rate' in reg_kwargs.keys() else None
+    dropout_rate = reg_kwargs['dropout_rate'] if 'dropout_rate' in reg_kwargs.keys() else 0
     kernel_regularizer_l1 = reg_kwargs['kernel_regularizer_l1'] if 'kernel_regularizer_l1' in reg_kwargs.keys() else None
     kernel_regularizer_l2 = reg_kwargs['kernel_regularizer_l2'] if 'kernel_regularizer_l2' in reg_kwargs.keys() else None
     bias_regularizer_l1 = reg_kwargs['bias_regularizer_l1'] if 'bias_regularizer_l1' in reg_kwargs.keys() else None
     bias_regularizer_l2 = reg_kwargs['bias_regularizer_l2'] if 'bias_regularizer_l2' in reg_kwargs.keys() else None
     bn = reg_kwargs['bn'] if 'bn' in reg_kwargs.keys() else False
 
-    # Conditions
-    conv_condition = all([conv_param is not None for conv_param in [filters, kernel_size]])
-    dropout_condition = dropout_rate and dropout_rate != 0
-
     # Dropout
-    if dropout_condition:
-        if conv_condition:
+    if dropout_rate != 0:
+        if not len(input_shape) == 1:
             x = Flatten(name=name + 'predropout_flatten' + name_ext)(x)
         x = Dropout(
             name=name + 'dropout' + name_ext,
@@ -121,69 +119,57 @@ def customized_layer(x, name='', name_ext='', units=None, activation='prelu', se
             input_shape=input_shape)(x)
 
     # Convolution
-    if filters and kernel_size:
-        if dropout_condition:
+    if all([conv_param is not None for conv_param in [filters, kernel_size]]):
+        if len(x.shape[1:]) == 1:
             x = Reshape(name=name + 'preconv_reshape' + name_ext, target_shape=input_shape)(x)
         conv_kwargs = dict(input_shape=input_shape,
                            filters=filters,
                            kernel_size=kernel_size,
+                           strides=strides,
                            use_bias=True,
-                           kernel_initializer=init_ops.random_normal_initializer(),
-                           bias_initializer=init_ops.zeros_initializer(),
                            kernel_regularizer=get_regularizer(kernel_regularizer_l1, kernel_regularizer_l2),
                            bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2))
         if conv_transpose:
-            x = Conv2D(name=name + 'conv2d' + name_ext,
-                       **conv_kwargs)(x)
-        else:
             x = Conv2DTranspose(name=name + 'conv2d' + name_ext,
                                 **conv_kwargs)(x)
+        else:
+            x = Conv2D(name=name + 'conv2d' + name_ext,
+                       **conv_kwargs)(x)
 
     # Recurrent
     if sequential:
+        seq_kwargs = dict(input_shape=input_shape,
+                          units=units,
+                          use_bias=True,
+                          kernel_regularizer=get_regularizer(kernel_regularizer_l1, kernel_regularizer_l2),
+                          bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
+                          return_sequences=return_sequences,
+                          activation='linear')
         if bidirectional:
             x = Bidirectional(GRU(
                 name=name + 'gru' + name_ext,
-                input_shape=input_shape,
-                units=units,
-                use_bias=True,
-                kernel_initializer=init_ops.random_normal_initializer(),
-                bias_initializer=init_ops.zeros_initializer(),
-                kernel_regularizer=get_regularizer(kernel_regularizer_l1, kernel_regularizer_l2),
-                bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
-                return_sequences=return_sequences,
-                activation='linear'),
+                **seq_kwargs),
                 input_shape=input_shape)(x)
         else:
             x = GRU(
                 name=name + 'gru' + name_ext,
-                input_shape=input_shape,
-                units=units,
-                use_bias=True,
-                kernel_initializer=init_ops.random_normal_initializer(),
-                bias_initializer=init_ops.zeros_initializer(),
-                kernel_regularizer=get_regularizer(kernel_regularizer_l1, kernel_regularizer_l2),
-                bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
-                return_sequences=return_sequences,
-                activation='linear')(x)
+                **seq_kwargs)(x)
 
     # Dense
     elif units:
-        if conv_condition:
+        if len(x.shape[1:]) != 1:
             x = Flatten(name=name + 'predense_flatten' + name_ext)(x)
         x = Dense(
             name=name + 'dense' + name_ext,
             input_shape=input_shape,
             units=units,
             use_bias=True,
-            kernel_initializer=init_ops.random_normal_initializer(),
-            bias_initializer=init_ops.zeros_initializer(),
             kernel_regularizer=get_regularizer(kernel_regularizer_l1, kernel_regularizer_l2),
             bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2))(x)
 
     # Batch Normalization
     if bn:
-        if conv_condition:
+        if len(x.shape[1:]) != 1:
             x = Flatten(name=name + 'prebn_flatten' + name_ext)(x)
         x = BatchNormalization(
             name=name + 'batch_normalization' + name_ext,
@@ -220,7 +206,7 @@ def customized_layer(x, name='', name_ext='', units=None, activation='prelu', se
 
 
 def to_time_series(tensor):
-    return K.expand_dims(tensor, axis=2)
+    return k_bckndexpand_dims(tensor, axis=2)
 
 
 def evaluate_clf(cat_encoder, model, x, y):
@@ -308,13 +294,13 @@ def model_constructor(input_specs, output_specs, devices, model_name='', compile
                 x = Input(shape=i_shape,
                           name=i_block_name + '_input')
                 if not i_specs['sequential'] and i_specs['type'] == 'cat':
-                    x_ = Reshape((K.int_shape(x)[-1],), name=i_block_name + '_cat_reshape')(x)
+                    x_ = Reshape((k_bckndint_shape(x)[-1],), name=i_block_name + '_cat_reshape')(x)
                 else:
                     x_ = x
                 if i_specs['sequential'] and not sequential_block:
                     x_ = Conv1D(name=i_block_name + '_cnn1d',
-                                filters=int(K.int_shape(x_)[2] / 2) + 1,
-                                kernel_size=int(K.int_shape(x_)[1] / 2) + 1,
+                                filters=int(k_bckndint_shape(x_)[2] / 2) + 1,
+                                kernel_size=int(k_bckndint_shape(x_)[1] / 2) + 1,
                                 use_bias=True,
                                 kernel_regularizer=regularizers.l1_l2(
                                    l1=kernel_regularizer_l1,
@@ -326,8 +312,6 @@ def model_constructor(input_specs, output_specs, devices, model_name='', compile
                     x_ = Dense(name=i_block_name + '_dense',
                                units=i_specs['dim'],
                                use_bias=True,
-                               kernel_initializer=init_ops.random_normal_initializer(),
-                               bias_initializer=init_ops.zeros_initializer(),
                                kernel_regularizer=regularizers.l1_l2(
                                    l1=kernel_regularizer_l1,
                                    l2=kernel_regularizer_l2),
@@ -365,7 +349,7 @@ def model_constructor(input_specs, output_specs, devices, model_name='', compile
 
             # Define core block units
             c_units = get_layer_units(
-                input_dim=K.int_shape(i_blocks)[-1],
+                input_dim=k_bckndint_shape(i_blocks)[-1],
                 output_dim=o_dim + 1,
                 n_layers=c_n_layers)[1:]
 
