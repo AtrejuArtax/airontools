@@ -1,6 +1,5 @@
 from tensorflow.keras import regularizers
-from tensorflow.keras.layers import Concatenate, Reshape, Conv1D, Flatten, LeakyReLU, PReLU, Input, BatchNormalization,\
-    Dense, Dropout, Activation, GRU, Bidirectional, Softmax, Conv2D
+from tensorflow.keras.layers import *
 from tensorflow.keras.models import Model
 from tensorflow.python.ops import init_ops
 import tensorflow.keras.backend as K
@@ -11,10 +10,31 @@ from sklearn.metrics import classification_report
 from airontools.model_constructors.utils_tf import set_precision
 
 
-def custom_block(units, name, input_shape, sequential=False, length=None, bidirectional=False, from_l=1,
-                 output_activation=None, **kwargs):
+def custom_block(units, input_shape, name=None, sequential=False, length=None, bidirectional=False, from_l=1,
+                 output_activation='linear', hidden_activation='prelu', **reg_kwargs):
+    """ It builds a custom block. reg_kwargs contain everything regarding regularization.
 
-    hidden_activation = kwargs['hidden_activation'] if 'hidden_activation' in kwargs.keys() else 'prelu'
+        Parameters:
+            units (list): Number of units per hidden layer.
+            input_shape (tuple): Input shape.
+            name (str): Name of the block.
+            sequential (bool): Whether to consider a sequential model or not.
+            length (int): Length of the sequence (only active if sequential).
+            bidirectional (bool): Whether to consider bidirectional case or not (only active if sequential).
+            from_l (int): The number indicator of the first hidden layer of the block, useful to make sure that layer
+            names are not repeated.
+            output_activation (str): The activation function of the output of the block.
+            hidden_activation (str): Hidden activation function.
+            dropout_rate (float): Probability of each intput being disconnected.
+            kernel_regularizer_l1 (float): Kernel regularization using l1 penalization (Lasso).
+            kernel_regularizer_l2 (float): Kernel regularization using l2 penalization (Ridge).
+            bias_regularizer_l1 (float): Bias regularization using l1 penalization (Lasso).
+            bias_regularizer_l2 (float): Bias regularization using l2 penalization (Ridge).
+            bn (bool): If set, a batch normalization layer will be added right before the output activation function.
+
+        Returns:
+            model (Model): A keras model.
+    """
 
     # Hidden layers
     i_l, o_l = Input(shape=input_shape, name=name + '_input'), None
@@ -35,7 +55,7 @@ def custom_block(units, name, input_shape, sequential=False, length=None, bidire
             sequential=sequential,
             return_sequences=True if l < to_l - 1 and sequential else False,
             bidirectional=bidirectional,
-            **kwargs)
+            **reg_kwargs)
         pre_o_dim = o_dim
 
     # Model
@@ -44,23 +64,44 @@ def custom_block(units, name, input_shape, sequential=False, length=None, bidire
     return model
 
 
-def customized_layer(x, input_shape, **kwargs):
+def customized_layer(x, name='', name_ext='', units=None, activation='prelu', sequential=False, bidirectional=False,
+                     return_sequences=False, filters=None, kernel_size=None, **reg_kwargs):
+    """ It builds a custom layer. reg_kwargs contain everything regarding regularization.
 
-    units = kwargs['units'] if 'units' in kwargs.keys() else None
-    name = kwargs['name'] + '_' if 'name' in kwargs.keys() else ''
-    name_ext = '_' + kwargs['name_ext'] if 'name_ext' in kwargs.keys() else ''
-    activation = kwargs['activation'] if 'activation' in kwargs.keys() else None
-    return_sequences = kwargs['return_sequences'] if 'return_sequences' in kwargs.keys() else False
-    sequential = kwargs['sequential'] if 'sequential' in kwargs.keys() else False
-    bidirectional = kwargs['bidirectional'] if 'bidirectional' in kwargs.keys() else False
-    filters = kwargs['filters'] if 'filters' in kwargs.keys() else None
-    kernel_size = kwargs['kernel_size'] if 'kernel_size' in kwargs.keys() else None
-    dropout_rate = kwargs['dropout_rate'] if 'dropout_rate' in kwargs.keys() else None
-    kernel_regularizer_l1 = kwargs['kernel_regularizer_l1'] if 'kernel_regularizer_l1' in kwargs.keys() else None
-    kernel_regularizer_l2 = kwargs['kernel_regularizer_l2'] if 'kernel_regularizer_l2' in kwargs.keys() else None
-    bias_regularizer_l1 = kwargs['bias_regularizer_l1'] if 'bias_regularizer_l1' in kwargs.keys() else None
-    bias_regularizer_l2 = kwargs['bias_regularizer_l2'] if 'bias_regularizer_l2' in kwargs.keys() else None
-    bn = kwargs['bn'] if 'bn' in kwargs.keys() else False
+        Parameters:
+            x (Layer): Input layer.
+            name (str): Name of the custom layer.
+            name_ext (str): Extension name for the custom layer that will be at the end of of it.
+            units (int): Number of units for the dense layer. If a value is given, a dense layer will be added
+            automatically if not sequential, else a sequential model. Useful to force an output dimensionality of the
+            custom layer when using convolutional layers.
+            activation (str): The activation function of the output of the last hidden layer.
+            sequential (bool): Whether to consider a sequential custom layer or not.
+            bidirectional (bool): Whether to consider bidirectional case or not (only active if sequential).
+            names are not repeated.
+            return_sequences (bool): Whether to return sequences or not (only active if sequential).
+            filters (int): Number of filters to be used. If a value is given, a convolutional layer will be
+            automatically added.
+            dropout_rate (float): Probability of each intput being disconnected.
+            kernel_regularizer_l1 (float): Kernel regularization using l1 penalization (Lasso).
+            kernel_regularizer_l2 (float): Kernel regularization using l2 penalization (Ridge).
+            bias_regularizer_l1 (float): Bias regularization using l1 penalization (Lasso).
+            bias_regularizer_l2 (float): Bias regularization using l2 penalization (Ridge).
+            bn (bool): If set, a batch normalization layer will be added right before the output activation function.
+
+        Returns:
+            model (Model): A keras model.
+    """
+
+    input_shape = tuple(list(x.shape[1:]),)
+
+    # Regularization parameters
+    dropout_rate = reg_kwargs['dropout_rate'] if 'dropout_rate' in reg_kwargs.keys() else None
+    kernel_regularizer_l1 = reg_kwargs['kernel_regularizer_l1'] if 'kernel_regularizer_l1' in reg_kwargs.keys() else None
+    kernel_regularizer_l2 = reg_kwargs['kernel_regularizer_l2'] if 'kernel_regularizer_l2' in reg_kwargs.keys() else None
+    bias_regularizer_l1 = reg_kwargs['bias_regularizer_l1'] if 'bias_regularizer_l1' in reg_kwargs.keys() else None
+    bias_regularizer_l2 = reg_kwargs['bias_regularizer_l2'] if 'bias_regularizer_l2' in reg_kwargs.keys() else None
+    bn = reg_kwargs['bn'] if 'bn' in reg_kwargs.keys() else False
 
     # Flatten
     if filters and kernel_size:
