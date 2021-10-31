@@ -66,7 +66,8 @@ def custom_block(units, input_shape, name=None, sequential=False, length=None, b
 
 def customized_layer(x, name='', name_ext='', units=None, activation='prelu', sequential=False, bidirectional=False,
                      return_sequences=False, filters=None, kernel_size=None, **reg_kwargs):
-    """ It builds a custom layer. reg_kwargs contain everything regarding regularization.
+    """ It builds a custom layer. reg_kwargs contain everything regarding regularization. For now only 2D convolutions
+    are supported for input of rank 4. ToDo: add transformers.
 
         Parameters:
             x (Layer): Input layer.
@@ -103,20 +104,23 @@ def customized_layer(x, name='', name_ext='', units=None, activation='prelu', se
     bias_regularizer_l2 = reg_kwargs['bias_regularizer_l2'] if 'bias_regularizer_l2' in reg_kwargs.keys() else None
     bn = reg_kwargs['bn'] if 'bn' in reg_kwargs.keys() else False
 
-    # Flatten
-    if filters and kernel_size:
-        x = Flatten(name=name + 'input_flatten' + name_ext)(x)
+    # Conditions
+    conv_condition = all([conv_param is not None for conv_param in [filters, kernel_size]])
+    dropout_condition = dropout_rate and dropout_rate != 0
 
     # Dropout
-    if dropout_rate and dropout_rate != 0:
+    if dropout_condition:
+        if conv_condition:
+            x = Flatten(name=name + 'predropout_flatten' + name_ext)(x)
         x = Dropout(
             name=name + 'dropout' + name_ext,
             rate=dropout_rate,
             input_shape=input_shape)(x)
 
-    # Conv
+    # Convolution
     if filters and kernel_size:
-        x = Reshape(name=name + 'preconv_reshape' + name_ext, target_shape=input_shape)(x)
+        if dropout_condition:
+            x = Reshape(name=name + 'preconv_reshape' + name_ext, target_shape=input_shape)(x)
         x = Conv2D(name=name + 'conv2d' + name_ext,
                    input_shape=input_shape,
                    filters=filters,
@@ -126,7 +130,6 @@ def customized_layer(x, name='', name_ext='', units=None, activation='prelu', se
                    bias_initializer=init_ops.zeros_initializer(),
                    kernel_regularizer=get_regularizer(kernel_regularizer_l1, kernel_regularizer_l2),
                    bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2))(x)
-        x = Flatten(name=name + 'postconv_flatten' + name_ext)(x)
 
     # Recurrent
     if sequential:
@@ -158,6 +161,8 @@ def customized_layer(x, name='', name_ext='', units=None, activation='prelu', se
 
     # Dense
     elif units:
+        if conv_condition:
+            x = Flatten(name=name + 'predense_flatten' + name_ext)(x)
         x = Dense(
             name=name + 'dense' + name_ext,
             input_shape=input_shape,
@@ -170,6 +175,8 @@ def customized_layer(x, name='', name_ext='', units=None, activation='prelu', se
 
     # Batch Normalization
     if bn:
+        if conv_condition:
+            x = Flatten(name=name + 'prebn_flatten' + name_ext)(x)
         x = BatchNormalization(
             name=name + 'batch_normalization' + name_ext,
             input_shape=input_shape)(x)
