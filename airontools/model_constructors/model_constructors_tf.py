@@ -10,7 +10,7 @@ from airontools.model_constructors.utils_tf import set_precision
 
 
 def custom_block(units, input_shape, name=None, sequential=False, length=None, bidirectional=False, from_l=1,
-                 output_activation='linear', hidden_activation='prelu', **reg_kwargs):
+                 output_activation='linear', hidden_activation='prelu', advanced_params=False, **reg_kwargs):
     """ It builds a custom block. reg_kwargs contain everything regarding regularization.
 
         Parameters:
@@ -24,6 +24,8 @@ def custom_block(units, input_shape, name=None, sequential=False, length=None, b
             names are not repeated.
             output_activation (str): The activation function of the output of the block.
             hidden_activation (str): Hidden activation function.
+            advanced_reg (bool): Whether to automatically set advanced regularization. Useful to quickly make use of all
+            the regularization properties.
             dropout_rate (float): Probability of each intput being disconnected.
             kernel_regularizer_l1 (float): Kernel regularization using l1 penalization (Lasso).
             kernel_regularizer_l2 (float): Kernel regularization using l2 penalization (Ridge).
@@ -54,6 +56,7 @@ def custom_block(units, input_shape, name=None, sequential=False, length=None, b
             sequential=sequential,
             return_sequences=True if l < to_l - 1 and sequential else False,
             bidirectional=bidirectional,
+            advanced_params=advanced_params,
             **reg_kwargs)
         pre_o_dim = o_dim
 
@@ -65,7 +68,7 @@ def custom_block(units, input_shape, name=None, sequential=False, length=None, b
 
 def customized_layer(x, name='', name_ext='', units=None, activation='prelu', sequential=False, bidirectional=False,
                      return_sequences=False, filters=None, kernel_size=None, conv_transpose=False, strides=(1,1),
-                     **reg_kwargs):
+                     advanced_reg=False, **reg_kwargs):
     """ It builds a custom layer. reg_kwargs contain everything regarding regularization. For now only 2D convolutions
     are supported for input of rank 4. ToDo: add transformers.
 
@@ -88,6 +91,8 @@ def customized_layer(x, name='', name_ext='', units=None, activation='prelu', se
             kernel_size are set).
             strides (tuple, int): Strides for the conv layer (only active if filters and
             kernel_size are set).
+            advanced_reg (bool): Whether to automatically set advanced regularization. Useful to quickly make use of all
+            the regularization properties.
             dropout_rate (float): Probability of each intput being disconnected.
             kernel_regularizer_l1 (float): Kernel regularization using l1 penalization (Lasso).
             kernel_regularizer_l2 (float): Kernel regularization using l2 penalization (Ridge).
@@ -102,12 +107,17 @@ def customized_layer(x, name='', name_ext='', units=None, activation='prelu', se
     input_shape = tuple(list(x.shape[1:]),)
 
     # Regularization parameters
-    dropout_rate = reg_kwargs['dropout_rate'] if 'dropout_rate' in reg_kwargs.keys() else 0
-    kernel_regularizer_l1 = reg_kwargs['kernel_regularizer_l1'] if 'kernel_regularizer_l1' in reg_kwargs.keys() else None
-    kernel_regularizer_l2 = reg_kwargs['kernel_regularizer_l2'] if 'kernel_regularizer_l2' in reg_kwargs.keys() else None
-    bias_regularizer_l1 = reg_kwargs['bias_regularizer_l1'] if 'bias_regularizer_l1' in reg_kwargs.keys() else None
-    bias_regularizer_l2 = reg_kwargs['bias_regularizer_l2'] if 'bias_regularizer_l2' in reg_kwargs.keys() else None
-    bn = reg_kwargs['bn'] if 'bn' in reg_kwargs.keys() else False
+    dropout_rate = reg_kwargs['dropout_rate'] if 'dropout_rate' in reg_kwargs.keys() \
+        else 0.1 if advanced_reg else 0
+    kernel_regularizer_l1 = reg_kwargs['kernel_regularizer_l1'] if 'kernel_regularizer_l1' in reg_kwargs.keys() \
+        else 0.001 if advanced_reg else None
+    kernel_regularizer_l2 = reg_kwargs['kernel_regularizer_l2'] if 'kernel_regularizer_l2' in reg_kwargs.keys() \
+        else 0.001 if advanced_reg else None
+    bias_regularizer_l1 = reg_kwargs['bias_regularizer_l1'] if 'bias_regularizer_l1' in reg_kwargs.keys() \
+        else 0.001 if advanced_reg else None
+    bias_regularizer_l2 = reg_kwargs['bias_regularizer_l2'] if 'bias_regularizer_l2' in reg_kwargs.keys() \
+        else 0.001 if advanced_reg else None
+    bn = reg_kwargs['bn'] if 'bn' in reg_kwargs.keys() else True if advanced_reg else False
 
     # Dropout
     if dropout_rate != 0:
