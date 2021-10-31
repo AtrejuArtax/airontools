@@ -65,7 +65,7 @@ def custom_block(units, input_shape, name=None, sequential=False, length=None, b
 
 
 def customized_layer(x, name='', name_ext='', units=None, activation='prelu', sequential=False, bidirectional=False,
-                     return_sequences=False, filters=None, kernel_size=None, **reg_kwargs):
+                     return_sequences=False, filters=None, kernel_size=None, conv_transpose=False, **reg_kwargs):
     """ It builds a custom layer. reg_kwargs contain everything regarding regularization. For now only 2D convolutions
     are supported for input of rank 4. ToDo: add transformers.
 
@@ -83,6 +83,9 @@ def customized_layer(x, name='', name_ext='', units=None, activation='prelu', se
             return_sequences (bool): Whether to return sequences or not (only active if sequential).
             filters (int): Number of filters to be used. If a value is given, a convolutional layer will be
             automatically added.
+            kernel_size (int): Kernel size for the convolutional layer.
+            conv_transpose (bool): Whether to use a transpose conv layer or not (only active if filters and
+            kernel_size are set).
             dropout_rate (float): Probability of each intput being disconnected.
             kernel_regularizer_l1 (float): Kernel regularization using l1 penalization (Lasso).
             kernel_regularizer_l2 (float): Kernel regularization using l2 penalization (Ridge).
@@ -121,15 +124,20 @@ def customized_layer(x, name='', name_ext='', units=None, activation='prelu', se
     if filters and kernel_size:
         if dropout_condition:
             x = Reshape(name=name + 'preconv_reshape' + name_ext, target_shape=input_shape)(x)
-        x = Conv2D(name=name + 'conv2d' + name_ext,
-                   input_shape=input_shape,
-                   filters=filters,
-                   kernel_size=kernel_size,
-                   use_bias=True,
-                   kernel_initializer=init_ops.random_normal_initializer(),
-                   bias_initializer=init_ops.zeros_initializer(),
-                   kernel_regularizer=get_regularizer(kernel_regularizer_l1, kernel_regularizer_l2),
-                   bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2))(x)
+        conv_kwargs = dict(input_shape=input_shape,
+                           filters=filters,
+                           kernel_size=kernel_size,
+                           use_bias=True,
+                           kernel_initializer=init_ops.random_normal_initializer(),
+                           bias_initializer=init_ops.zeros_initializer(),
+                           kernel_regularizer=get_regularizer(kernel_regularizer_l1, kernel_regularizer_l2),
+                           bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2))
+        if conv_transpose:
+            x = Conv2D(name=name + 'conv2d' + name_ext,
+                       **conv_kwargs)(x)
+        else:
+            x = Conv2DTranspose(name=name + 'conv2d' + name_ext,
+                                **conv_kwargs)(x)
 
     # Recurrent
     if sequential:
