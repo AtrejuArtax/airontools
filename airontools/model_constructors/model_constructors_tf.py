@@ -2,6 +2,7 @@ from tensorflow.keras import regularizers
 from tensorflow.keras.layers import *
 from tensorflow.keras.models import Model
 import tensorflow.keras.backend as k_bcknd
+import warnings
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
@@ -10,7 +11,7 @@ from airontools.model_constructors.utils_tf import set_precision
 
 
 def custom_block(units, input_shape, name=None, sequential=False, length=None, bidirectional=False, from_l=1,
-                 output_activation='linear', hidden_activation='prelu', advanced_params=False, **reg_kwargs):
+                 output_activation='linear', hidden_activation='prelu', advanced_reg=False, **reg_kwargs):
     """ It builds a custom block. reg_kwargs contain everything regarding regularization.
 
         Parameters:
@@ -56,7 +57,7 @@ def custom_block(units, input_shape, name=None, sequential=False, length=None, b
             sequential=sequential,
             return_sequences=True if l < to_l - 1 and sequential else False,
             bidirectional=bidirectional,
-            advanced_params=advanced_params,
+            advanced_reg=advanced_reg,
             **reg_kwargs)
         pre_o_dim = o_dim
 
@@ -66,9 +67,9 @@ def custom_block(units, input_shape, name=None, sequential=False, length=None, b
     return model
 
 
-def customized_layer(x, name='', name_ext='', units=None, activation='prelu', sequential=False, bidirectional=False,
-                     return_sequences=False, filters=None, kernel_size=None, conv_transpose=False, strides=(1,1),
-                     advanced_reg=False, **reg_kwargs):
+def customized_layer(x, name='', name_ext='', units=None, activation='prelu', use_bias=True, sequential=False,
+                     bidirectional=False, return_sequences=False, filters=None, kernel_size=None, padding='valid',
+                     conv_transpose=False, strides=(1,1), advanced_reg=False, **reg_kwargs):
     """ It builds a custom layer. reg_kwargs contain everything regarding regularization. For now only 2D convolutions
     are supported for input of rank 4. ToDo: add transformers.
 
@@ -80,6 +81,7 @@ def customized_layer(x, name='', name_ext='', units=None, activation='prelu', se
             automatically if not sequential, else a sequential model. Useful to force an output dimensionality of the
             custom layer when using convolutional layers.
             activation (str): The activation function of the output of the last hidden layer.
+            use_bias (bool): Whether to sue bias or not.
             sequential (bool): Whether to consider a sequential custom layer or not.
             bidirectional (bool): Whether to consider bidirectional case or not (only active if sequential).
             names are not repeated.
@@ -90,6 +92,8 @@ def customized_layer(x, name='', name_ext='', units=None, activation='prelu', se
             conv_transpose (bool): Whether to use a transpose conv layer or not (only active if filters and
             kernel_size are set).
             strides (tuple, int): Strides for the conv layer (only active if filters and
+            kernel_size are set).
+            padding (str): Padding to be applied (only active if filters and
             kernel_size are set).
             advanced_reg (bool): Whether to automatically set advanced regularization. Useful to quickly make use of all
             the regularization properties.
@@ -105,6 +109,9 @@ def customized_layer(x, name='', name_ext='', units=None, activation='prelu', se
     """
 
     input_shape = tuple(list(x.shape[1:]),)
+    conv_condition = all([conv_param is not None for conv_param in [filters, kernel_size]])
+    if conv_condition and len(input_shape) == 1:
+        warnings.warn('if filters and kernel are set then the shape of x should be rank 4')
 
     # Regularization parameters
     dropout_rate = reg_kwargs['dropout_rate'] if 'dropout_rate' in reg_kwargs.keys() \
@@ -129,14 +136,14 @@ def customized_layer(x, name='', name_ext='', units=None, activation='prelu', se
             input_shape=input_shape)(x)
 
     # Convolution
-    if all([conv_param is not None for conv_param in [filters, kernel_size]]):
+    if conv_condition:
         if len(x.shape[1:]) == 1:
             x = Reshape(name=name + 'preconv_reshape' + name_ext, target_shape=input_shape)(x)
-        conv_kwargs = dict(input_shape=input_shape,
+        conv_kwargs = dict(use_bias=use_bias,
                            filters=filters,
                            kernel_size=kernel_size,
                            strides=strides,
-                           use_bias=True,
+                           padding=padding,
                            kernel_regularizer=get_regularizer(kernel_regularizer_l1, kernel_regularizer_l2),
                            bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2))
         if conv_transpose:
@@ -150,7 +157,7 @@ def customized_layer(x, name='', name_ext='', units=None, activation='prelu', se
     if sequential:
         seq_kwargs = dict(input_shape=input_shape,
                           units=units,
-                          use_bias=True,
+                          use_bias=use_bias,
                           kernel_regularizer=get_regularizer(kernel_regularizer_l1, kernel_regularizer_l2),
                           bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
                           return_sequences=return_sequences,
@@ -173,14 +180,19 @@ def customized_layer(x, name='', name_ext='', units=None, activation='prelu', se
             name=name + 'dense' + name_ext,
             input_shape=input_shape,
             units=units,
-            use_bias=True,
+            use_bias=use_bias,
             kernel_regularizer=get_regularizer(kernel_regularizer_l1, kernel_regularizer_l2),
             bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2))(x)
 
+    # Pre output reshape
+    post_output_shape = None
+    if len(x.shape[1:]) != 1:
+        post_output_shape = x.shape[1:]
+        x = Flatten(name=name + 'pre_output_flatten' + name_ext)(x)
+
     # Batch Normalization
     if bn:
-        if len(x.shape[1:]) != 1:
-            x = Flatten(name=name + 'prebn_flatten' + name_ext)(x)
+
         x = BatchNormalization(
             name=name + 'batch_normalization' + name_ext,
             input_shape=input_shape)(x)
@@ -212,11 +224,15 @@ def customized_layer(x, name='', name_ext='', units=None, activation='prelu', se
                 name=name + 'activation' + name_ext,
                 input_shape=input_shape)(x)
 
+    # Post output reshape
+    if post_output_shape:
+        x = Reshape(name=name + 'post_output_reshape' + name_ext, target_shape=post_output_shape)(x)
+
     return x
 
 
 def to_time_series(tensor):
-    return k_bckndexpand_dims(tensor, axis=2)
+    return k_bcknd.expand_dims(tensor, axis=2)
 
 
 def evaluate_clf(cat_encoder, model, x, y):
@@ -304,13 +320,13 @@ def model_constructor(input_specs, output_specs, devices, model_name='', compile
                 x = Input(shape=i_shape,
                           name=i_block_name + '_input')
                 if not i_specs['sequential'] and i_specs['type'] == 'cat':
-                    x_ = Reshape((k_bckndint_shape(x)[-1],), name=i_block_name + '_cat_reshape')(x)
+                    x_ = Reshape((k_bcknd.int_shape(x)[-1],), name=i_block_name + '_cat_reshape')(x)
                 else:
                     x_ = x
                 if i_specs['sequential'] and not sequential_block:
                     x_ = Conv1D(name=i_block_name + '_cnn1d',
-                                filters=int(k_bckndint_shape(x_)[2] / 2) + 1,
-                                kernel_size=int(k_bckndint_shape(x_)[1] / 2) + 1,
+                                filters=int(k_bcknd.int_shape(x_)[2] / 2) + 1,
+                                kernel_size=int(k_bcknd.int_shape(x_)[1] / 2) + 1,
                                 use_bias=True,
                                 kernel_regularizer=regularizers.l1_l2(
                                    l1=kernel_regularizer_l1,
@@ -359,7 +375,7 @@ def model_constructor(input_specs, output_specs, devices, model_name='', compile
 
             # Define core block units
             c_units = get_layer_units(
-                input_dim=k_bckndint_shape(i_blocks)[-1],
+                input_dim=k_bcknd.int_shape(i_blocks)[-1],
                 output_dim=o_dim + 1,
                 n_layers=c_n_layers)[1:]
 
