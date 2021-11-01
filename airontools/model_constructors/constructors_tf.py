@@ -55,7 +55,7 @@ def layer_constructor(x, name=None, name_ext=None, units=None, activation=None, 
     conv_condition = all([conv_param is not None for conv_param in [filters, kernel_size]])
     if conv_condition and len(input_shape) == 1:
         warnings.warn('if filters and kernel are set then the shape of x should be rank 4')
-    name = name if name else ''
+    name = name if name else 'layer'
     name_ext = name_ext if name_ext else ''
     activation = activation if activation else 'prelu'
 
@@ -206,7 +206,7 @@ def block_constructor(units, input_shape, name=None, sequential=False, length=No
     """
 
     # Initializations
-    name = name if name else ''
+    name = name if name else 'block'
     hidden_activation = hidden_activation if hidden_activation else 'prelu'
     output_activation = output_activation if output_activation else 'linear'
 

@@ -1,11 +1,11 @@
 from pytorch_lightning.core.lightning import LightningModule as Model
 
 
-def custom_block():  # ToDo: torch implementation of custom_block.
+def block_constructor():  # ToDo: torch implementation of block_constructor.
     pass
 
 
-def customized_layer():  # ToDo: torch implementation of customized_layer.
+def layer_constructor():  # ToDo: torch implementation of layer_constructor.
     pass
 
 
