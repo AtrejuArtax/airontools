@@ -9,9 +9,9 @@ from airontools.model_constructors.utils_tf import set_precision
 from airontools.model_constructors.utils_tf import get_regularizer, get_layer_units, rm_redundant
 
 
-def layer_constructor(x, name=None, name_ext=None, units=None, activation='prelu', use_bias=True, sequential=False,
-                     bidirectional=False, return_sequences=False, filters=None, kernel_size=None, padding='valid',
-                     conv_transpose=False, strides=(1,1), advanced_reg=False, **reg_kwargs):
+def layer_constructor(x, name=None, name_ext=None, units=None, activation=None, use_bias=True, sequential=False,
+                      bidirectional=False, return_sequences=False, filters=None, kernel_size=None, padding='valid',
+                      conv_transpose=False, strides=(1,1), advanced_reg=False, **reg_kwargs):
     """ It builds a custom layer. reg_kwargs contain everything regarding regularization. For now only 2D convolutions
     are supported for input of rank 4. ToDo: add transformers.
 
@@ -22,7 +22,7 @@ def layer_constructor(x, name=None, name_ext=None, units=None, activation='prelu
             units (int): Number of units for the dense layer. If a value is given, a dense layer will be added
             automatically if not sequential, else a sequential model. Useful to force an output dimensionality of the
             custom layer when using convolutional layers.
-            activation (str, function): The activation function of the output of the last hidden layer.
+            activation (str, Layer): The activation function of the output of the last hidden layer.
             use_bias (bool): Whether to sue bias or not.
             sequential (bool): Whether to consider a sequential custom layer or not.
             bidirectional (bool): Whether to consider bidirectional case or not (only active if sequential).
@@ -55,8 +55,9 @@ def layer_constructor(x, name=None, name_ext=None, units=None, activation='prelu
     conv_condition = all([conv_param is not None for conv_param in [filters, kernel_size]])
     if conv_condition and len(input_shape) == 1:
         warnings.warn('if filters and kernel are set then the shape of x should be rank 4')
-    name = name + '_' if name else ''
-    name_ext = '_' + name_ext if name_ext else ''
+    name = name if name else ''
+    name_ext = name_ext if name_ext else ''
+    activation = activation if activation else 'prelu'
 
     # Regularization parameters
     dropout_rate = reg_kwargs['dropout_rate'] if 'dropout_rate' in reg_kwargs.keys() \
@@ -74,16 +75,16 @@ def layer_constructor(x, name=None, name_ext=None, units=None, activation='prelu
     # Dropout
     if dropout_rate != 0:
         if not len(input_shape) == 1:
-            x = Flatten(name=name + 'predropout_flatten' + name_ext)(x)
+            x = Flatten(name='_'.join([name, 'predropout_flatten', name_ext]))(x)
         x = Dropout(
-            name=name + 'dropout' + name_ext,
+            name='_'.join([name, 'dropout', name_ext]),
             rate=dropout_rate,
             input_shape=input_shape)(x)
 
     # Convolution
     if conv_condition:
         if len(x.shape[1:]) == 1:
-            x = Reshape(name=name + 'preconv_reshape' + name_ext, target_shape=input_shape)(x)
+            x = Reshape(name='_'.join([name, 'preconv_reshape', name_ext]), target_shape=input_shape)(x)
         conv_kwargs = dict(use_bias=use_bias,
                            filters=filters,
                            kernel_size=kernel_size,
@@ -92,10 +93,10 @@ def layer_constructor(x, name=None, name_ext=None, units=None, activation='prelu
                            kernel_regularizer=get_regularizer(kernel_regularizer_l1, kernel_regularizer_l2),
                            bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2))
         if conv_transpose:
-            x = Conv2DTranspose(name=name + 'conv2d' + name_ext,
+            x = Conv2DTranspose(name='_'.join([name, 'conv2d', name_ext]),
                                 **conv_kwargs)(x)
         else:
-            x = Conv2D(name=name + 'conv2d' + name_ext,
+            x = Conv2D(name='_'.join([name, 'conv2d', name_ext]),
                        **conv_kwargs)(x)
 
     # Recurrent
@@ -109,20 +110,20 @@ def layer_constructor(x, name=None, name_ext=None, units=None, activation='prelu
                           activation='linear')
         if bidirectional:
             x = Bidirectional(GRU(
-                name=name + 'gru' + name_ext,
+                name='_'.join([name, 'gru', name_ext]),
                 **seq_kwargs),
                 input_shape=input_shape)(x)
         else:
             x = GRU(
-                name=name + 'gru' + name_ext,
+                name='_'.join([name, 'gru', name_ext]),
                 **seq_kwargs)(x)
 
     # Dense
     elif units:
         if len(x.shape[1:]) != 1:
-            x = Flatten(name=name + 'predense_flatten' + name_ext)(x)
+            x = Flatten(name='_'.join([name, 'predense_flatten', name_ext]))(x)
         x = Dense(
-            name=name + 'dense' + name_ext,
+            name='_'.join([name, 'dense', name_ext]),
             input_shape=input_shape,
             units=units,
             use_bias=use_bias,
@@ -133,51 +134,51 @@ def layer_constructor(x, name=None, name_ext=None, units=None, activation='prelu
     post_output_shape = None
     if len(x.shape[1:]) != 1:
         post_output_shape = x.shape[1:]
-        x = Flatten(name=name + 'pre_output_flatten' + name_ext)(x)
+        x = Flatten(name='_'.join([name, 'pre_output_flatten', name_ext]))(x)
 
     # Batch Normalization
     if bn:
 
         x = BatchNormalization(
-            name=name + 'batch_normalization' + name_ext,
+            name='_'.join([name, 'batch_normalization', name_ext]),
             input_shape=input_shape)(x)
 
     # Activation
-    activation_ = activation if activation else PReLU
-    if activation_ == 'leakyrelu':
+    activation_name = '_'.join([name, activation if isinstance(activation, str) else 'activation', name_ext])
+    if activation == 'leakyrelu':
         x = LeakyReLU(
-            name=name + activation_ + name_ext,
+            name=activation_name,
             input_shape=input_shape)(x)
-    elif activation_ == 'prelu':
+    elif activation == 'prelu':
         x = PReLU(
-            name=name + activation_ + name_ext,
+            name=activation_name,
             input_shape=input_shape,
             alpha_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2))(x)
-    elif activation_ == 'softmax':
+    elif activation == 'softmax':
         x = Softmax(
-            name=name + activation_ + name_ext,
+            name=activation_name,
             input_shape=input_shape,
             dtype='float32')(x)
     else:
-        if isinstance(activation_, str):
+        if isinstance(activation, str):
             x = Activation(
-                name=name + activation_ + name_ext,
+                name=activation_name,
                 input_shape=input_shape,
-                activation=activation_)(x)
+                activation=activation)(x)
         else:
-            x = activation_(
-                name=name + 'activation' + name_ext,
+            x = activation(
+                name=activation_name,
                 input_shape=input_shape)(x)
 
     # Post output reshape
     if post_output_shape:
-        x = Reshape(name=name + 'post_output_reshape' + name_ext, target_shape=post_output_shape)(x)
+        x = Reshape(name='_'.join([name, 'post_output_reshape', name_ext]), target_shape=post_output_shape)(x)
 
     return x
 
 
 def block_constructor(units, input_shape, name=None, sequential=False, length=None, bidirectional=False, from_l=1,
-                      output_activation='linear', hidden_activation='prelu', advanced_reg=False, **reg_kwargs):
+                      hidden_activation=None, output_activation=None, advanced_reg=False, **reg_kwargs):
     """ It builds a custom block. reg_kwargs contain everything regarding regularization.
 
         Parameters:
@@ -189,8 +190,8 @@ def block_constructor(units, input_shape, name=None, sequential=False, length=No
             bidirectional (bool): Whether to consider bidirectional case or not (only active if sequential).
             from_l (int): The number indicator of the first hidden layer of the block, useful to make sure that layer
             names are not repeated.
-            output_activation (str, function): The activation function of the output of the block.
-            hidden_activation (str, function): Hidden activation function.
+            hidden_activation (str, Layer): Hidden activation function.
+            output_activation (str, Layer): The activation function of the output of the block.
             advanced_reg (bool): Whether to automatically set advanced regularization. Useful to quickly make use of all
             the regularization properties.
             dropout_rate (float): Probability of each intput being disconnected.
@@ -205,7 +206,9 @@ def block_constructor(units, input_shape, name=None, sequential=False, length=No
     """
 
     # Initializations
-    name = name + '_' if name else ''
+    name = name if name else ''
+    hidden_activation = hidden_activation if hidden_activation else 'prelu'
+    output_activation = output_activation if output_activation else 'linear'
 
     # Hidden layers
     i_l, o_l = Input(shape=input_shape, name=''.join([name, 'input'])), None
@@ -237,7 +240,7 @@ def block_constructor(units, input_shape, name=None, sequential=False, length=No
 
 
 def model_constructor(input_specs, output_specs, name=None, optimizer=None, lr=0.001, loss='mse', i_n_layers=1,
-                      c_n_layers=1, hidden_activation='prelu', output_activation='linear', i_compression=None,
+                      c_n_layers=1, hidden_activation=None, output_activation=None, i_compression=None,
                       sequential=False, bidirectional=False, parallel_models=1, precision='float32', devices=None,
                       compile_model=True, metrics=None, advanced_reg=False, **reg_kwargs):
     """ It builds a custom model. reg_kwargs contain everything regarding regularization.
@@ -251,8 +254,8 @@ def model_constructor(input_specs, output_specs, name=None, optimizer=None, lr=0
             loss (str): Loss.
             i_n_layers (int): Number of layers per input block.
             c_n_layers (int): Number of layers in the core block.
-            hidden_activation (str, function): Hidden activation function.
-            output_activation (str, function): The activation function of the output of the block.
+            hidden_activation (str, Layer): Hidden activation function.
+            output_activation (str, Layer): The activation function of the output of the block.
             i_compression (float): Input block compression.
             sequential (bool): Whether to consider a sequential custom model or not.
             bidirectional (bool): Whether to consider bidirectional case or not (only active if sequential).
@@ -277,6 +280,8 @@ def model_constructor(input_specs, output_specs, name=None, optimizer=None, lr=0
     # Initializations
     name = name if name is not None else ''
     optimizer = optimizer if optimizer else Adam(learning_rate=lr)
+    hidden_activation = hidden_activation if hidden_activation else 'prelu'
+    output_activation = output_activation if output_activation else 'linear'
 
     # Regularization parameters
     kernel_regularizer_l1 = reg_kwargs['kernel_regularizer_l1'] if 'kernel_regularizer_l1' in reg_kwargs.keys() \
@@ -313,7 +318,7 @@ def model_constructor(input_specs, output_specs, name=None, optimizer=None, lr=0
 
             # Input Blocks
             for i_name, i_specs in input_specs.items():
-                i_block_name = '_'.join([name_, i_name, 'i_block'])
+                i_block_name = '_'.join([name_, i_name, 'input_block'])
                 if i_specs['sequential']:
                     i_shape = (i_specs['length'], i_specs['dim'],)
                 elif not i_specs['sequential'] and i_specs['type'] == 'cat':
@@ -366,7 +371,7 @@ def model_constructor(input_specs, output_specs, name=None, optimizer=None, lr=0
 
             # Concat input blocks
             if len(i_blocks) > 1:
-                i_blocks = Concatenate(name='i_block_conc', axis=-1)(i_blocks)
+                i_blocks = Concatenate(name='input_block_conc', axis=-1)(i_blocks)
             else:
                 i_blocks = i_blocks[0]
 
@@ -380,7 +385,7 @@ def model_constructor(input_specs, output_specs, name=None, optimizer=None, lr=0
             from_l = max(to_l)
             to_l = from_l + len(c_units)
             c_block = block_constructor(units=c_units,
-                                        name='_'.join([name_, 'c_block']),
+                                        name='_'.join([name_, 'core_block']),
                                         input_shape=tuple([d for d in i_blocks.shape][1:]),
                                         from_l=from_l,
                                         hidden_activation=hidden_activation,
