@@ -44,12 +44,12 @@ def train_val_split(input_data, output_data=None, n_parallel_models=1, do_kfolds
         x_train += [input_data[train_inds, ...]]
         if val_ratio > 0:
             x_val += [input_data[val_inds, ...]]
-        if output_data:
+        if output_data is not None:
             y_train += [output_data[train_inds, ...]]
-        if val_ratio > 0 and output_data:
+        if val_ratio > 0 and output_data is not None:
             y_val += [output_data[val_inds, ...]]
     returns = [x_train, x_val]
-    if output_data:
+    if output_data is not None:
         returns += [y_train, y_val]
     returns += [train_val_inds]
     return returns

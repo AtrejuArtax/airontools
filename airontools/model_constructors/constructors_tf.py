@@ -1,4 +1,3 @@
-from tensorflow.keras import regularizers
 from tensorflow.keras.layers import *
 from tensorflow.keras.models import Model
 import tensorflow.keras.backend as k_bcknd
@@ -6,68 +5,11 @@ import warnings
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
-from sklearn.metrics import classification_report
 from airontools.model_constructors.utils_tf import set_precision
+from airontools.model_constructors.utils_tf import get_regularizer, get_layer_units, rm_redundant
 
 
-def custom_block(units, input_shape, name=None, sequential=False, length=None, bidirectional=False, from_l=1,
-                 output_activation='linear', hidden_activation='prelu', advanced_reg=False, **reg_kwargs):
-    """ It builds a custom block. reg_kwargs contain everything regarding regularization.
-
-        Parameters:
-            units (list): Number of units per hidden layer.
-            input_shape (tuple): Input shape.
-            name (str): Name of the block.
-            sequential (bool): Whether to consider a sequential model or not.
-            length (int): Length of the sequence (only active if sequential).
-            bidirectional (bool): Whether to consider bidirectional case or not (only active if sequential).
-            from_l (int): The number indicator of the first hidden layer of the block, useful to make sure that layer
-            names are not repeated.
-            output_activation (str): The activation function of the output of the block.
-            hidden_activation (str): Hidden activation function.
-            advanced_reg (bool): Whether to automatically set advanced regularization. Useful to quickly make use of all
-            the regularization properties.
-            dropout_rate (float): Probability of each intput being disconnected.
-            kernel_regularizer_l1 (float): Kernel regularization using l1 penalization (Lasso).
-            kernel_regularizer_l2 (float): Kernel regularization using l2 penalization (Ridge).
-            bias_regularizer_l1 (float): Bias regularization using l1 penalization (Lasso).
-            bias_regularizer_l2 (float): Bias regularization using l2 penalization (Ridge).
-            bn (bool): If set, a batch normalization layer will be added right before the output activation function.
-
-        Returns:
-            model (Model): A keras model.
-    """
-
-    # Hidden layers
-    i_l, o_l = Input(shape=input_shape, name=name + '_input'), None
-    to_l = from_l + len(units)
-    pre_o_dim = None
-    for l, o_dim in zip(range(from_l, to_l), units):
-        if l > from_l:
-            input_shape = (length, pre_o_dim,) if sequential else (pre_o_dim,)
-        else:
-            o_l = i_l
-        o_l = customized_layer(
-            x=o_l,
-            input_shape=input_shape,
-            units=o_dim,
-            activation=hidden_activation if l == to_l - 1 is None else output_activation,
-            name=name,
-            name_ext=str(l),
-            sequential=sequential,
-            return_sequences=True if l < to_l - 1 and sequential else False,
-            bidirectional=bidirectional,
-            advanced_reg=advanced_reg,
-            **reg_kwargs)
-        pre_o_dim = o_dim
-
-    # Model
-    model = Model(inputs=i_l, outputs=o_l, name=name)
-
-    return model
-
-
-def customized_layer(x, name=None, name_ext=None, units=None, activation='prelu', use_bias=True, sequential=False,
+def layer_constructor(x, name=None, name_ext=None, units=None, activation='prelu', use_bias=True, sequential=False,
                      bidirectional=False, return_sequences=False, filters=None, kernel_size=None, padding='valid',
                      conv_transpose=False, strides=(1,1), advanced_reg=False, **reg_kwargs):
     """ It builds a custom layer. reg_kwargs contain everything regarding regularization. For now only 2D convolutions
@@ -80,7 +22,7 @@ def customized_layer(x, name=None, name_ext=None, units=None, activation='prelu'
             units (int): Number of units for the dense layer. If a value is given, a dense layer will be added
             automatically if not sequential, else a sequential model. Useful to force an output dimensionality of the
             custom layer when using convolutional layers.
-            activation (str): The activation function of the output of the last hidden layer.
+            activation (str, function): The activation function of the output of the last hidden layer.
             use_bias (bool): Whether to sue bias or not.
             sequential (bool): Whether to consider a sequential custom layer or not.
             bidirectional (bool): Whether to consider bidirectional case or not (only active if sequential).
@@ -105,9 +47,10 @@ def customized_layer(x, name=None, name_ext=None, units=None, activation='prelu'
             bn (bool): If set, a batch normalization layer will be added right before the output activation function.
 
         Returns:
-            model (Model): A keras model.
+            x (Layer): A keras layer.
     """
 
+    # Initializations
     input_shape = tuple(list(x.shape[1:]),)
     conv_condition = all([conv_param is not None for conv_param in [filters, kernel_size]])
     if conv_condition and len(input_shape) == 1:
@@ -233,59 +176,117 @@ def customized_layer(x, name=None, name_ext=None, units=None, activation='prelu'
     return x
 
 
-def to_time_series(tensor):
-    return k_bcknd.expand_dims(tensor, axis=2)
+def block_constructor(units, input_shape, name=None, sequential=False, length=None, bidirectional=False, from_l=1,
+                      output_activation='linear', hidden_activation='prelu', advanced_reg=False, **reg_kwargs):
+    """ It builds a custom block. reg_kwargs contain everything regarding regularization.
+
+        Parameters:
+            units (list): Number of units per hidden layer.
+            input_shape (tuple): Input shape.
+            name (str): Name of the block.
+            sequential (bool): Whether to consider a sequential model or not.
+            length (int): Length of the sequence (only active if sequential).
+            bidirectional (bool): Whether to consider bidirectional case or not (only active if sequential).
+            from_l (int): The number indicator of the first hidden layer of the block, useful to make sure that layer
+            names are not repeated.
+            output_activation (str, function): The activation function of the output of the block.
+            hidden_activation (str, function): Hidden activation function.
+            advanced_reg (bool): Whether to automatically set advanced regularization. Useful to quickly make use of all
+            the regularization properties.
+            dropout_rate (float): Probability of each intput being disconnected.
+            kernel_regularizer_l1 (float): Kernel regularization using l1 penalization (Lasso).
+            kernel_regularizer_l2 (float): Kernel regularization using l2 penalization (Ridge).
+            bias_regularizer_l1 (float): Bias regularization using l1 penalization (Lasso).
+            bias_regularizer_l2 (float): Bias regularization using l2 penalization (Ridge).
+            bn (bool): If set, a batch normalization layer will be added right before the output activation function.
+
+        Returns:
+            model (Model): A keras model.
+    """
+
+    # Initializations
+    name = name + '_' if name else ''
+
+    # Hidden layers
+    i_l, o_l = Input(shape=input_shape, name=''.join([name, 'input'])), None
+    to_l = from_l + len(units)
+    pre_o_dim = None
+    for l, o_dim in zip(range(from_l, to_l), units):
+        if l > from_l:
+            input_shape = (length, pre_o_dim,) if sequential else (pre_o_dim,)
+        else:
+            o_l = i_l
+        o_l = layer_constructor(
+            x=o_l,
+            input_shape=input_shape,
+            units=o_dim,
+            activation=hidden_activation if l == to_l - 1 is None else output_activation,
+            name=name,
+            name_ext=str(l),
+            sequential=sequential,
+            return_sequences=True if l < to_l - 1 and sequential else False,
+            bidirectional=bidirectional,
+            advanced_reg=advanced_reg,
+            **reg_kwargs)
+        pre_o_dim = o_dim
+
+    # Model
+    model = Model(inputs=i_l, outputs=o_l, name=name)
+
+    return model
 
 
-def evaluate_clf(cat_encoder, model, x, y):
-    pred = inference(cat_encoder, model, x)
-    print("\nReport:")
-    print(classification_report(y, pred, digits=4))
+def model_constructor(input_specs, output_specs, name=None, optimizer=None, lr=0.001, loss='mse', i_n_layers=1,
+                      c_n_layers=1, hidden_activation='prelu', output_activation='linear', i_compression=None,
+                      sequential=False, bidirectional=False, parallel_models=1, precision='float32', devices=None,
+                      compile_model=True, metrics=None, advanced_reg=False, **reg_kwargs):
+    """ It builds a custom model. reg_kwargs contain everything regarding regularization.
 
+        Parameters:
+            input_specs (dict): Input specifications.
+            output_specs (dict): Output specifications.
+            name (str): Name of the custom layer.
+            optimizer (str): Name of the custom layer.
+            lr (float): Learning rate.
+            loss (str): Loss.
+            i_n_layers (int): Number of layers per input block.
+            c_n_layers (int): Number of layers in the core block.
+            hidden_activation (str, function): Hidden activation function.
+            output_activation (str, function): The activation function of the output of the block.
+            i_compression (float): Input block compression.
+            sequential (bool): Whether to consider a sequential custom model or not.
+            bidirectional (bool): Whether to consider bidirectional case or not (only active if sequential).
+            parallel_models (int): Number of parallel models.
+            precision (str): Precision to be considered for the model: 'float32', 'float16' or 'mixed_float16'.
+            devices (list): Physical devises for training/inference.
+            compile_model (bool): Whether to compile the model or not.
+            metrics (list): Metrics. Useful for when the loss is not enough for hyper-parameter optimisation.
+            advanced_reg (bool): Whether to automatically set advanced regularization. Useful to quickly make use of all
+            the regularization properties.
+            dropout_rate (float): Probability of each intput being disconnected.
+            kernel_regularizer_l1 (float): Kernel regularization using l1 penalization (Lasso).
+            kernel_regularizer_l2 (float): Kernel regularization using l2 penalization (Ridge).
+            bias_regularizer_l1 (float): Bias regularization using l1 penalization (Lasso).
+            bias_regularizer_l2 (float): Bias regularization using l2 penalization (Ridge).
+            bn (bool): If set, a batch normalization layer will be added right before the output activation function.
 
-def inference(cat_encoder, model, x):
-    inf = model.predict(x)
-    if isinstance(inf, list):
-        inf = [sub_inf.reshape(sub_inf.shape + tuple([1])) for sub_inf in inf]
-        inf = np.concatenate(tuple(inf), axis=-1)
-        inf = np.mean(inf, axis=-1)
-    return cat_encoder.inverse_transform(inf)
+        Returns:
+            model (Model): A keras model.
+    """
 
+    # Initializations
+    name = name + '_' if name else ''
+    optimizer = optimizer if optimizer else Adam(learning_rate=lr)
 
-def get_layer_units(input_dim, output_dim, n_layers, min_hidden_units=2):
-    units = [max(int(units), min_hidden_units) for units in np.linspace(input_dim, output_dim, n_layers + 1)]
-    units[0], units[-1] = input_dim, output_dim
-    return units
-
-
-def rm_redundant(values, value):
-    taken = False
-    values_ = []
-    for n in values:
-        if n != value:
-            values_ += [n]
-        elif not taken:
-            values_ += [n]
-            taken = True
-    return values_
-
-
-def model_constructor(input_specs, output_specs, devices, model_name='', compile_model=True, metrics=None, lr=0.001, **kwargs):
-
-    precision = kwargs['precision'] if 'precision' in kwargs else 'float32'
-    parallel_models = kwargs['parallel_models'] if 'parallel_models' in kwargs else 1
-    sequential_block = kwargs['sequential_block'] if 'sequential_block' in kwargs else False
-    kernel_regularizer_l1 = kwargs['kernel_regularizer_l1'] if 'kernel_regularizer_l1' in kwargs else 0
-    kernel_regularizer_l2 = kwargs['kernel_regularizer_l2'] if 'kernel_regularizer_l2' in kwargs else 0
-    bias_regularizer_l1 = kwargs['bias_regularizer_l1'] if 'bias_regularizer_l1' in kwargs else 0
-    bias_regularizer_l2 = kwargs['bias_regularizer_l2'] if 'bias_regularizer_l2' in kwargs else 0
-    compression = kwargs['compression'] if 'compression' in kwargs else 0
-    i_n_layers = kwargs['i_n_layers'] if 'i_n_layers' in kwargs else 1
-    c_n_layers = kwargs['c_n_layers'] if 'c_n_layers' in kwargs else 1
-    bidirectional = kwargs['bidirectional'] if 'bidirectional' in kwargs else False
-    output_activation = kwargs['output_activation'] if 'output_activation' in kwargs else 'linear'
-    optimizer = kwargs['optimizer'] if 'optimizer' in kwargs else Adam(learning_rate=lr)
-    loss = kwargs['loss'] if 'loss' in kwargs else 'mse'
+    # Regularization parameters
+    kernel_regularizer_l1 = reg_kwargs['kernel_regularizer_l1'] if 'kernel_regularizer_l1' in reg_kwargs.keys() \
+        else 0.001 if advanced_reg else None
+    kernel_regularizer_l2 = reg_kwargs['kernel_regularizer_l2'] if 'kernel_regularizer_l2' in reg_kwargs.keys() \
+        else 0.001 if advanced_reg else None
+    bias_regularizer_l1 = reg_kwargs['bias_regularizer_l1'] if 'bias_regularizer_l1' in reg_kwargs.keys() \
+        else 0.001 if advanced_reg else None
+    bias_regularizer_l2 = reg_kwargs['bias_regularizer_l2'] if 'bias_regularizer_l2' in reg_kwargs.keys() \
+        else 0.001 if advanced_reg else None
 
     # Set precision
     set_precision(precision)
@@ -308,11 +309,11 @@ def model_constructor(input_specs, output_specs, devices, model_name='', compile
             i_blocks, c_block, o_blocks, to_l = [], [], [], []
 
             # Name
-            name = device_name + '_' + model_name + '_' + str(parallel_model)
+            name_ = '_'.join([device_name, name, str(parallel_model)])
 
             # Input Blocks
             for i_name, i_specs in input_specs.items():
-                i_block_name = name + '_' + i_name + '_i_block'
+                i_block_name = '_'.join([name_, i_name, 'i_block'])
                 if i_specs['sequential']:
                     i_shape = (i_specs['length'], i_specs['dim'],)
                 elif not i_specs['sequential'] and i_specs['type'] == 'cat':
@@ -320,53 +321,47 @@ def model_constructor(input_specs, output_specs, devices, model_name='', compile
                 else:
                     i_shape = (i_specs['dim'],)
                 x = Input(shape=i_shape,
-                          name=i_block_name + '_input')
+                          name='_'.join([i_block_name, 'input']))
                 if not i_specs['sequential'] and i_specs['type'] == 'cat':
-                    x_ = Reshape((k_bcknd.int_shape(x)[-1],), name=i_block_name + '_cat_reshape')(x)
+                    x_ = Reshape((k_bcknd.int_shape(x)[-1],), name='_'.join([i_block_name, 'cat_reshape']))(x)
                 else:
                     x_ = x
-                if i_specs['sequential'] and not sequential_block:
-                    x_ = Conv1D(name=i_block_name + '_cnn1d',
+                if i_specs['sequential'] and not sequential:
+                    x_ = Conv1D(name='_'.join([i_block_name, 'cnn1d']),
                                 filters=int(k_bcknd.int_shape(x_)[2] / 2) + 1,
                                 kernel_size=int(k_bcknd.int_shape(x_)[1] / 2) + 1,
                                 use_bias=True,
-                                kernel_regularizer=regularizers.l1_l2(
-                                   l1=kernel_regularizer_l1,
-                                   l2=kernel_regularizer_l2),
-                                bias_regularizer=regularizers.l1_l2(
-                                   l1=bias_regularizer_l1,
-                                   l2=bias_regularizer_l2))(x_)
-                    x_ = Flatten(name=i_block_name + '_flatten')(x_)
-                    x_ = Dense(name=i_block_name + '_dense',
-                               units=i_specs['dim'],
-                               use_bias=True,
-                               kernel_regularizer=regularizers.l1_l2(
-                                   l1=kernel_regularizer_l1,
-                                   l2=kernel_regularizer_l2),
-                               bias_regularizer=regularizers.l1_l2(
-                                   l1=bias_regularizer_l1,
-                                   l2=bias_regularizer_l2))(x_)
+                                kernel_regularizer=get_regularizer(kernel_regularizer_l1, kernel_regularizer_l2),
+                                bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2))(x_)
+                    x_ = Flatten(name='_'.join([i_block_name, 'flatten']))(x_)
+                    x_ = layer_constructor(x_,
+                                           name=i_block_name,
+                                           units=i_specs['dim'],
+                                           activation=hidden_activation,
+                                           **reg_kwargs)
                 inputs += [x]
 
                 # Define input block units
                 i_units = get_layer_units(
                     input_dim=i_specs['dim'],
-                    output_dim=i_specs['dim'] if compression == 0 else int(i_specs['dim'] * (1 - compression) + 1),
+                    output_dim=i_specs['dim'] if i_compression is None else int(i_specs['dim'] * (1 - i_compression) + 1),
                     n_layers=i_n_layers)[1:]
                 i_units = rm_redundant(values=i_units, value=1)
 
                 # Post Input Block
-                sequential = sequential_block and i_specs['sequential']
+                sequential_ = sequential and i_specs['sequential']
                 length = None if not i_specs['sequential'] else i_specs['length']
                 bidirectional_ = bidirectional if sequential else False
                 to_l += [len(i_units)]
-                i_block = custom_block(units=i_units,
-                                       name=i_block_name,
-                                       input_shape=tuple([d for d in x.shape][1:]),
-                                       sequential=sequential,
-                                       length=length,
-                                       bidirectional=bidirectional_,
-                                       **kwargs)
+                i_block = block_constructor(units=i_units,
+                                            name=i_block_name,
+                                            input_shape=tuple([d for d in x.shape][1:]),
+                                            sequential=sequential_,
+                                            length=length,
+                                            bidirectional=bidirectional_,
+                                            hidden_activation=hidden_activation,
+                                            output_activation=hidden_activation,
+                                            **reg_kwargs)
                 i_blocks += [i_block(x_)]
 
             # Concat input blocks
@@ -384,28 +379,29 @@ def model_constructor(input_specs, output_specs, devices, model_name='', compile
             # Core block
             from_l = max(to_l)
             to_l = from_l + len(c_units)
-            c_block_name = name + '_c_block'
-            c_block = custom_block(units=c_units,
-                                   name=c_block_name,
-                                   input_shape=tuple([d for d in i_blocks.shape][1:]),
-                                   from_l=from_l,
-                                   **kwargs)
+            c_block = block_constructor(units=c_units,
+                                        name='_'.join([name_, 'c_block']),
+                                        input_shape=tuple([d for d in i_blocks.shape][1:]),
+                                        from_l=from_l,
+                                        hidden_activation=hidden_activation,
+                                        output_activation=hidden_activation,
+                                        **reg_kwargs)
             c_block = c_block(i_blocks)
 
             # Output Blocks
             from_l = to_l + len(c_units)
             for o_name, o_specs in output_specs.items():
-                o_block_name = name + '_' + o_name
-                o_block = custom_block(units=[o_dim],
-                                       name=o_block_name,
-                                       input_shape=tuple([d for d in c_block.shape][1:]),
-                                       from_l=from_l,
-                                       activation=output_activation,
-                                       **kwargs)
+                o_block = block_constructor(units=[o_dim],
+                                            name='_'.join([name_, o_name]),
+                                            input_shape=tuple([d for d in c_block.shape][1:]),
+                                            from_l=from_l,
+                                            hidden_activation=hidden_activation,
+                                            output_activation=output_activation,
+                                            **reg_kwargs)
                 outputs += [o_block(c_block)]
 
     # Define model and compile
-    model = Model(inputs=inputs, outputs=outputs, name=model_name)
+    model = Model(inputs=inputs, outputs=outputs, name=name)
 
     if compile_model:
 
@@ -425,15 +421,3 @@ def model_constructor(input_specs, output_specs, devices, model_name='', compile
                       metrics=metrics_)
 
     return model
-
-
-def get_regularizer(l1=None, l2=None):
-    if l1 and l2:
-        regularizer = regularizers.l1_l2(l1=l1, l2=l2)
-    elif l1:
-        regularizer = regularizers.l1(l1)
-    elif l2:
-        regularizer = regularizers.l2(l2)
-    else:
-        regularizer = None
-    return regularizer
