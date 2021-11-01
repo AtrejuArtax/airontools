@@ -275,7 +275,7 @@ def model_constructor(input_specs, output_specs, name=None, optimizer=None, lr=0
     """
 
     # Initializations
-    name = name + '_' if name else ''
+    name = name if name is not None else ''
     optimizer = optimizer if optimizer else Adam(learning_rate=lr)
 
     # Regularization parameters
