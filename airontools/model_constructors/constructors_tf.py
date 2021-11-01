@@ -278,7 +278,7 @@ def model_constructor(input_specs, output_specs, name=None, optimizer=None, lr=0
     """
 
     # Initializations
-    name = name if name is not None else ''
+    name = name if name is not None else 'NN'
     optimizer = optimizer if optimizer else Adam(learning_rate=lr)
     hidden_activation = hidden_activation if hidden_activation else 'prelu'
     output_activation = output_activation if output_activation else 'linear'
