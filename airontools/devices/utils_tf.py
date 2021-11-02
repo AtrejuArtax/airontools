@@ -1,5 +1,3 @@
-from tensorflow.keras import models
-import tensorflow.keras.backend as K
 from tensorflow.python.client import device_lib
 
 

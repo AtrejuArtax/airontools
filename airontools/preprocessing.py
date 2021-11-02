@@ -1,6 +1,4 @@
 import numpy as np
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.feature_extraction.text import TfidfVectorizer
 import pandas as pd
 from sklearn.model_selection import KFold
 import random
@@ -13,9 +11,9 @@ def sub_sample(data, n):
     return data.loc[:n-1, data_.columns]
 
 
-def array_to_list(input_data, output_data, n_parallel_models, do_kfolds=False, val_ratio=0.2, shuffle=True,
+def train_val_split(input_data, output_data=None, n_parallel_models=1, do_kfolds=False, val_ratio=0.2, shuffle=True,
                   seed_val=None):
-    """ From array to list of numpy.
+    """ Train validation split.
 
         Parameters:
             input_data (np.ndarray): Input data.
@@ -46,11 +44,15 @@ def array_to_list(input_data, output_data, n_parallel_models, do_kfolds=False, v
         x_train += [input_data[train_inds, ...]]
         if val_ratio > 0:
             x_val += [input_data[val_inds, ...]]
-        y_train += [output_data[train_inds, ...]]
-        if val_ratio > 0:
+        if output_data is not None:
+            y_train += [output_data[train_inds, ...]]
+        if val_ratio > 0 and output_data is not None:
             y_val += [output_data[val_inds, ...]]
-
-    return x_train, x_val, y_train, y_val, train_val_inds
+    returns = [x_train, x_val]
+    if output_data is not None:
+        returns += [y_train, y_val]
+    returns += [train_val_inds]
+    return returns
 
 
 def update_specs(data_specs, input_data, output_data, cat_dictionary):
