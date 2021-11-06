@@ -11,8 +11,8 @@ from airontools.model_constructors.utils_tf import get_regularizer, get_layer_un
 
 def layer_constructor(x, name=None, name_ext=None, units=None, num_heads=None, key_dim=None, value_dim=None,
                       activation=None, use_bias=True, sequential=False, bidirectional=False, return_sequences=False,
-                      filters=None, kernel_size=None, padding='valid', conv_transpose=False, strides=(1, 1),
-                      advanced_reg=False, **reg_kwargs):
+                      filters=None, kernel_size=None, padding='valid', pooling=None, pool_size=None,
+                      conv_transpose=False, strides=(1, 1), advanced_reg=False, **reg_kwargs):
     """ It builds a custom layer. reg_kwargs contain everything regarding regularization. For now only 2D convolutions
     are supported for input of rank 4. ToDo: add transformers.
 
@@ -43,6 +43,8 @@ def layer_constructor(x, name=None, name_ext=None, units=None, num_heads=None, k
             kernel_size are set).
             padding (str): Padding to be applied (only active if filters and
             kernel_size are set).
+            pooling (str, layer): Pooling type.
+            pool_size (int, tuple): Pooling size.
             advanced_reg (bool): Whether to automatically set advanced regularization. Useful to quickly make use of all
             the regularization properties.
             dropout_rate (float): Probability of each intput being disconnected.
@@ -101,12 +103,24 @@ def layer_constructor(x, name=None, name_ext=None, units=None, num_heads=None, k
                            padding=padding,
                            kernel_regularizer=get_regularizer(kernel_regularizer_l1, kernel_regularizer_l2),
                            bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2))
-        if conv_transpose:
-            x = Conv2DTranspose(name='_'.join([name, 'conv2d', name_ext]),
-                                **conv_kwargs)(x)
+        conv_dim = len(x.shape) - 2
+        conv_type = 'transpose' if conv_transpose else ''
+        x = globals()['Conv' + str(conv_dim) + 'D' + conv_type.capitalize()](
+            name='_'.join([name, pooling + str(conv_dim) + 'd' + conv_type, name_ext]), **conv_kwargs)(x)
+
+    # Pooling
+    if pooling is not None:
+        pooling_dim = len(x.shape) - 2
+        pooling_kwargs = dict(pool_size=pool_size if pool_size is not None else tuple([2] * pooling_dim),
+                              strides=strides,
+                              padding=padding)
+        if isinstance(pooling, str):
+            pooling_name = pooling.capitalize() + 'Pooling' + str(pooling_dim) + 'D'
+            pooling_layer = globals()[pooling_name]
         else:
-            x = Conv2D(name='_'.join([name, 'conv2d', name_ext]),
-                       **conv_kwargs)(x)
+            pooling_name = [k for k, v in locals().iteritems() if v == pooling][0]
+            pooling_layer = pooling
+        x = pooling_layer(name='_'.join([name, pooling_name.lower(), name_ext]))(x)
 
     # Recurrent
     if sequential:
