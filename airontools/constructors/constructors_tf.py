@@ -9,9 +9,10 @@ from airontools.model_constructors.utils_tf import set_precision
 from airontools.model_constructors.utils_tf import get_regularizer, get_layer_units, rm_redundant
 
 
-def layer_constructor(x, name=None, name_ext=None, units=None, activation=None, use_bias=True, sequential=False,
-                      bidirectional=False, return_sequences=False, filters=None, kernel_size=None, padding='valid',
-                      conv_transpose=False, strides=(1,1), advanced_reg=False, **reg_kwargs):
+def layer_constructor(x, name=None, name_ext=None, units=None, num_heads=None, key_dim=None, value_dim=None,
+                      activation=None, use_bias=True, sequential=False, bidirectional=False, return_sequences=False,
+                      filters=None, kernel_size=None, padding='valid', conv_transpose=False, strides=(1, 1),
+                      advanced_reg=False, **reg_kwargs):
     """ It builds a custom layer. reg_kwargs contain everything regarding regularization. For now only 2D convolutions
     are supported for input of rank 4. ToDo: add transformers.
 
@@ -22,6 +23,11 @@ def layer_constructor(x, name=None, name_ext=None, units=None, activation=None, 
             units (int): Number of units for the dense layer. If a value is given, a dense layer will be added
             automatically if not sequential, else a sequential model. Useful to force an output dimensionality of the
             custom layer when using convolutional layers.
+            num_heads (int): Number of heads for the multi-head attention layer.
+            key_dim (int): Key dimensionality for the multi-head attention layer, if None then the number of units is
+            used instead.
+            value_dim (int): Value dimensionality for the multi-head attention layer, if None then key_dim is used
+            instead.
             activation (str, Layer): The activation function of the output of the last hidden layer.
             use_bias (bool): Whether to sue bias or not.
             sequential (bool): Whether to consider a sequential custom layer or not.
@@ -49,6 +55,9 @@ def layer_constructor(x, name=None, name_ext=None, units=None, activation=None, 
         Returns:
             x (Layer): A keras layer.
     """
+
+    if num_heads is not None and units is None and key_dim is None:
+        warnings.warn('in order to use a multi-head attention layer either units or key_dim needs to be set')
 
     # Initializations
     input_shape = tuple(list(x.shape[1:]),)
@@ -130,6 +139,16 @@ def layer_constructor(x, name=None, name_ext=None, units=None, activation=None, 
             kernel_regularizer=get_regularizer(kernel_regularizer_l1, kernel_regularizer_l2),
             bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2))(x)
 
+    # Multi-Head Attention
+    if num_heads is not None:
+        x = MultiHeadAttention(
+            name='_'.join([name, 'multi_head_attention', name_ext]),
+            key_dim=key_dim if key_dim is not None else units,
+            value_dim=value_dim if value_dim is not None else key_dim,
+            use_bias=use_bias,
+            kernel_regularizer=get_regularizer(kernel_regularizer_l1, kernel_regularizer_l2),
+            bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2))(x)
+
     # Pre output reshape
     post_output_shape = None
     if len(x.shape[1:]) != 1:
@@ -138,7 +157,6 @@ def layer_constructor(x, name=None, name_ext=None, units=None, activation=None, 
 
     # Batch Normalization
     if bn:
-
         x = BatchNormalization(
             name='_'.join([name, 'batch_normalization', name_ext]),
             input_shape=input_shape)(x)
