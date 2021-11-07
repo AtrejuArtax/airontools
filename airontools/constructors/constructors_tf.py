@@ -5,8 +5,8 @@ import warnings
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
-from airontools.model_constructors.utils_tf import set_precision
-from airontools.model_constructors.utils_tf import get_regularizer, get_layer_units, rm_redundant
+from airontools.constructors.utils_tf import set_precision
+from airontools.constructors.utils_tf import get_regularizer, get_layer_units, rm_redundant
 
 
 def layer_constructor(x, name=None, name_ext=None, units=None, num_heads=None, key_dim=None, value_dim=None,
