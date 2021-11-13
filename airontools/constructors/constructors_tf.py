@@ -105,8 +105,9 @@ def layer_constructor(x, name=None, name_ext=None, units=None, num_heads=None, k
                            bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2))
         conv_dim = len(x.shape) - 2
         conv_type = 'transpose' if conv_transpose else ''
-        x = globals()['Conv' + str(conv_dim) + 'D' + conv_type.capitalize()](
-            name='_'.join([name, pooling + str(conv_dim) + 'd' + conv_type, name_ext]), **conv_kwargs)(x)
+        conv_name = 'Conv' + str(conv_dim) + 'D' + conv_type.capitalize()
+        x = globals()[conv_name](
+            name='_'.join([name, conv_name.lower(), name_ext]), **conv_kwargs)(x)
 
     # Pooling
     if pooling is not None:
