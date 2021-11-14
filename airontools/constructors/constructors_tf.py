@@ -158,6 +158,7 @@ def layer_constructor(x, name=None, name_ext=None, units=None, num_heads=None, k
     if num_heads is not None:
         x = MultiHeadAttention(
             name='_'.join([name, 'multi_head_attention', name_ext]),
+            num_heads=num_heads,
             key_dim=key_dim if key_dim is not None else units,
             value_dim=value_dim if value_dim is not None else key_dim,
             use_bias=use_bias,
