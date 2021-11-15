@@ -216,7 +216,8 @@ def dropout_layer_constructor(x: Layer, name: str, name_ext: str, dropout_rate: 
         rate=dropout_rate,
         input_shape=input_shape)(x)
     if output_reshape is not None:
-        x = Reshape(name='_'.join([name, 'post', 'dropout', 'reshape', name_ext]))(x)
+        x = Reshape(name='_'.join([name, 'post', 'dropout', 'reshape', name_ext]),
+                    target_shape=output_reshape)(x)
     return x
 
 
@@ -286,7 +287,8 @@ def dense_layer_constructor(x: Layer, name: str, name_ext: str, **kwargs):
         name='_'.join([name, 'dense', name_ext]),
         **kwargs)(x)
     if output_reshape is not None:
-        x = Reshape(name='_'.join([name, 'post', 'dropout', 'reshape', name_ext]))(x)
+        x = Reshape(name='_'.join([name, 'post', 'dropout', 'reshape', name_ext]),
+                    target_shape=output_reshape)(x)
     return x
 
 
@@ -300,7 +302,8 @@ def bn_layer_constructor(x: Layer, name: str, name_ext: str, **kwargs):
         name='_'.join([name, 'batch_normalization', name_ext]),
         **kwargs)(x)
     if output_reshape is not None:
-        x = Reshape(name='_'.join([name, 'post', 'dropout', 'reshape', name_ext]))(x)
+        x = Reshape(name='_'.join([name, 'post', 'dropout', 'reshape', name_ext]),
+                    target_shape=output_reshape)(x)
     return x
 
 
@@ -324,5 +327,6 @@ def activation_layer_constructor(x: Layer, name: str, name_ext: str, activation:
             name=activation_name,
             activation=activation)(x)
     if output_reshape is not None:
-        x = Reshape(name='_'.join([name, 'post', 'dropout', 'reshape', name_ext]))(x)
+        x = Reshape(name='_'.join([name, 'post', 'dropout', 'reshape', name_ext]),
+                    target_shape=output_reshape)(x)
     return x
