@@ -3,8 +3,17 @@ from tensorflow.keras.models import Model
 from airontools.constructors.layers import layer_constructor
 
 
-def block_constructor(units, input_shape, name=None, sequential=False, length=None, bidirectional=False, from_l=1,
-                      hidden_activation=None, output_activation=None, advanced_reg=False, **reg_kwargs):
+def block_constructor(units,
+                      input_shape,
+                      name=None,
+                      sequential=False,
+                      length=None,
+                      bidirectional=False,
+                      from_l=1,
+                      hidden_activation=None,
+                      output_activation=None,
+                      advanced_reg=False,
+                      **reg_kwargs):
     """ It builds a custom block. reg_kwargs contain everything regarding regularization.
 
         Parameters:
