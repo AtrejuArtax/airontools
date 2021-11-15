@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import KFold
 import random
 from random import seed
+from sklearn.model_selection import KFold
 
 
 def sub_sample(data, n):

@@ -1,5 +1,5 @@
 from tensorflow.keras.models import model_from_json, Model
-import tensorflow.keras.backend as bcknd
+import tensorflow.keras.backend as k_bcknd
 
 
 def save_model(model, name):
@@ -18,7 +18,7 @@ def load_model(name, custom_objects=None):
 
 
 def clear_session():
-    bcknd.clear_session()
+    k_bcknd.clear_session()
 
 
 def summary(model):

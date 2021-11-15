@@ -1,6 +1,6 @@
+from tensorflow.keras.models import Model
 from airontools.visualization.utils_tf import save_insights
 from airontools.constructors.utils.utils_tf import get_latent_model
-from tensorflow.keras.models import Model
 
 
 def get_insights(x, model, hidden_layer_names=None, **kwargs):

@@ -1,7 +1,7 @@
-from tensorflow.keras.layers import *
 import warnings
 import numpy as np
 from typing import Union
+from tensorflow.keras.layers import *
 from airontools.constructors.utils.utils_tf import get_regularizer
 
 
@@ -44,7 +44,8 @@ def layer_constructor(x,
             instead.
             activation (str, Layer): The activation function of the output of the last hidden layer.
             use_bias (bool): Whether to sue bias or not.
-            sequential (bool): Whether to consider a sequential custom layer or not.
+            sequential (bool): Whether to consider a sequential custom layer or not. Sequential and self-attention
+            (num_heads > 0) are not compatible.
             bidirectional (bool): Whether to consider bidirectional case or not (only active if sequential).
             names are not repeated.
             return_sequences (bool): Whether to return sequences or not (only active if sequential).
@@ -157,7 +158,7 @@ def layer_constructor(x,
             **multi_head_attention_kwargs)
 
     # Sequential
-    if sequential:
+    elif sequential:
         seq_kwargs = dict(
             units=units,
             use_bias=use_bias,
@@ -173,7 +174,7 @@ def layer_constructor(x,
             **seq_kwargs)
 
     # Dense
-    elif units:
+    if units:
         dense_kwargs = dict(
             units=units,
             use_bias=use_bias,
