@@ -1,5 +1,5 @@
 from airontools.visualization.utils_tf import save_insights
-from airontools.constructors.utils_tf import get_latent_model
+from airontools.constructors.utils.utils_tf import get_latent_model
 from tensorflow.keras.models import Model
 
 

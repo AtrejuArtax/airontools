@@ -4,8 +4,8 @@ import tensorflow.keras.backend as k_bcknd
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
-from airontools.constructors.utils_tf import set_precision
-from airontools.constructors.utils_tf import get_regularizer, get_layer_units, rm_redundant
+from airontools.constructors.utils.utils_tf import set_precision
+from airontools.constructors.utils.utils_tf import get_regularizer, get_layer_units, rm_redundant
 from airontools.constructors.layers import layer_constructor
 from airontools.constructors.blocks import block_constructor
 

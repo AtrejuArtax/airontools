@@ -2,7 +2,7 @@ from tensorflow.keras.layers import *
 import warnings
 import numpy as np
 from typing import Union
-from airontools.constructors.utils_tf import get_regularizer
+from airontools.constructors.utils.utils_tf import get_regularizer
 
 
 def layer_constructor(x,
