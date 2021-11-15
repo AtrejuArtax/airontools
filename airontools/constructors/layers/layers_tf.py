@@ -24,6 +24,7 @@ def layer_constructor(x,
                       pool_size=None,
                       conv_transpose=False,
                       strides=(1, 1),
+                      sequential_axis=1,
                       advanced_reg=False,
                       **reg_kwargs):
     """ It builds a custom layer. reg_kwargs contain everything regarding regularization. For now only 2D convolutions
@@ -58,6 +59,9 @@ def layer_constructor(x,
             kernel_size are set).
             pooling (str, layer): Pooling type.
             pool_size (int, tuple): Pooling size.
+            sequential_axis (int): The axis that defines the sequence. For sequential models is normally 1. For
+            self-attention (num_heads > 0) and image-like inputs, the sequential axis is the channel axis (3 for 2D
+            images and 4 for 3D images).
             advanced_reg (bool): Whether to automatically set advanced regularization. Useful to quickly make use of all
             the regularization properties.
             dropout_rate (float): Probability of each intput being disconnected.
@@ -75,9 +79,8 @@ def layer_constructor(x,
         warnings.warn('in order to use a multi-head attention layer either units or key_dim needs to be set')
 
     # Initializations
-    input_shape = tuple(list(x.shape[1:]),)
     conv_condition = all([conv_param is not None for conv_param in [filters, kernel_size]])
-    if conv_condition and len(input_shape) == 1:
+    if conv_condition and len(x.shape) < 4:
         warnings.warn('if filters and kernel are set then the shape of x should be rank 4')
     name = name if name else 'layer'
     name_ext = name_ext if name_ext else ''
@@ -150,6 +153,7 @@ def layer_constructor(x,
             x,
             name=name,
             name_ext=name_ext,
+            sequential_axis=sequential_axis,
             **multi_head_attention_kwargs)
 
     # Sequential
@@ -206,18 +210,17 @@ def layer_constructor(x,
 
 
 def dropout_layer_constructor(x: Layer, name: str, name_ext: str, dropout_rate: float):
-    input_shape = x.shape[1:]
+    input_shape = x.shape
     output_reshape = None
-    if not len(input_shape) == 1:
+    if len(input_shape) > 2:
         output_reshape = input_shape
         x = Flatten(name='_'.join([name, 'pre', 'dropout', 'flatten', name_ext]))(x)
     x = Dropout(
         name='_'.join([name, 'dropout', name_ext]),
-        rate=dropout_rate,
-        input_shape=input_shape)(x)
+        rate=dropout_rate)(x)
     if output_reshape is not None:
         x = Reshape(name='_'.join([name, 'post', 'dropout', 'reshape', name_ext]),
-                    target_shape=output_reshape)(x)
+                    target_shape=output_reshape[1:])(x)
     return x
 
 
@@ -245,23 +248,22 @@ def _get_pooling_dim(x: Layer):
     return len(x.shape) - 2
 
 
-def self_attention_layer_constructor(x: Layer, name: str, name_ext: str, channels_as_seq: bool, **kwargs):
-    permuted_input = False
-    input_shape = x.shape[1:]
-    if channels_as_seq:
-        permuted_input = True
-        channel_axis = len(input_shape) - 1
+def self_attention_layer_constructor(x: Layer, name: str, name_ext: str, sequential_axis: int, **kwargs):
+    input_shape = x.shape
+    sequential_axis_ = list(range(len(input_shape)))[sequential_axis]
+    if sequential_axis_ != 1:
+        permutation = tuple([sequential_axis_] +
+                            [i for i in range(1, len(input_shape[1:])) if i != sequential_axis_])
         x = Permute(name='_'.join([name, 'pre', 'multi_head_attention', 'permutation', name_ext]),
-                    dims=tuple([channel_axis] + [i for i in range(channel_axis)]))(x)
+                    dims=permutation)(x)
+    else:
+        permutation = list(range(1, len(input_shape)))
     if len(input_shape) > 2:
-        feature_axis = input_shape[1:]
         x = Reshape(name='_'.join([name, 'pre', 'multi_head_attention', 'reshape', name_ext]),
-                    target_shape=(np.prod([input_shape[i] for i in feature_axis]), input_shape[-1],))(x)
+                    target_shape=(input_shape[permutation[0]], np.prod([input_shape[i] for i in permutation[1:]]),))(x)
     x = MultiHeadAttention(
         name='_'.join([name, 'multi_head_attention', name_ext]),
         **kwargs)(x, x)
-    if permuted_input:
-        x = Permute('_'.join([name, 'post', 'multi_head_attention', 'permutation', name_ext]))(x)
     return x
 
 
@@ -278,39 +280,33 @@ def sequential_layer_constructor(x: Layer, name: str, name_ext: str, bidirection
 
 
 def dense_layer_constructor(x: Layer, name: str, name_ext: str, **kwargs):
-    input_shape = x.shape[1:]
-    output_reshape = None
-    if not len(input_shape) == 1:
-        output_reshape = input_shape
+    if not len(x.shape[1:]) == 1:
         x = Flatten(name='_'.join([name, 'pre', 'dense', 'flatten', name_ext]))(x)
     x = Dense(
         name='_'.join([name, 'dense', name_ext]),
         **kwargs)(x)
-    if output_reshape is not None:
-        x = Reshape(name='_'.join([name, 'post', 'dropout', 'reshape', name_ext]),
-                    target_shape=output_reshape)(x)
     return x
 
 
 def bn_layer_constructor(x: Layer, name: str, name_ext: str, **kwargs):
-    input_shape = x.shape[1:]
+    input_shape = x.shape
     output_reshape = None
-    if not len(input_shape) == 1:
+    if len(input_shape) > 2:
         output_reshape = input_shape
         x = Flatten(name='_'.join([name, 'pre', 'bn', 'flatten', name_ext]))(x)
     x = BatchNormalization(
         name='_'.join([name, 'batch_normalization', name_ext]),
         **kwargs)(x)
     if output_reshape is not None:
-        x = Reshape(name='_'.join([name, 'post', 'dropout', 'reshape', name_ext]),
-                    target_shape=output_reshape)(x)
+        x = Reshape(name='_'.join([name, 'post', 'bn', 'reshape', name_ext]),
+                    target_shape=output_reshape[1:])(x)
     return x
 
 
 def activation_layer_constructor(x: Layer, name: str, name_ext: str, activation: str, **reg_kwargs):
-    input_shape = x.shape[1:]
+    input_shape = x.shape
     output_reshape = None
-    if not len(input_shape) == 1:
+    if len(input_shape) > 2:
         output_reshape = input_shape
         x = Flatten(name='_'.join([name, 'pre', 'activation', 'flatten', name_ext]))(x)
     activation_name = '_'.join([name, activation if isinstance(activation, str) else 'activation', name_ext])
@@ -327,6 +323,6 @@ def activation_layer_constructor(x: Layer, name: str, name_ext: str, activation:
             name=activation_name,
             activation=activation)(x)
     if output_reshape is not None:
-        x = Reshape(name='_'.join([name, 'post', 'dropout', 'reshape', name_ext]),
-                    target_shape=output_reshape)(x)
+        x = Reshape(name='_'.join([name, 'post', 'activation', 'reshape', name_ext]),
+                    target_shape=output_reshape[1:])(x)
     return x
