@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import KFold
 import random
 from random import seed
+from sklearn.model_selection import KFold
 
 
 def sub_sample(data, n):
@@ -48,8 +48,19 @@ def train_val_split(input_data, output_data=None, n_parallel_models=1, do_kfolds
             y_train += [output_data[train_inds, ...]]
         if val_ratio > 0 and output_data is not None:
             y_val += [output_data[val_inds, ...]]
+    # ToDo: improve next lines
+    if n_parallel_models == 1:
+        if len(x_train) > 0:
+            x_train = x_train[0]
+        if len(x_val) > 0:
+            x_val = x_val[0]
     returns = [x_train, x_val]
     if output_data is not None:
+        if n_parallel_models == 1:
+            if len(y_train) > 0:
+                y_train = y_train[0]
+            if len(y_val) > 0:
+                y_val = y_val[0]
         returns += [y_train, y_val]
     returns += [train_val_inds]
     return returns

@@ -1,8 +1,8 @@
-import tempfile
-from airontools.tools import path_management
 import os
+import tempfile
 import tensorflow as tf
 from tensorboard.plugins import projector
+from airontools.tools import path_management
 
 
 def save_insights(embeddings, embeddings_names=None, metadata=None,
@@ -17,8 +17,8 @@ def save_insights(embeddings, embeddings_names=None, metadata=None,
     """
 
     embeddings = embeddings if isinstance(embeddings, list) else [embeddings]
-    embeddings_names = embeddings_names if embeddings_names else list(['embeddings_' + str(i)
-                                                                       for i in range(len(embeddings))])
+    embeddings_names = embeddings_names if embeddings_names else \
+        list(['embeddings_' + str(i) for i in range(len(embeddings))])
 
     # Path management
     path_management(path)

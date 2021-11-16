@@ -2,6 +2,20 @@ import setuptools
 import os
 
 PACKAGE_NAME = 'airontools'
+SUB_PACKAGES_NAMES = [
+    'airontools.constructors',
+    'airontools.constructors.blocks',
+    'airontools.constructors.layers',
+    'airontools.constructors.models',
+    'airontools.constructors.models.general',
+    'airontools.constructors.models.supervised',
+    'airontools.constructors.models.supervised.classification',
+    'airontools.constructors.models.unsupervised',
+    'airontools.constructors.utils',
+    'airontools.devices',
+    'airontools.interactors',
+    'airontools.visualization',
+]
 
 with open('README.md', 'r') as fh:
     long_description = fh.read()
@@ -9,7 +23,7 @@ with open('README.md', 'r') as fh:
 
 setuptools.setup(
     name=PACKAGE_NAME,
-    version='0.1.8',
+    version='0.1.9',
     scripts=[],
     author='Claudi Ruiz Camps',
     author_email='claudi_ruiz@hotmail.com',
@@ -18,9 +32,7 @@ setuptools.setup(
     long_description_content_type='text/markdown',
     url='https://github.com/AtrejuArtax/airontools',
     packages=setuptools.find_packages(
-        include=[PACKAGE_NAME] + [PACKAGE_NAME + '.' + name
-                                  for name in os.listdir(os.path.join(os.getcwd(), PACKAGE_NAME))
-                                  if not any([str_ in name for str_ in ['.py', '__']])]),
+        include=[PACKAGE_NAME] + SUB_PACKAGES_NAMES),
     install_requires=['sklearn'],
     classifiers=['Programming Language :: Python :: 3',
                  'License :: OSI Approved :: BSD License',

@@ -1,6 +1,6 @@
 from airontools.backend import get_backend
 BACKEND = get_backend()
-if BACKEND == 'tensorflow':
-    from airontools.devices.utils_tf import *
+if BACKEND == 'pytorch':
+    from airontools.devices.devices_torch import *
 else:
-    from airontools.devices.utils_torch import *
+    from airontools.devices.devices_tf import *
