@@ -5,7 +5,7 @@ from tensorflow.keras.metrics import Mean
 from tensorflow.keras.losses import CategoricalCrossentropy
 import json
 import numpy as np
-from airontools.constructors import layer_constructor
+from airontools.constructors.layers import layer_constructor
 
 
 class ImageClassifierNN(Model):
