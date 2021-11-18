@@ -9,6 +9,7 @@ from airontools.constructors.layers import layer_constructor
 
 
 class ImageVAE(Model):
+
     def __init__(self, latent_dim, **kwargs):
         super(ImageVAE, self).__init__(**kwargs)
 

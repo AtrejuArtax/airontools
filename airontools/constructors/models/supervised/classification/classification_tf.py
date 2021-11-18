@@ -9,6 +9,7 @@ from airontools.constructors.layers import layer_constructor
 
 
 class ImageClassifierNN(Model):
+
     def __init__(self,
                  input_shape,
                  dropout_rate,
