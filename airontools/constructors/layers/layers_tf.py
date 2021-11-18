@@ -51,7 +51,7 @@ def layer_constructor(x,
             return_sequences (bool): Whether to return sequences or not (only active if sequential).
             filters (int): Number of filters to be used. If a value is given, a convolutional layer will be
             automatically added.
-            kernel_size (int): Kernel size for the convolutional layer.
+            kernel_size (int, tuple): Kernel size for the convolutional layer.
             conv_transpose (bool): Whether to use a transpose conv layer or not (only active if filters and
             kernel_size are set).
             strides (tuple, int): Strides for the conv layer (only active if filters and

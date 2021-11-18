@@ -9,6 +9,7 @@ from airontools.constructors.layers import layer_constructor
 
 
 class ImageClassifierNN(Model):
+
     def __init__(self,
                  input_shape,
                  dropout_rate,
@@ -40,7 +41,8 @@ class ImageClassifierNN(Model):
             filters=32,  # Number of filters used for the convolutional layer
             kernel_size=15,  # Kernel size used for the convolutional layer
             strides=2,  # Strides used for the convolutional layer
-            sequential_axis=-1,  # It's the channel axis, used to define the sequence for the self-attention layer
+            sequential_axis=-1,  # It's the channel axis, used to define the sequence
+            # for the self-attention layer
             num_heads=3,  # Self-attention heads applied after the convolutional layer
             units=10,  # Dense units applied after the self-attention layer
             activation='softmax',  # Output activation function

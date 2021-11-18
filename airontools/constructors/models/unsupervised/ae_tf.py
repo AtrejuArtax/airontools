@@ -9,6 +9,7 @@ from airontools.constructors.layers import layer_constructor
 
 
 class ImageAE(Model):
+
     def __init__(self, latent_dim, **kwargs):
         super(ImageAE, self).__init__(**kwargs)
 
@@ -23,7 +24,8 @@ class ImageAE(Model):
             filters=32,  # Number of filters used for the convolutional layer
             kernel_size=3,  # Kernel size used for the convolutional layer
             strides=2,  # Strides used for the convolutional layer
-            sequential_axis=-1,  # It's the channel axis, used to define the sequence for the self-attention layer
+            sequential_axis=-1,  # It's the channel axis, used to define the sequence
+            # for the self-attention layer
             num_heads=2,  # Self-attention heads applied after the convolutional layer
             units=latent_dim,  # Dense units applied after the self-attention layer
             advanced_reg=True)
