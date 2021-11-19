@@ -11,7 +11,7 @@ def save_representations(representations, path, representations_name='representa
             representations (array): Representations to be saved.
             path (str): Path to save the representations.
             representations_name (str): Embeddings names.
-            metadata (list, array): Metadata.
+            metadata (list(array), array): Metadata (a list of arrays or an array).
     """
 
     # Path management
@@ -20,9 +20,13 @@ def save_representations(representations, path, representations_name='representa
     # Save metadata
     metadata_file_name = os.path.join(path, 'metadata.tsv')
     if metadata is not None:
+        metadata_list = metadata if isinstance(metadata, list) else [metadata]
         with open(metadata_file_name, 'w') as f:
-            for i in range(len(metadata)):
-                f.write("{}\n".format(str(metadata[i])))
+            for i in range(len(metadata_list[0])):
+                meta_line = []
+                for metadata_ in metadata_list:
+                    meta_line += [str(metadata_[i])]
+                f.write('\t'.join(meta_line) + '\n')
 
     # Save representations
     representations_var = tf.Variable(representations, name=representations_name)
