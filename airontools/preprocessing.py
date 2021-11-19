@@ -74,7 +74,7 @@ def train_val_split(input_data, output_data=None, meta_data=None, n_parallel_mod
                 meta_train = meta_train[0]
             if len(meta_val) > 0:
                 meta_val = meta_val[0]
-        returns += [meta_val]
+        returns += [meta_train, meta_val]
     returns += [train_val_inds]
     return returns
 
