@@ -1,20 +1,35 @@
-from tensorflow.keras.models import Model
-from airontools.visualization.utils_tf import save_insights
-from airontools.constructors.utils.utils_tf import get_latent_model
+import os
+import tensorflow as tf
+from tensorboard.plugins import projector
+from airontools.tools import path_management
 
 
-def get_insights(x, model, hidden_layer_names=None, **kwargs):
-    """ Get insights of latent layers. Given input data and a model, this function makes use of tensorboard to get
-    insights of the latent representations.
+def save_representations(representations, path, representations_name='representations', metadata=None):
+    """ Save representations (or embeddings).
 
         Parameters:
-            x (list, array): Data to be mapped to latent representations.
-            model (Model): Model to be used to get the insights.
-            hidden_layer_names (str, list): Names of the hidden layers ti get insights from.
-            embeddings (list, array): Embeddings to be saved.
-            embeddings_names (list, str): Embeddings names.
+            representations (array): Representations to be saved.
+            path (str): Path to save the representations.
+            representations_name (str): Embeddings names.
             metadata (list, array): Metadata.
-            path (str): Path to save insights.
     """
-    model_ = model if not hidden_layer_names else get_latent_model(model, hidden_layer_names)
-    save_insights(model_.predict(x), **kwargs)
+
+    # Path management
+    path_management(path)
+
+    # # Save metadata
+    # metadata_file_name = os.path.join(path, 'metadata.tsv')
+    # if metadata:
+    #     with open(metadata_file_name, "w") as f:
+    #         pass
+
+    # Save data
+    checkpoint = tf.train.Checkpoint(embedding=tf.Variable(representations))
+    checkpoint.save(os.path.join(path, representations_name + '.ckpt'))
+
+    # Set up config and embeddings
+    config = projector.ProjectorConfig()
+    embedding = config.embeddings.add()
+    embedding.tensor_name = representations_name + '/.ATTRIBUTES/VARIABLE_VALUE'
+    # embedding.metadata_path = metadata_file_name
+    projector.visualize_embeddings(path, config)

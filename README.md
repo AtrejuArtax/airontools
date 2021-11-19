@@ -52,15 +52,15 @@ class ImageVAE(Model):
             advanced_reg=True)
         z_mean = layer_constructor(
             encoder_conv,
-            name='encoder_mean',
+            name='z_mean',
             units=latent_dim,
             advanced_reg=True)
         z_log_var = layer_constructor(
             encoder_conv,
-            name='encoder_log_var',
+            name='z_log_var',
             units=latent_dim,
             advanced_reg=True)
-        z = Sampling()([z_mean, z_log_var])
+        z = Sampling(name='z')([z_mean, z_log_var])
         self.encoder = Model(encoder_inputs, [z_mean, z_log_var, z], name="encoder")
 
         # Decoder
