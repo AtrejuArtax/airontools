@@ -29,12 +29,16 @@ class ImageAE(Model):
             num_heads=2,  # Self-attention heads applied after the convolutional layer
             units=latent_dim,  # Dense units applied after the self-attention layer
             advanced_reg=True)
+        self.encoder = Model(encoder_inputs, encoder_conv, name="encoder")
+
+        # Z
+        z_inputs = Input(shape=self.encoder.outputs[0].shape[1:])
         z = layer_constructor(
-            encoder_conv,
+            z_inputs,
             name='z',
             units=latent_dim,
             advanced_reg=True)
-        self.encoder = Model(encoder_inputs, z, name="encoder")
+        self.z = Model(z_inputs, z, name="z")
 
         # Decoder
         latent_inputs = Input(shape=(latent_dim,))
@@ -94,7 +98,8 @@ class ImageAE(Model):
 
     def loss_evaluation(self, data, return_tape=False):
         def loss_evaluation_():
-            z = self.encoder(data)
+            encoder = self.encoder(data)
+            z = self.z(encoder)
             reconstruction = self.decoder(z)
             reconstruction_loss = tf.reduce_mean(
                 tf.reduce_sum(
@@ -129,14 +134,3 @@ class ImageAE(Model):
     def summary(self):
         self.encoder.summary()
         self.decoder.summary()
-
-
-class Sampling(Layer):
-    """Uses (z_mean, z_log_var) to sample z, the vector encoding a digit."""
-
-    def call(self, inputs):
-        z_mean, z_log_var = inputs
-        batch = tf.shape(z_mean)[0]
-        dim = tf.shape(z_mean)[1]
-        epsilon = tf.keras.backend.random_normal(shape=(batch, dim))
-        return z_mean + tf.exp(0.5 * z_log_var) * epsilon
