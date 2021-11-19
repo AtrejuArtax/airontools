@@ -23,13 +23,14 @@ def save_representations(representations, path, representations_name='representa
     #     with open(metadata_file_name, "w") as f:
     #         pass
 
-    # Save data
-    checkpoint = tf.train.Checkpoint(embedding=tf.Variable(representations))
+    # Save representations
+    representations_var = tf.Variable(representations, name=representations_name)
+    checkpoint = tf.train.Checkpoint(embedding=representations_var)
     checkpoint.save(os.path.join(path, representations_name + '.ckpt'))
 
-    # Set up config and embeddings
+    # Set up config and representations
     config = projector.ProjectorConfig()
     embedding = config.embeddings.add()
-    embedding.tensor_name = representations_name + '/.ATTRIBUTES/VARIABLE_VALUE'
+    embedding.tensor_name = 'embedding/.ATTRIBUTES/VARIABLE_VALUE'
     # embedding.metadata_path = metadata_file_name
     projector.visualize_embeddings(path, config)
