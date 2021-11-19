@@ -40,12 +40,12 @@ class ImageVAE(Model):
             name='z_log_var',
             units=latent_dim,
             advanced_reg=True)
-        self.encoder = Model(encoder_inputs, [z_mean, z_log_var], name="encoder")
+        self.encoder = Model(encoder_inputs, [z_mean, z_log_var], name='encoder')
         self.inputs = self.encoder.inputs
 
         # Z
-        z_inputs = [Input(shape=o.shape[1:]) for o in self.encoder.outputs]
-        self.z = Model(z_inputs, Sampling(name='z')(z_inputs), name="z")
+        z_inputs = [Input(shape=(latent_dim,)) for _ in self.encoder.outputs]
+        self.z = Model(z_inputs, Sampling(name='z')(z_inputs), name='z')
 
         # Decoder
         latent_inputs = Input(shape=(latent_dim,))
@@ -76,7 +76,7 @@ class ImageVAE(Model):
             conv_transpose=True,
             activation='sigmoid',
             advanced_reg=True)
-        self.decoder = Model(latent_inputs, decoder_outputs, name="decoder")
+        self.decoder = Model(latent_inputs, decoder_outputs, name='decoder')
 
     @property
     def metrics(self):
