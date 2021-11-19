@@ -11,13 +11,14 @@ def sub_sample(data, n):
     return data.loc[:n-1, data_.columns]
 
 
-def train_val_split(input_data, output_data=None, n_parallel_models=1, do_kfolds=False, val_ratio=0.2, shuffle=True,
-                  seed_val=None):
+def train_val_split(input_data, output_data=None, meta_data=None, n_parallel_models=1, do_kfolds=False, val_ratio=0.2,
+                    shuffle=True, seed_val=None):
     """ Train validation split.
 
         Parameters:
             input_data (np.ndarray): Input data.
             output_data (np.ndarray): Output data.
+            meta_data (np.ndarray): Meta data.
             n_parallel_models (int): Number of parallel models.
             do_kfolds (bool): Whether to do kfolds for cross-validation or not.
             val_ratio (float): Ratio for validation.
@@ -27,7 +28,8 @@ def train_val_split(input_data, output_data=None, n_parallel_models=1, do_kfolds
         Returns:
             4 lists.
     """
-    x_train, x_val, y_train, y_val = [], [], [], []
+    # ToDo: Simplify code
+    x_train, x_val, y_train, y_val, meta_train, meta_val = [], [], [], [], [], []
     if do_kfolds and n_parallel_models > 1:
         kf = KFold(n_splits=n_parallel_models, shuffle=True, random_state=seed_val)
         n_train = min([data[0].shape[0] for data in kf.split(range(input_data.shape[0]))])
@@ -46,9 +48,13 @@ def train_val_split(input_data, output_data=None, n_parallel_models=1, do_kfolds
             x_val += [input_data[val_inds, ...]]
         if output_data is not None:
             y_train += [output_data[train_inds, ...]]
-        if val_ratio > 0 and output_data is not None:
-            y_val += [output_data[val_inds, ...]]
-    # ToDo: improve next lines
+        if meta_data is not None:
+            meta_train += [meta_data[train_inds, ...]]
+        if val_ratio > 0:
+            if output_data is not None:
+                y_val += [output_data[val_inds, ...]]
+            if meta_data is not None:
+                meta_val += [meta_data[val_inds, ...]]
     if n_parallel_models == 1:
         if len(x_train) > 0:
             x_train = x_train[0]
@@ -62,6 +68,13 @@ def train_val_split(input_data, output_data=None, n_parallel_models=1, do_kfolds
             if len(y_val) > 0:
                 y_val = y_val[0]
         returns += [y_train, y_val]
+    if meta_data is not None:
+        if n_parallel_models == 1:
+            if len(meta_train) > 0:
+                meta_train = meta_train[0]
+            if len(meta_val) > 0:
+                meta_val = meta_val[0]
+        returns += [meta_val]
     returns += [train_val_inds]
     return returns
 

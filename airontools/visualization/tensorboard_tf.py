@@ -17,11 +17,12 @@ def save_representations(representations, path, representations_name='representa
     # Path management
     path_management(path)
 
-    # # Save metadata
-    # metadata_file_name = os.path.join(path, 'metadata.tsv')
-    # if metadata:
-    #     with open(metadata_file_name, "w") as f:
-    #         pass
+    # Save metadata
+    metadata_file_name = os.path.join(path, 'metadata.tsv')
+    if metadata is not None:
+        with open(metadata_file_name, 'w') as f:
+            for i in range(len(metadata)):
+                f.write("{}\n".format(str(metadata[i])))
 
     # Save representations
     representations_var = tf.Variable(representations, name=representations_name)
@@ -32,5 +33,5 @@ def save_representations(representations, path, representations_name='representa
     config = projector.ProjectorConfig()
     embedding = config.embeddings.add()
     embedding.tensor_name = 'embedding/.ATTRIBUTES/VARIABLE_VALUE'
-    # embedding.metadata_path = metadata_file_name
+    embedding.metadata_path = metadata_file_name
     projector.visualize_embeddings(path, config)
