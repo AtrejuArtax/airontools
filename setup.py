@@ -35,7 +35,7 @@ setuptools.setup(
         include=[PACKAGE_NAME] + SUB_PACKAGES_NAMES),
     install_requires=[
         'numpy',
-        'pandas'
+        'pandas',
         'sklearn',
         'tensorflow==2.7.0',
         'tensorboard==2.7.0'
