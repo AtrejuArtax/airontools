@@ -33,7 +33,13 @@ setuptools.setup(
     url='https://github.com/AtrejuArtax/airontools',
     packages=setuptools.find_packages(
         include=[PACKAGE_NAME] + SUB_PACKAGES_NAMES),
-    install_requires=['sklearn'],
+    install_requires=[
+        'numpy',
+        'pandas'
+        'sklearn',
+        'tensorflow==2.7.0',
+        'tensorboard==2.7.0'
+    ],
     classifiers=['Programming Language :: Python :: 3',
                  'License :: OSI Approved :: BSD License',
                  'Operating System :: OS Independent'],

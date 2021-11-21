@@ -1,17 +1,30 @@
+import warnings
+import numpy as np
 from sklearn.metrics import classification_report
 import tensorflow as tf
 from tensorflow.keras.models import Model
 from tensorflow.keras.mixed_precision import experimental as mixed_precision
 from tensorflow.keras import regularizers
 import tensorflow.keras.backend as k_bcknd
-import numpy as np
 
 
-def get_latent_model(model, layer_names):
-    layer_names = layer_names if isinstance(layer_names, list) else [layer_names]
-    return Model(inputs=model.inputs,
-                 outputs=[layer.output for layer in model.layers
-                          if any([layer_name in layer.name for layer_name in layer_names])])
+def get_latent_model(model, layer_name):
+    # ToDo: Make it for models with a non-trivial architecture
+    outputs = model.inputs
+    layer_found = False
+    for layer in model.layers:
+        outputs = layer(outputs)
+        if layer.name == layer_name:
+            layer_found = True
+            break
+    if layer_found:
+        return Model(
+            inputs=model.inputs,
+            outputs=outputs,
+            name=layer_name + '_model'
+        )
+    else:
+        warnings.warn('could not find the layer')
 
 
 def set_precision(precision):

@@ -32,16 +32,20 @@ class ImageVAE(Model):
             advanced_reg=True)
         z_mean = layer_constructor(
             encoder_conv,
-            name='encoder_mean',
+            name='z_mean',
             units=latent_dim,
             advanced_reg=True)
         z_log_var = layer_constructor(
             encoder_conv,
-            name='encoder_log_var',
+            name='z_log_var',
             units=latent_dim,
             advanced_reg=True)
-        z = Sampling()([z_mean, z_log_var])
-        self.encoder = Model(encoder_inputs, [z_mean, z_log_var, z], name="encoder")
+        self.encoder = Model(encoder_inputs, [z_mean, z_log_var], name='encoder')
+        self.inputs = self.encoder.inputs
+
+        # Z
+        z_inputs = [Input(shape=(latent_dim,)) for _ in self.encoder.outputs]
+        self.z = Model(z_inputs, Sampling(name='z')(z_inputs), name='z')
 
         # Decoder
         latent_inputs = Input(shape=(latent_dim,))
@@ -72,7 +76,7 @@ class ImageVAE(Model):
             conv_transpose=True,
             activation='sigmoid',
             advanced_reg=True)
-        self.decoder = Model(latent_inputs, decoder_outputs, name="decoder")
+        self.decoder = Model(latent_inputs, decoder_outputs, name='decoder')
 
     @property
     def metrics(self):
@@ -105,7 +109,8 @@ class ImageVAE(Model):
 
     def loss_evaluation(self, data, return_tape=False):
         def loss_evaluation_():
-            z_mean, z_log_var, z = self.encoder(data)
+            z_mean, z_log_var = self.encoder(data)
+            z = self.z([z_mean, z_log_var])
             reconstruction = self.decoder(z)
             reconstruction_loss = tf.reduce_mean(
                 tf.reduce_sum(
@@ -141,6 +146,7 @@ class ImageVAE(Model):
 
     def summary(self):
         self.encoder.summary()
+        self.z.summary()
         self.decoder.summary()
 
 

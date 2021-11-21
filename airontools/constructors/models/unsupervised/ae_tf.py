@@ -5,7 +5,7 @@ from tensorflow.keras.metrics import Mean
 from tensorflow.keras.losses import binary_crossentropy
 import json
 import numpy as np
-from airontools.constructors.layers import layer_constructor
+from airontools.constructors.layers import layer_constructor, identity
 
 
 class ImageAE(Model):
@@ -29,12 +29,18 @@ class ImageAE(Model):
             num_heads=2,  # Self-attention heads applied after the convolutional layer
             units=latent_dim,  # Dense units applied after the self-attention layer
             advanced_reg=True)
-        z = layer_constructor(
+        encoder_conv = layer_constructor(
             encoder_conv,
             name='z',
             units=latent_dim,
             advanced_reg=True)
-        self.encoder = Model(encoder_inputs, z, name="encoder")
+        self.encoder = Model(encoder_inputs, encoder_conv, name='encoder')
+        self.inputs = self.encoder.inputs
+
+        # Z
+        z_inputs = Input(shape=(latent_dim,))
+        z = Lambda(identity, name='z')(z_inputs)
+        self.z = Model(z_inputs, z, name='z')
 
         # Decoder
         latent_inputs = Input(shape=(latent_dim,))
@@ -65,7 +71,7 @@ class ImageAE(Model):
             conv_transpose=True,
             activation='sigmoid',
             advanced_reg=True)
-        self.decoder = Model(latent_inputs, decoder_outputs, name="decoder")
+        self.decoder = Model(latent_inputs, decoder_outputs, name='decoder')
 
     @property
     def metrics(self):
@@ -94,7 +100,8 @@ class ImageAE(Model):
 
     def loss_evaluation(self, data, return_tape=False):
         def loss_evaluation_():
-            z = self.encoder(data)
+            encoder = self.encoder(data)
+            z = self.z(encoder)
             reconstruction = self.decoder(z)
             reconstruction_loss = tf.reduce_mean(
                 tf.reduce_sum(
@@ -128,15 +135,5 @@ class ImageAE(Model):
 
     def summary(self):
         self.encoder.summary()
+        self.z.summary()
         self.decoder.summary()
-
-
-class Sampling(Layer):
-    """Uses (z_mean, z_log_var) to sample z, the vector encoding a digit."""
-
-    def call(self, inputs):
-        z_mean, z_log_var = inputs
-        batch = tf.shape(z_mean)[0]
-        dim = tf.shape(z_mean)[1]
-        epsilon = tf.keras.backend.random_normal(shape=(batch, dim))
-        return z_mean + tf.exp(0.5 * z_log_var) * epsilon
