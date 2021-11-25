@@ -81,8 +81,6 @@ def layer_constructor(x,
 
     # Initializations
     conv_condition = all([conv_param is not None for conv_param in [filters, kernel_size]])
-    if conv_condition and len(x.shape) < 4:
-        warnings.warn('if filters and kernel are set then the shape of x should be rank 4')
     name = name if name else 'layer'
     name_ext = name_ext if name_ext else ''
     activation = activation if activation else 'prelu'
@@ -171,6 +169,7 @@ def layer_constructor(x,
             name=name,
             name_ext=name_ext,
             bidirectional=bidirectional,
+            sequential_axis=sequential_axis,
             **seq_kwargs)
 
     # Dense
@@ -250,25 +249,26 @@ def _get_pooling_dim(x: Layer):
 
 
 def self_attention_layer_constructor(x: Layer, name: str, name_ext: str, sequential_axis: int, **kwargs):
-    input_shape = x.shape
-    sequential_axis_ = list(range(len(input_shape)))[sequential_axis]
-    if sequential_axis_ != 1:
-        permutation = tuple([sequential_axis_] +
-                            [i for i in range(1, len(input_shape[1:])) if i != sequential_axis_])
-        x = Permute(name='_'.join([name, 'pre', 'multi_head_attention', 'permutation', name_ext]),
-                    dims=permutation)(x)
-    else:
-        permutation = list(range(1, len(input_shape)))
-    if len(input_shape) > 2:
-        x = Reshape(name='_'.join([name, 'pre', 'multi_head_attention', 'reshape', name_ext]),
-                    target_shape=(input_shape[permutation[0]], np.prod([input_shape[i] for i in permutation[1:]]),))(x)
+    x = sequential_permutation(
+        x=x,
+        name=name,
+        name_ext=name_ext,
+        sequential_axis=sequential_axis
+    )
     x = MultiHeadAttention(
         name='_'.join([name, 'multi_head_attention', name_ext]),
         **kwargs)(x, x)
     return x
 
 
-def sequential_layer_constructor(x: Layer, name: str, name_ext: str, bidirectional: bool, **kwargs):
+def sequential_layer_constructor(x: Layer, name: str, name_ext: str, bidirectional: bool, sequential_axis: int,
+                                 **kwargs):
+    x = sequential_permutation(
+        x=x,
+        name=name,
+        name_ext=name_ext,
+        sequential_axis=sequential_axis
+    )
     if bidirectional:
         x = Bidirectional(GRU(
             name='_'.join([name, 'gru', name_ext]),
@@ -326,4 +326,24 @@ def activation_layer_constructor(x: Layer, name: str, name_ext: str, activation:
     if output_reshape is not None:
         x = Reshape(name='_'.join([name, 'post', 'activation', 'reshape', name_ext]),
                     target_shape=output_reshape[1:])(x)
+    return x
+
+
+def sequential_permutation(x: Layer, name: str, name_ext: str, sequential_axis: int):
+    input_shape = x.shape
+    sequential_axis_ = list(range(len(input_shape)))[sequential_axis]
+    if sequential_axis_ != 1:
+        permutation = tuple([sequential_axis_] +
+                            [i for i in range(1, len(input_shape[1:])) if i != sequential_axis_])
+        x = Permute(
+            name='_'.join([name, 'permutation', name_ext]),
+            dims=permutation
+        )(x)
+    else:
+        permutation = list(range(1, len(input_shape)))
+    if len(input_shape) > 2:
+        x = Reshape(
+            name='_'.join([name, 'reshape', name_ext]),
+            target_shape=(input_shape[permutation[0]], np.prod([input_shape[i] for i in permutation[1:]]),)
+        )(x)
     return x
