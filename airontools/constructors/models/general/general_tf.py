@@ -1,13 +1,14 @@
 import numpy as np
+import tensorflow as tf
+import tensorflow.keras.backend as k_bcknd
 from tensorflow.keras.layers import *
 from tensorflow.keras.models import Model
-import tensorflow.keras.backend as k_bcknd
-import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
-from airontools.constructors.utils.utils_tf import set_precision
-from airontools.constructors.utils.utils_tf import get_regularizer, get_layer_units, rm_redundant
-from airontools.constructors.layers import layer_constructor
+
 from airontools.constructors.blocks import block_constructor
+from airontools.constructors.layers import layer_constructor
+from airontools.constructors.utils.utils_tf import get_regularizer, get_layer_units, rm_redundant
+from airontools.constructors.utils.utils_tf import set_precision
 
 
 def model_constructor(input_specs, output_specs, name=None, optimizer=None, lr=0.001, loss='mse', i_n_layers=1,

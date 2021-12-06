@@ -1,11 +1,12 @@
 import warnings
+
 import numpy as np
-from sklearn.metrics import classification_report
 import tensorflow as tf
-from tensorflow.keras.models import Model
-from tensorflow.keras.mixed_precision import experimental as mixed_precision
-from tensorflow.keras import regularizers
 import tensorflow.keras.backend as k_bcknd
+from sklearn.metrics import classification_report
+from tensorflow.keras import regularizers
+from tensorflow.keras.mixed_precision import experimental as mixed_precision
+from tensorflow.keras.models import Model
 
 
 def get_latent_model(model, layer_name):

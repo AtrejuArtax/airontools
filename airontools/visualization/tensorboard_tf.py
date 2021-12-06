@@ -1,6 +1,8 @@
 import os
+
 import tensorflow as tf
 from tensorboard.plugins import projector
+
 from airontools.tools import path_management
 
 

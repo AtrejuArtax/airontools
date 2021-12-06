@@ -1,5 +1,5 @@
-from tensorflow.keras.models import model_from_json, Model
 import tensorflow.keras.backend as k_bcknd
+from tensorflow.keras.models import model_from_json, Model
 
 
 def save_model(model, name):
