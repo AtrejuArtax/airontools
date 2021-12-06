@@ -4,7 +4,7 @@ from typing import Union
 import numpy as np
 from tensorflow.keras.layers import *
 
-from airontools.constructors.utils.utils_tf import get_regularizer
+from airontools.constructors.utils import get_regularizer
 
 
 def layer_constructor(x,

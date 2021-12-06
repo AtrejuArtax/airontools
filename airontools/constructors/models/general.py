@@ -7,8 +7,8 @@ from tensorflow.keras.optimizers import Adam
 
 from airontools.constructors.blocks import block_constructor
 from airontools.constructors.layers import layer_constructor
-from airontools.constructors.utils.utils_tf import get_regularizer, get_layer_units, rm_redundant
-from airontools.constructors.utils.utils_tf import set_precision
+from airontools.constructors.utils import get_regularizer, get_layer_units, rm_redundant
+from airontools.constructors.utils import set_precision
 
 
 def model_constructor(input_specs, output_specs, name=None, optimizer=None, lr=0.001, loss='mse', i_n_layers=1,
