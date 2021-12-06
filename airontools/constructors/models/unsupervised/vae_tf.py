@@ -1,10 +1,12 @@
-import tensorflow as tf
-from tensorflow.keras.models import Model
-from tensorflow.keras.layers import *
-from tensorflow.keras.metrics import Mean
-from tensorflow.keras.losses import binary_crossentropy
 import json
+
 import numpy as np
+import tensorflow as tf
+from tensorflow.keras.layers import *
+from tensorflow.keras.losses import binary_crossentropy
+from tensorflow.keras.metrics import Mean
+from tensorflow.keras.models import Model
+
 from airontools.constructors.layers import layer_constructor
 
 

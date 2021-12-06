@@ -1,7 +1,9 @@
 import warnings
-import numpy as np
 from typing import Union
+
+import numpy as np
 from tensorflow.keras.layers import *
+
 from airontools.constructors.utils.utils_tf import get_regularizer
 
 
