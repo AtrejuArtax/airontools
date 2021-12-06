@@ -349,3 +349,6 @@ def sequential_permutation(x: Layer, name: str, name_ext: str, sequential_axis: 
             target_shape=(input_shape[permutation[0]], np.prod([input_shape[i] for i in permutation[1:]]),)
         )(x)
     return x
+
+def identity(x):
+    return x
