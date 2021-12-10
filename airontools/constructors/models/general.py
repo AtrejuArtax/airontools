@@ -13,8 +13,8 @@ from airontools.constructors.utils import set_precision
 
 def model_constructor(input_specs, output_specs, name=None, optimizer=None, lr=0.001, loss='mse', i_n_layers=1,
                       c_n_layers=1, hidden_activation=None, output_activation=None, i_compression=None,
-                      sequential=False, bidirectional=False, parallel_models=1, precision='float32', devices=None,
-                      compile_model=True, metrics=None, advanced_reg=False, **reg_kwargs):
+                      sequential=False, bidirectional=False, parallel_models=1, precision='float32', compile_model=True,
+                      metrics=None, advanced_reg=False, **reg_kwargs):
     """ It builds a custom model. reg_kwargs contain everything regarding regularization.
 
         Parameters:
@@ -33,7 +33,6 @@ def model_constructor(input_specs, output_specs, name=None, optimizer=None, lr=0
             bidirectional (bool): Whether to consider bidirectional case or not (only active if sequential).
             parallel_models (int): Number of parallel models.
             precision (str): Precision to be considered for the model: 'float32', 'float16' or 'mixed_float16'.
-            devices (list): Physical devises for training/inference.
             compile_model (bool): Whether to compile the model or not.
             metrics (list): Metrics. Useful for when the loss is not enough for hyper-parameter optimisation.
             advanced_reg (bool): Whether to automatically set advanced regularization. Useful to quickly make use of all
@@ -71,13 +70,10 @@ def model_constructor(input_specs, output_specs, name=None, optimizer=None, lr=0
     # Make the ensemble of models
     inputs = []
     outputs = []
-    for device in devices:
+    for model_i in range(parallel_models):
 
         # Define output dimension
         o_dim = sum([output_specs_['dim'] for _, output_specs_ in output_specs.items()])
-
-        # Device name
-        device_name = device.replace('/', '').replace(':', '')
 
         # Parallel models per device
         for parallel_model in np.arange(0, parallel_models):
@@ -86,7 +82,7 @@ def model_constructor(input_specs, output_specs, name=None, optimizer=None, lr=0
             i_blocks, c_block, o_blocks, to_l = [], [], [], []
 
             # Name
-            name_ = '_'.join([device_name, name, str(parallel_model)])
+            name_ = '_'.join([str(model_i), name, str(parallel_model)])
 
             # Input Blocks
             for i_name, i_specs in input_specs.items():

@@ -96,3 +96,13 @@ def update_specs(data_specs, input_data, output_data, cat_dictionary):
                 else len(cat_dictionary[feature_name + '_dictionary'][0])
             dim = 1 if dim == 2 and feature_specs['type'] == 'cat' and specs_name != 'output_specs' else dim
             feature_specs.update({'dim': dim})
+
+
+def to_time_series(dataset, targets, look_back=1):
+    union_dataset = np.concatenate((dataset, targets), axis=-1)
+    x, y = [], []
+    for i in range(len(union_dataset)-look_back-1):
+        a = union_dataset[i:(i+look_back), ...]
+        x.append(a)
+        y.append(union_dataset[i + look_back, -1])
+    return np.array(x), np.expand_dims(np.array(y), axis=-1)
