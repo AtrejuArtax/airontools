@@ -1,20 +1,11 @@
 import setuptools
-import os
 
 PACKAGE_NAME = 'airontools'
 SUB_PACKAGES_NAMES = [
     'airontools.constructors',
-    'airontools.constructors.blocks',
-    'airontools.constructors.layers',
     'airontools.constructors.models',
-    'airontools.constructors.models.general',
     'airontools.constructors.models.supervised',
-    'airontools.constructors.models.supervised.classification',
     'airontools.constructors.models.unsupervised',
-    'airontools.constructors.utils',
-    'airontools.devices',
-    'airontools.interactors',
-    'airontools.visualization',
 ]
 
 with open('README.md', 'r') as fh:

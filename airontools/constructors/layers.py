@@ -4,7 +4,7 @@ from typing import Union
 import numpy as np
 from tensorflow.keras.layers import *
 
-from airontools.constructors.utils.utils_tf import get_regularizer
+from airontools.constructors.utils import get_regularizer
 
 
 def layer_constructor(x,
@@ -348,4 +348,7 @@ def sequential_permutation(x: Layer, name: str, name_ext: str, sequential_axis: 
             name='_'.join([name, 'reshape', name_ext]),
             target_shape=(input_shape[permutation[0]], np.prod([input_shape[i] for i in permutation[1:]]),)
         )(x)
+    return x
+
+def identity(x):
     return x

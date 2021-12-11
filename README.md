@@ -1,8 +1,7 @@
 # AIronTools
 
 AIronTools (Beta) is a Python library that provides the user with deep learning tools built to work with 
-[tensorflow](https://github.com/tensorflow/tensorflow) (or [pytorch](https://github.com/pytorch/pytorch) in the future) 
-as a backend.
+[tensorflow](https://github.com/tensorflow/tensorflow) as a backend.
 
 Key features:
 
