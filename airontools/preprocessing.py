@@ -34,8 +34,6 @@ def train_val_split(input_data, output_data=None, meta_data=None, n_parallel_mod
         Returns:
             4 list[np.ndarray] or list[tfrecord].
     """
-    # ToDo: Simplify code
-    # x_train, x_val, y_train, y_val, meta_train, meta_val = [], [], [], [], [], []
     n_samples = input_data.shape[0]
     distributions = ['train', 'val']
     data = dict(x=input_data)
@@ -75,11 +73,12 @@ def train_val_split(input_data, output_data=None, meta_data=None, n_parallel_mod
         for split_data_name in split_data.keys():
             for distribution in distributions:
                 for i in range(n_parallel_models):
+                    tfrecord_name_ = '_'.join([tfrecord_name, split_data_name, distribution, str(i)]) + '.tfrecords'
                     write_tfrecord(
                         data=split_data[split_data_name][distribution][i],
-                        name='_'.join([tfrecord_name, split_data_name, distribution, str(i)])
+                        name=tfrecord_name_
                     )
-                    split_data[split_data_name][distribution][i] = []
+                    split_data[split_data_name][distribution][i] = [read_tfrecord(tfrecord_name_)]
     returns = []
     for split_data_name in split_data.keys():
         for distribution in distributions:
@@ -91,13 +90,23 @@ def train_val_split(input_data, output_data=None, meta_data=None, n_parallel_mod
 
 
 def write_tfrecord(data, name):
-    with tf.io.TFRecordWriter(name + '.tfrecords') as writer:
+    with tf.io.TFRecordWriter(name) as writer:
         for i in range(len(data)):
-            tf_example = __example(data[i])
+            tf_example = example(data[i])
             writer.write(tf_example.SerializeToString())
 
 
-def __example(data):
+def read_tfrecord(name):
+    dataset = tf.data.TFRecordDataset(name)
+    return dataset.map(parse_function)
+
+
+def parse_function(example_proto):
+    feature_description = {'dataset': tf.io.FixedLenFeature([], tf.string)}
+    return tf.io.parse_single_example(example_proto, feature_description)
+
+
+def example(data):
     feature = {'dataset': tf.train.Feature(bytes_list=tf.train.BytesList(value=[data.tobytes()]))}
     return tf.train.Example(features=tf.train.Features(feature=feature))
 
