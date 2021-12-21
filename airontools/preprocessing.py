@@ -4,9 +4,9 @@ import tempfile
 from random import seed
 
 import numpy as np
-import pandas as pd
 import tensorflow as tf
 from sklearn.model_selection import KFold
+AUTOTUNE = tf.data.AUTOTUNE
 
 
 def sub_sample(data, n):
@@ -16,7 +16,7 @@ def sub_sample(data, n):
 
 
 def train_val_split(input_data, output_data=None, meta_data=None, n_parallel_models=1, do_kfolds=False, val_ratio=0.2,
-                    shuffle=True, seed_val=None, return_tfrecord=False, tfrecord_name=None, batch_size=None):
+                    shuffle=True, seed_val=None, return_tfrecord=False, tfrecord_name=None):
     """ Train validation split.
 
         Parameters:
@@ -30,11 +30,11 @@ def train_val_split(input_data, output_data=None, meta_data=None, n_parallel_mod
             seed_val (int): Seed value.
             return_tfrecord (bool): Whether to return tfrecord or not.
             tfrecord_path (str): Name of the tfrecord.
-            batch_size (int): Batch size used for the tfrecord dataset.
 
         Returns:
             4 list[np.ndarray] or list[tfrecord].
     """
+    # ToDo: make it compatible with any type of data
     n_samples = input_data.shape[0]
     distributions = ['train', 'val']
     data = dict(x=input_data if isinstance(input_data, list) else [input_data])
@@ -60,7 +60,7 @@ def train_val_split(input_data, output_data=None, meta_data=None, n_parallel_mod
         if shuffle:
             random.shuffle(inds, random=seed(seed_val))
         line = int(len(inds) * (1 - val_ratio))
-        inds = [dict(train=inds[:line], val=inds[line:]) for _ in np.arange(0, n_parallel_models)]
+        inds = [dict(train=inds[:line], val=inds[line:])] * n_parallel_models
     for inds_ in inds:
         for distribution in distributions:
             x_ = []
@@ -80,20 +80,22 @@ def train_val_split(input_data, output_data=None, meta_data=None, n_parallel_mod
     if return_tfrecord:
         if tfrecord_name is None:
             tfrecord_name = os.path.join(tempfile.gettempdir(), 'tfrecord')
-        for split_data_name in split_data.keys():
+        for name in split_data.keys():
             for distribution in distributions:
                 for i in range(n_parallel_models):
-                    for j in range(split_data[split_data_name][distribution][i]):
-                        tfrecord_name_ = '_'.join([tfrecord_name, split_data_name, distribution, str(i)]) + '.tfrecords'
+                    for j in range(len(split_data[name][distribution][i])):
+                        tfrecord_name_ = '_'.join([tfrecord_name, name, distribution, 'fold', str(i), str(j)])
                         write_tfrecord(
-                            data=split_data[split_data_name][distribution][i][j],
-                            name=tfrecord_name_
+                            data=split_data[name][distribution][i][j],
+                            name=tfrecord_name_ + '.tfrecords'
                         )
-                        split_data[split_data_name][distribution][i] = [read_tfrecord(tfrecord_name_)]
+                        split_data[name][distribution][i] = [read_tfrecord(name=tfrecord_name_ + '.tfrecords')]
     returns = []
-    for split_data_name in split_data.keys():
+    for name in split_data.keys():
         for distribution in distributions:
-            return_ = split_data[split_data_name][distribution]
+            return_ = split_data[name][distribution]
+            if len(data[name]) == 1:
+                return_ = [_return[0] for _return in return_]
             if n_parallel_models == 1:
                 return_ = return_[0]
             returns += [return_]
@@ -108,20 +110,22 @@ def write_tfrecord(data, name):
             writer.write(tf_example.SerializeToString())
 
 
-def read_tfrecord(name, batch_size=None):
+def read_tfrecord(name, dtype=tf.float32):
     dataset = tf.data.TFRecordDataset(name)
-    if batch_size is not None:
-        dataset = dataset.batch(batch_size)
-    dataset = dataset.map(parse_function)
+    dataset = dataset.prefetch(buffer_size=AUTOTUNE)
+    # if batch_size is not None:
+    #     dataset = dataset.batch(batch_size)
+    dataset = dataset.map(parse_function(dtype=dtype))
     return dataset
 
 
-def parse_function(example_proto):
-    feature_description = {'data': tf.io.FixedLenFeature([], tf.string)}
-    example = tf.io.parse_single_example(example_proto, feature_description)
-    data = example['data']
-    tf.image.decode_jpeg()
-    return
+def parse_function(dtype):
+    def parse_function_(example_proto):
+        feature_description = {'data': tf.io.FixedLenFeature([], tf.string)}
+        example = tf.io.parse_single_example(example_proto, feature_description)
+        data = tf.io.decode_raw(example['data'], dtype)
+        return data
+    return parse_function_
 
 
 def example(data):
