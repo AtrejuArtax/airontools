@@ -211,7 +211,7 @@ def layer_constructor(x,
     return x
 
 
-def dropout_layer_constructor(x: Layer, name: str, name_ext: str, dropout_rate: float):
+def dropout_layer_constructor(x: Layer, name: str, name_ext: str, dropout_rate: float) -> Layer:
     input_shape = x.shape
     output_reshape = None
     if len(input_shape) > 2:
@@ -226,7 +226,7 @@ def dropout_layer_constructor(x: Layer, name: str, name_ext: str, dropout_rate: 
     return x
 
 
-def convolutional_layer_constructor(x: Layer, name: str, name_ext: str, conv_transpose: bool, **kwargs):
+def convolutional_layer_constructor(x: Layer, name: str, name_ext: str, conv_transpose: bool, **kwargs) -> Layer:
     conv_dim = len(x.shape) - 2
     conv_type = 'transpose' if conv_transpose else ''
     conv_name = 'Conv' + str(conv_dim) + 'D' + conv_type.capitalize()
@@ -235,7 +235,7 @@ def convolutional_layer_constructor(x: Layer, name: str, name_ext: str, conv_tra
     return x
 
 
-def pooling_layer_constructor(x: Layer, name: str, name_ext: str, pooling: Union[str, Layer], **kwargs):
+def pooling_layer_constructor(x: Layer, name: str, name_ext: str, pooling: Union[str, Layer], **kwargs) -> Layer:
     if isinstance(pooling, str):
         pooling_name = pooling.capitalize() + 'Pooling' + str(_get_pooling_dim(x)) + 'D'
         pooling_layer = globals()[pooling_name]
@@ -246,11 +246,11 @@ def pooling_layer_constructor(x: Layer, name: str, name_ext: str, pooling: Union
     return x
 
 
-def _get_pooling_dim(x: Layer):
+def _get_pooling_dim(x: Layer) -> int:
     return len(x.shape) - 2
 
 
-def self_attention_layer_constructor(x: Layer, name: str, name_ext: str, sequential_axis: int, **kwargs):
+def self_attention_layer_constructor(x: Layer, name: str, name_ext: str, sequential_axis: int, **kwargs) -> Layer:
     x = sequential_permutation(
         x=x,
         name=name,
@@ -264,7 +264,7 @@ def self_attention_layer_constructor(x: Layer, name: str, name_ext: str, sequent
 
 
 def sequential_layer_constructor(x: Layer, name: str, name_ext: str, bidirectional: bool, sequential_axis: int,
-                                 **kwargs):
+                                 **kwargs) -> Layer:
     x = sequential_permutation(
         x=x,
         name=name,
@@ -282,7 +282,7 @@ def sequential_layer_constructor(x: Layer, name: str, name_ext: str, bidirection
     return x
 
 
-def dense_layer_constructor(x: Layer, name: str, name_ext: str, **kwargs):
+def dense_layer_constructor(x: Layer, name: str, name_ext: str, **kwargs) -> Layer:
     if not len(x.shape[1:]) == 1:
         x = Flatten(name='_'.join([name, 'pre', 'dense', 'flatten', name_ext]))(x)
     x = Dense(
@@ -291,7 +291,7 @@ def dense_layer_constructor(x: Layer, name: str, name_ext: str, **kwargs):
     return x
 
 
-def bn_layer_constructor(x: Layer, name: str, name_ext: str, **kwargs):
+def bn_layer_constructor(x: Layer, name: str, name_ext: str, **kwargs) -> Layer:
     input_shape = x.shape
     output_reshape = None
     if len(input_shape) > 2:
@@ -306,7 +306,7 @@ def bn_layer_constructor(x: Layer, name: str, name_ext: str, **kwargs):
     return x
 
 
-def activation_layer_constructor(x: Layer, name: str, name_ext: str, activation: str, **reg_kwargs):
+def activation_layer_constructor(x: Layer, name: str, name_ext: str, activation: str, **reg_kwargs) -> Layer:
     input_shape = x.shape
     output_reshape = None
     if len(input_shape) > 2:
@@ -331,7 +331,7 @@ def activation_layer_constructor(x: Layer, name: str, name_ext: str, activation:
     return x
 
 
-def sequential_permutation(x: Layer, name: str, name_ext: str, sequential_axis: int):
+def sequential_permutation(x: Layer, name: str, name_ext: str, sequential_axis: int) -> Layer:
     input_shape = x.shape
     sequential_axis_ = list(range(len(input_shape)))[sequential_axis]
     if sequential_axis_ != 1:
@@ -350,5 +350,6 @@ def sequential_permutation(x: Layer, name: str, name_ext: str, sequential_axis: 
         )(x)
     return x
 
-def identity(x):
+
+def identity(x) -> Layer:
     return x
