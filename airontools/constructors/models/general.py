@@ -7,7 +7,7 @@ from tensorflow.keras.optimizers import Adam
 
 from airontools.constructors.blocks import block_constructor
 from airontools.constructors.layers import layer_constructor
-from airontools.constructors.utils import get_regularizer, get_layer_units, rm_redundant
+from airontools.constructors.utils import regularizer, get_layer_units, rm_redundant
 from airontools.constructors.utils import set_precision
 
 
@@ -104,8 +104,8 @@ def model_constructor(input_specs, output_specs, name=None, optimizer=None, lr=0
                                 filters=int(k_bcknd.int_shape(x_)[2] / 2) + 1,
                                 kernel_size=int(k_bcknd.int_shape(x_)[1] / 2) + 1,
                                 use_bias=True,
-                                kernel_regularizer=get_regularizer(kernel_regularizer_l1, kernel_regularizer_l2),
-                                bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2))(x_)
+                                kernel_regularizer=regularizer(kernel_regularizer_l1, kernel_regularizer_l2),
+                                bias_regularizer=regularizer(bias_regularizer_l1, bias_regularizer_l2))(x_)
                     x_ = Flatten(name='_'.join([i_block_name, 'flatten']))(x_)
                     x_ = layer_constructor(x_,
                                            name=i_block_name,
