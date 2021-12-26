@@ -47,7 +47,7 @@ def get_layer_units(input_dim: int, output_dim: int, n_layers: int, min_hidden_u
     return units
 
 
-def rm_redundant(values: list, value: int):
+def rm_redundant(values: list, value: int) -> list:
     taken = False
     values_ = []
     for n in values:
@@ -59,7 +59,7 @@ def rm_redundant(values: list, value: int):
     return values_
 
 
-def regularizer(l1=None, l2=None):
+def regularizer(l1=None, l2=None) -> regularizers.Regularizer:
     if l1 and l2:
         regularizer = regularizers.l1_l2(l1=l1, l2=l2)
     elif l1:
