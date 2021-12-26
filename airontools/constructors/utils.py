@@ -3,7 +3,6 @@ import warnings
 import numpy as np
 import tensorflow as tf
 import tensorflow.keras.backend as k_bcknd
-from sklearn.metrics import classification_report
 from tensorflow.keras import regularizers
 from tensorflow.keras.mixed_precision import experimental as mixed_precision
 from tensorflow.keras.models import Model
