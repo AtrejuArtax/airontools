@@ -106,8 +106,8 @@ def train_val_split(input_data, output_data=None, meta_data=None, n_parallel_mod
 def write_tfrecord(data, name):
     with tf.io.TFRecordWriter(name) as writer:
         for i in range(len(data)):
-            tf_example = example(data[i])
-            writer.write(tf_example.SerializeToString())
+            example_ = example(data[i])
+            writer.write(example_.SerializeToString())
 
 
 def read_tfrecord(name, dtype=tf.float32):
@@ -119,17 +119,35 @@ def read_tfrecord(name, dtype=tf.float32):
     return dataset
 
 
+DIM_NAMES = ['height', 'width', 'depth']
+
+
 def parse_function(dtype):
     def parse_function_(example_proto):
         feature_description = {'data': tf.io.FixedLenFeature([], tf.string)}
-        example = tf.io.parse_single_example(example_proto, feature_description)
-        data = tf.io.decode_raw(example['data'], dtype)
+        feature_description.update({dim_name: tf.io.FixedLenFeature([], tf.string) for dim_name in DIM_NAMES})
+        example_ = tf.io.parse_single_example(example_proto, feature_description)
+        data = tf.io.decode_raw(example_['data'], dtype)
+        data_shape = []
+        for dim_name in DIM_NAMES:
+            dim = tf.cast(tf.io.decode_raw(example_[dim_name]), tf.int32)
+            # ToDo: check this comparison for None cases
+            if dim is not None:
+                data_shape += [dim]
+        print('·········')
+        print(data)
+        print(data_shape)
+        data = tf.reshape(data, tf.stack(tuple(data_shape)))
         return data
     return parse_function_
 
 
-def example(data):
+def example(data: np.array):
     feature = {'data': tf.train.Feature(bytes_list=tf.train.BytesList(value=[data.tobytes()]))}
+    data_shape = data.shape
+    data_shape += (None,) * (len(DIM_NAMES) - len(data_shape))
+    for dim, dim_name in zip(data_shape, DIM_NAMES):
+        feature.update({dim_name: tf.train.Feature(bytes_list=tf.train.BytesList(value=[str(data).encode()]))})
     return tf.train.Example(features=tf.train.Features(feature=feature))
 
 
@@ -137,7 +155,6 @@ def to_time_series(dataset, targets, look_back=1):
     union_dataset = np.concatenate((dataset, targets), axis=-1)
     x, y = [], []
     for i in range(len(union_dataset)-look_back-1):
-        a = union_dataset[i:(i+look_back), ...]
-        x.append(a)
-        y.append(union_dataset[i + look_back, -1])
+        x.append(union_dataset[i:(i+look_back), ...])
+        y.append(targets[i + look_back, -1])
     return np.array(x), np.expand_dims(np.array(y), axis=-1)
