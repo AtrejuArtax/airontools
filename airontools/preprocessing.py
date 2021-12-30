@@ -156,5 +156,5 @@ def to_time_series(dataset, targets, look_back=1):
     x, y = [], []
     for i in range(len(union_dataset)-look_back-1):
         x.append(union_dataset[i:(i+look_back), ...])
-        y.append(targets[i + look_back, -1])
-    return np.array(x), np.expand_dims(np.array(y), axis=-1)
+        y.append(targets[i + look_back, ...])
+    return np.array(x), np.array(y)
