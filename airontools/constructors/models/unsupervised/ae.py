@@ -93,8 +93,8 @@ class ImageAE(Model):
             "reconstruction_loss": self.reconstruction_loss_tracker.result(),
         }
 
-    def evaluate(self, data):
-        loss, reconstruction_loss = self.loss_evaluation(data)
+    def evaluate(self, x, **kwargs):
+        loss, reconstruction_loss = self.loss_evaluation(x)
         return {
             'loss': loss.numpy(),
             'reconstruction_loss': reconstruction_loss.numpy(),

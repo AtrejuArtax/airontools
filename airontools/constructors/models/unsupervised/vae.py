@@ -101,8 +101,8 @@ class ImageVAE(Model):
             "kl_loss": self.kl_loss_tracker.result(),
         }
 
-    def evaluate(self, data):
-        loss, reconstruction_loss, kl_loss = self.loss_evaluation(data)
+    def evaluate(self, x, **kwargs):
+        loss, reconstruction_loss, kl_loss = self.loss_evaluation(x)
         return {
             'loss': loss.numpy(),
             'reconstruction_loss': reconstruction_loss.numpy(),
