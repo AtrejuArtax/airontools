@@ -15,7 +15,7 @@ class ImageAE(Model):
     def __init__(self, latent_dim, **kwargs):
         super(ImageAE, self).__init__(**kwargs)
 
-        self.total_loss_tracker = Mean(name="total_loss")
+        self.loss_tracker = Mean(name="loss")
         self.reconstruction_loss_tracker = Mean(name="reconstruction_loss")
 
         # Encoder
@@ -78,25 +78,25 @@ class ImageAE(Model):
     @property
     def metrics(self):
         return [
-            self.total_loss_tracker,
+            self.loss_tracker,
             self.reconstruction_loss_tracker,
         ]
 
     def train_step(self, data):
-        total_loss, reconstruction_loss, tape = self.loss_evaluation(data, return_tape=True)
-        grads = tape.gradient(total_loss, self.trainable_weights)
+        loss, reconstruction_loss, tape = self.loss_evaluation(data, return_tape=True)
+        grads = tape.gradient(loss, self.trainable_weights)
         self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
-        self.total_loss_tracker.update_state(total_loss)
+        self.loss_tracker.update_state(loss)
         self.reconstruction_loss_tracker.update_state(reconstruction_loss)
         return {
-            "loss": self.total_loss_tracker.result(),
+            "loss": self.loss_tracker.result(),
             "reconstruction_loss": self.reconstruction_loss_tracker.result(),
         }
 
     def evaluate(self, data):
-        total_loss, reconstruction_loss = self.loss_evaluation(data)
+        loss, reconstruction_loss = self.loss_evaluation(data)
         return {
-            'total_loss': total_loss.numpy(),
+            'loss': loss.numpy(),
             'reconstruction_loss': reconstruction_loss.numpy(),
         }
 
@@ -110,16 +110,16 @@ class ImageAE(Model):
                     binary_crossentropy(data, reconstruction), axis=(1, 2)
                 )
             )
-            total_loss = reconstruction_loss
-            return total_loss, reconstruction_loss
+            loss = reconstruction_loss
+            return loss, reconstruction_loss
 
         if return_tape:
             with tf.GradientTape() as tape:
-                total_loss, reconstruction_loss = loss_evaluation_()
-            return total_loss, reconstruction_loss, tape
+                loss, reconstruction_loss = loss_evaluation_()
+            return loss, reconstruction_loss, tape
         else:
-            total_loss, reconstruction_loss = loss_evaluation_()
-            return total_loss, reconstruction_loss
+            loss, reconstruction_loss = loss_evaluation_()
+            return loss, reconstruction_loss
 
     def save_weights(self, path):
         with open(path + '_encoder', 'w') as f:

@@ -31,7 +31,7 @@ class ImageClassifierNN(Model):
             bias_regularizer_l1=bias_regularizer_l1,
             bias_regularizer_l2=bias_regularizer_l2,
             bn=bn)
-        self.total_loss_tracker = Mean(name="total_loss")
+        self.loss_tracker = Mean(name="loss")
         self.classification_loss_tracker = Mean(name="classification_loss")
         self.cce = CategoricalCrossentropy()
 
@@ -63,32 +63,32 @@ class ImageClassifierNN(Model):
 
     def train_step(self, data):
         x, y = data
-        total_loss, classification_loss, tape = self.loss_evaluation(x, y, return_tape=True)
+        loss, classification_loss, tape = self.loss_evaluation(x, y, return_tape=True)
         grads = tape.gradient(classification_loss, self.trainable_weights)
         self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
-        self.total_loss_tracker.update_state(total_loss)
+        self.loss_tracker.update_state(loss)
         self.classification_loss_tracker.update_state(classification_loss)
         return {
-            "loss": self.total_loss_tracker.result(),
+            "loss": self.loss_tracker.result(),
             "classification_loss": self.classification_loss_tracker.result(),
         }
 
     def evaluate(self, x, y, sample_weight=None, **kwargs):
-        total_loss, cce_loss = self.loss_evaluation(x, y, sample_weight=None)
+        loss, cce_loss = self.loss_evaluation(x, y, sample_weight=None)
         return {
-            'total_loss': total_loss.numpy(),
+            'loss': loss.numpy(),
             'classification_loss': cce_loss.numpy()
         }
 
     def loss_evaluation(self, x, y, sample_weight=None, return_tape=False):
         def loss_evaluation_(x_, y_):
             cce_loss_ = self.cce(y_, self.call(x_), sample_weight=sample_weight)
-            total_loss_ = cce_loss_
-            return total_loss_, cce_loss_
+            loss_ = cce_loss_
+            return loss_, cce_loss_
         if return_tape:
             with tf.GradientTape() as tape:
-                total_loss, classification_loss = loss_evaluation_(x, y)
-            return total_loss, classification_loss, tape
+                loss, classification_loss = loss_evaluation_(x, y)
+            return loss, classification_loss, tape
         else:
             return loss_evaluation_(x, y)
 
