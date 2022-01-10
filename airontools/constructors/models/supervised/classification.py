@@ -1,7 +1,6 @@
 import json
 
 import numpy as np
-import tensorflow as tf
 from tensorflow.keras.layers import *
 from tensorflow.keras.losses import CategoricalCrossentropy
 from tensorflow.keras.metrics import Mean
@@ -54,43 +53,6 @@ class ImageClassifierNN(Model):
 
     def call(self, inputs):
         return self.encoder(inputs)
-
-    @property
-    def metrics(self):
-        return [
-            self.classification_loss_tracker
-        ]
-
-    def train_step(self, data):
-        x, y = data
-        loss, classification_loss, tape = self.loss_evaluation(x, y, return_tape=True)
-        grads = tape.gradient(classification_loss, self.trainable_weights)
-        self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
-        self.loss_tracker.update_state(loss)
-        self.classification_loss_tracker.update_state(classification_loss)
-        return {
-            "loss": self.loss_tracker.result(),
-            "classification_loss": self.classification_loss_tracker.result(),
-        }
-
-    def evaluate(self, x, y, sample_weight=None, **kwargs):
-        loss, cce_loss = self.loss_evaluation(x, y, sample_weight=None)
-        return {
-            'loss': loss.numpy(),
-            'classification_loss': cce_loss.numpy()
-        }
-
-    def loss_evaluation(self, x, y, sample_weight=None, return_tape=False):
-        def loss_evaluation_(x_, y_):
-            cce_loss_ = self.cce(y_, self.call(x_), sample_weight=sample_weight)
-            loss_ = cce_loss_
-            return loss_, cce_loss_
-        if return_tape:
-            with tf.GradientTape() as tape:
-                loss, classification_loss = loss_evaluation_(x, y)
-            return loss, classification_loss, tape
-        else:
-            return loss_evaluation_(x, y)
 
     def save_weights(self, path):
         with open(path + '_encoder', 'w') as f:
