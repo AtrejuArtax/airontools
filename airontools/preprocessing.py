@@ -120,7 +120,7 @@ def to_time_series(dataset, targets, look_back=1):
 def write_tfrecord(data: np.array, name: str):
     with tf.io.TFRecordWriter(name) as writer:
         for i in range(len(data)):
-            sample = data[i].reshape((np.prod(data[i].shape),))
+            sample = data[i].reshape((np.prod(data[i].shape),)).astype(np.float32)
             example_ = example(sample)
             writer.write(example_.SerializeToString())
 
@@ -134,8 +134,8 @@ def read_tfrecord(name: str, sample_shape: tuple, dtype=tf.float32):
 def parse_function(sample_shape, dtype: DType):
     def parse_function_(record):
         feature_description = {'data': tf.io.FixedLenFeature([], tf.string)}
-        example_ = tf.io.parse_example(record, feature_description)
-        data = tf.io.decode_raw(example_['data'], out_type=dtype)
+        data = tf.io.parse_single_example(record, feature_description)
+        data = tf.io.decode_raw(data['data'], out_type=dtype)
         data = tf.reshape(data, sample_shape)
         return data
     return parse_function_
@@ -143,7 +143,9 @@ def parse_function(sample_shape, dtype: DType):
 
 def example(data: np.array):
     feature = {'data': _bytes_feature(data.tobytes())}
-    return tf.train.Example(features=tf.train.Features(feature=feature))
+    features = tf.train.Features(feature=feature)
+    example = tf.train.Example(features=features)
+    return example
 
 
 def _bytes_feature(value):
