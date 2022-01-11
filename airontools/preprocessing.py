@@ -9,41 +9,34 @@ from sklearn.model_selection import KFold
 from tensorflow import DType
 
 
-def sub_sample(data, n):
-    data_ = data.copy()
-    data_.index = np.arange(data_.shape[0])
-    return data.loc[:n-1, data_.columns]
-
-
 def train_val_split(input_data, output_data=None, meta_data=None, n_parallel_models=1, do_kfolds=False, val_ratio=0.2,
                     shuffle=True, seed_val=None, return_tfrecord=False, tfrecord_name=None):
     """ Train validation split.
 
         Parameters:
-            input_data (list[array], array): Input data.
-            output_data (list[array], array): Output data.
-            meta_data (list[array], array): Meta data.
+            input_data (list[array, tf.data.Dataset], array, tf.data.Dataset): Input data.
+            output_data (list[array, tf.data.Dataset], array, tf.data.Dataset): Output data.
+            meta_data (list[array, tf.data.Dataset], array, tf.data.Dataset): Meta data.
             n_parallel_models (int): Number of parallel models.
             do_kfolds (bool): Whether to do kfolds for cross-validation or not.
             val_ratio (float): Ratio for validation.
             shuffle (bool): Whether to shuffle or not.
             seed_val (int): Seed value.
             return_tfrecord (bool): Whether to return tfrecord or not.
-            tfrecord_path (str): Name of the tfrecord.
+            tfrecord_name (str): Name of the tfrecord.
 
         Returns:
-            4 list[np.ndarray] or list[tfrecord].
+            4 list[array, tf.data.Dataset].
     """
-    # ToDo: make it compatible with any type of data
-    n_samples = input_data.shape[0]
     distributions = ['train', 'val']
-    data = dict(x=input_data if isinstance(input_data, list) else [input_data])
+    data = dict(x=_to_list_array(input_data))
+    n_samples = data['data'][0].shape[0]
     split_data = dict(x={distribution: [] for distribution in distributions})
     if output_data is not None:
-        data.update(y=output_data if isinstance(output_data, list) else [output_data])
+        data.update(y=_to_list_array(output_data))
         split_data.update(y={distribution: [] for distribution in distributions})
     if meta_data is not None:
-        data.update(meta=meta_data if isinstance(meta_data, list) else [meta_data])
+        data.update(meta=_to_list_array(meta_data))
         split_data.update(meta={distribution: [] for distribution in distributions})
     if do_kfolds and n_parallel_models > 1:
         kf = KFold(
@@ -121,8 +114,8 @@ def write_tfrecord(data: np.array, name: str):
     with tf.io.TFRecordWriter(name) as writer:
         for i in range(len(data)):
             sample = data[i].reshape((np.prod(data[i].shape),)).astype(np.float32)
-            example_ = example(sample)
-            writer.write(example_.SerializeToString())
+            example = _example(sample)
+            writer.write(example.SerializeToString())
 
 
 def read_tfrecord(name: str, sample_shape: tuple, dtype=tf.float32):
@@ -141,7 +134,7 @@ def parse_function(sample_shape, dtype: DType):
     return parse_function_
 
 
-def example(data: np.array):
+def _example(data: np.array):
     feature = {'data': _bytes_feature(data.tobytes())}
     features = tf.train.Features(feature=feature)
     example = tf.train.Example(features=features)
@@ -158,3 +151,17 @@ def _bytes_feature(value):
 def _int64_feature(value):
     """Returns an int64_list from a bool / enum / int / uint."""
     return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
+
+
+def _to_list_array(data):
+    data_list = []
+    if not isinstance(data, list):
+        data = [data]
+    for i in range(len(data)):
+        if isinstance(data[i], tf.data.Dataset):
+            data[i] = tf.data.Dataset.as_numpy(data[i])
+            for _, data_ in data[i].items():
+                data_list += [data_]
+        else:
+            data_list += [data[i]]
+    return data_list
