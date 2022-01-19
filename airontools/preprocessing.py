@@ -31,7 +31,7 @@ def train_val_split(input_data, output_data=None, meta_data=None, n_parallel_mod
     """
     distributions = ['train', 'val']
     data = dict(x=_to_list_array(input_data))
-    n_samples = data['data'][0].shape[0]
+    n_samples = data['x'][0].shape[0]
     split_data = dict(x={distribution: [] for distribution in distributions})
     if output_data is not None:
         data.update(y=_to_list_array(output_data))
