@@ -36,6 +36,7 @@ class ImageClassifierNN(Model):
 
         # Encoder
         encoder_inputs = Input(shape=input_shape)
+        encoder_inputs = Lambda(divide_by_255)(encoder_inputs)
         encoder = layer_constructor(
             encoder_inputs,
             name='encoder_conv',
@@ -65,3 +66,7 @@ class ImageClassifierNN(Model):
 
     def summary(self):
         self.encoder.summary()
+
+
+def divide_by_255(x):
+    return x / 255

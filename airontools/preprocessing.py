@@ -5,6 +5,7 @@ from random import seed
 
 import numpy as np
 import tensorflow as tf
+import tensorflow_datasets.public_api as tfds
 from sklearn.model_selection import KFold
 from tensorflow import DType
 
@@ -159,7 +160,7 @@ def _to_list_array(data):
         data = [data]
     for i in range(len(data)):
         if isinstance(data[i], tf.data.Dataset):
-            data[i] = tf.data.Dataset.as_numpy(data[i])
+            data[i] = tfds.as_numpy(data[i])
             for _, data_ in data[i].items():
                 data_list += [data_]
         else:
