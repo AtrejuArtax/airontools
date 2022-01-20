@@ -5,14 +5,9 @@ from random import seed
 
 import numpy as np
 import tensorflow as tf
+import tensorflow_datasets.public_api as tfds
 from sklearn.model_selection import KFold
-AUTOTUNE = tf.data.AUTOTUNE
-
-
-def sub_sample(data, n):
-    data_ = data.copy()
-    data_.index = np.arange(data_.shape[0])
-    return data.loc[:n-1, data_.columns]
+from tensorflow import DType
 
 
 def train_val_split(input_data, output_data=None, meta_data=None, n_parallel_models=1, do_kfolds=False, val_ratio=0.2,
@@ -20,30 +15,29 @@ def train_val_split(input_data, output_data=None, meta_data=None, n_parallel_mod
     """ Train validation split.
 
         Parameters:
-            input_data (list[array], array): Input data.
-            output_data (list[array], array): Output data.
-            meta_data (list[array], array): Meta data.
+            input_data (list[array, tf.data.Dataset], array, tf.data.Dataset): Input data.
+            output_data (list[array, tf.data.Dataset], array, tf.data.Dataset): Output data.
+            meta_data (list[array, tf.data.Dataset], array, tf.data.Dataset): Meta data.
             n_parallel_models (int): Number of parallel models.
             do_kfolds (bool): Whether to do kfolds for cross-validation or not.
             val_ratio (float): Ratio for validation.
             shuffle (bool): Whether to shuffle or not.
             seed_val (int): Seed value.
             return_tfrecord (bool): Whether to return tfrecord or not.
-            tfrecord_path (str): Name of the tfrecord.
+            tfrecord_name (str): Name of the tfrecord.
 
         Returns:
-            4 list[np.ndarray] or list[tfrecord].
+            4 list[array, tf.data.Dataset].
     """
-    # ToDo: make it compatible with any type of data
-    n_samples = input_data.shape[0]
     distributions = ['train', 'val']
-    data = dict(x=input_data if isinstance(input_data, list) else [input_data])
+    data = dict(x=_to_list_array(input_data))
+    n_samples = data['x'][0].shape[0]
     split_data = dict(x={distribution: [] for distribution in distributions})
     if output_data is not None:
-        data.update(y=output_data if isinstance(output_data, list) else [output_data])
+        data.update(y=_to_list_array(output_data))
         split_data.update(y={distribution: [] for distribution in distributions})
     if meta_data is not None:
-        data.update(meta=meta_data if isinstance(meta_data, list) else [meta_data])
+        data.update(meta=_to_list_array(meta_data))
         split_data.update(meta={distribution: [] for distribution in distributions})
     if do_kfolds and n_parallel_models > 1:
         kf = KFold(
@@ -85,11 +79,16 @@ def train_val_split(input_data, output_data=None, meta_data=None, n_parallel_mod
                 for i in range(n_parallel_models):
                     for j in range(len(split_data[name][distribution][i])):
                         tfrecord_name_ = '_'.join([tfrecord_name, name, distribution, 'fold', str(i), str(j)])
+                        _data = split_data[name][distribution][i][j]
+                        sample_shape = tuple(_data.shape[1:])
                         write_tfrecord(
-                            data=split_data[name][distribution][i][j],
+                            data=_data,
                             name=tfrecord_name_ + '.tfrecords'
                         )
-                        split_data[name][distribution][i] = [read_tfrecord(name=tfrecord_name_ + '.tfrecords')]
+                        split_data[name][distribution][i][j] = read_tfrecord(
+                            name=tfrecord_name_ + '.tfrecords',
+                            sample_shape=sample_shape
+                        )
     returns = []
     for name in split_data.keys():
         for distribution in distributions:
@@ -103,54 +102,6 @@ def train_val_split(input_data, output_data=None, meta_data=None, n_parallel_mod
     return returns
 
 
-def write_tfrecord(data, name):
-    with tf.io.TFRecordWriter(name) as writer:
-        for i in range(len(data)):
-            example_ = example(data[i])
-            writer.write(example_.SerializeToString())
-
-
-def read_tfrecord(name, dtype=tf.float32):
-    dataset = tf.data.TFRecordDataset(name)
-    dataset = dataset.prefetch(buffer_size=AUTOTUNE)
-    # if batch_size is not None:
-    #     dataset = dataset.batch(batch_size)
-    dataset = dataset.map(parse_function(dtype=dtype))
-    return dataset
-
-
-DIM_NAMES = ['height', 'width', 'depth']
-
-
-def parse_function(dtype):
-    def parse_function_(example_proto):
-        feature_description = {'data': tf.io.FixedLenFeature([], tf.string)}
-        feature_description.update({dim_name: tf.io.FixedLenFeature([], tf.string) for dim_name in DIM_NAMES})
-        example_ = tf.io.parse_single_example(example_proto, feature_description)
-        data = tf.io.decode_raw(example_['data'], dtype)
-        data_shape = []
-        for dim_name in DIM_NAMES:
-            dim = tf.cast(tf.io.decode_raw(example_[dim_name]), tf.int32)
-            # ToDo: check this comparison for None cases
-            if dim is not None:
-                data_shape += [dim]
-        print('·········')
-        print(data)
-        print(data_shape)
-        data = tf.reshape(data, tf.stack(tuple(data_shape)))
-        return data
-    return parse_function_
-
-
-def example(data: np.array):
-    feature = {'data': tf.train.Feature(bytes_list=tf.train.BytesList(value=[data.tobytes()]))}
-    data_shape = data.shape
-    data_shape += (None,) * (len(DIM_NAMES) - len(data_shape))
-    for dim, dim_name in zip(data_shape, DIM_NAMES):
-        feature.update({dim_name: tf.train.Feature(bytes_list=tf.train.BytesList(value=[str(data).encode()]))})
-    return tf.train.Example(features=tf.train.Features(feature=feature))
-
-
 def to_time_series(dataset, targets, look_back=1):
     union_dataset = np.concatenate((dataset, targets), axis=-1)
     x, y = [], []
@@ -158,3 +109,60 @@ def to_time_series(dataset, targets, look_back=1):
         x.append(union_dataset[i:(i+look_back), ...])
         y.append(targets[i + look_back, ...])
     return np.array(x), np.array(y)
+
+
+def write_tfrecord(data: np.array, name: str):
+    with tf.io.TFRecordWriter(name) as writer:
+        for i in range(len(data)):
+            sample = data[i].reshape((np.prod(data[i].shape),)).astype(np.float32)
+            example = _example(sample)
+            writer.write(example.SerializeToString())
+
+
+def read_tfrecord(name: str, sample_shape: tuple, dtype=tf.float32):
+    dataset = tf.data.TFRecordDataset(name)
+    dataset = dataset.map(parse_function(sample_shape=sample_shape, dtype=dtype))
+    return dataset
+
+
+def parse_function(sample_shape, dtype: DType):
+    def parse_function_(record):
+        feature_description = {'data': tf.io.FixedLenFeature([], tf.string)}
+        data = tf.io.parse_single_example(record, feature_description)
+        data = tf.io.decode_raw(data['data'], out_type=dtype)
+        data = tf.reshape(data, sample_shape)
+        return data
+    return parse_function_
+
+
+def _example(data: np.array):
+    feature = {'data': _bytes_feature(data.tobytes())}
+    features = tf.train.Features(feature=feature)
+    example = tf.train.Example(features=features)
+    return example
+
+
+def _bytes_feature(value):
+    """Returns a bytes_list from a string / byte."""
+    if isinstance(value, type(tf.constant(0))):
+        value = value.numpy()  # BytesList won't unpack a string from an EagerTensor.
+    return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
+
+
+def _int64_feature(value):
+    """Returns an int64_list from a bool / enum / int / uint."""
+    return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
+
+
+def _to_list_array(data):
+    data_list = []
+    if not isinstance(data, list):
+        data = [data]
+    for i in range(len(data)):
+        if isinstance(data[i], tf.data.Dataset):
+            data[i] = tfds.as_numpy(data[i])
+            for _, data_ in data[i].items():
+                data_list += [data_]
+        else:
+            data_list += [data[i]]
+    return data_list
