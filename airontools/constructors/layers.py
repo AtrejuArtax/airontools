@@ -28,6 +28,8 @@ def layer_constructor(x,
                       strides=(1, 1),
                       sequential_axis=1,
                       advanced_reg=False,
+                      custom_model_obj=None,
+                      is_activated_custom=False,
                       **reg_kwargs):
     """ It builds a custom layer. reg_kwargs contain everything regarding regularization. For now only 2D convolutions
     are supported for input of rank 4.
@@ -67,6 +69,9 @@ def layer_constructor(x,
             images and 4 for 3D images).
             advanced_reg (bool): Whether to automatically set advanced regularization. Useful to quickly make use of all
             the regularization properties.
+            is_activated_custom (bool): Whether to use a custom Dense layer with keras Functional API or not
+            custom_model_obj (object): Custom Dense Layer object constructed with keras Functional API, activated only
+            if is_activated_custom=True
             dropout_rate (float): Probability of each intput being disconnected.
             kernel_regularizer_l1 (float): Kernel regularization using l1 penalization (Lasso).
             kernel_regularizer_l2 (float): Kernel regularization using l2 penalization (Ridge).
@@ -185,7 +190,10 @@ def layer_constructor(x,
             x,
             name=name,
             name_ext=name_ext,
-            **dense_kwargs)
+            is_activated_custom=is_activated_custom,
+            custom_model_obj=custom_model_obj,
+            **dense_kwargs,
+        )
 
     # Batch Normalization
     if bn:
@@ -282,12 +290,22 @@ def sequential_layer_constructor(x: Layer, name: str, name_ext: str, bidirection
     return x
 
 
-def dense_layer_constructor(x: Layer, name: str, name_ext: str, **kwargs) -> Layer:
+def dense_layer_constructor(
+    x: Layer,
+    name: str,
+    name_ext: str,
+    is_activated_custom: bool,
+    custom_model_obj: object,
+    **kwargs
+) -> Layer:
+    
     if not len(x.shape[1:]) == 1:
-        x = Flatten(name='_'.join([name, 'pre', 'dense', 'flatten', name_ext]))(x)
-    x = Dense(
-        name='_'.join([name, 'dense', name_ext]),
-        **kwargs)(x)
+        x = Flatten(name="_".join([name, "pre", "dense", "flatten", name_ext]))(x)
+    if is_activated_custom:
+        x = custom_model_obj(x)
+        custom_model_obj._name = "_".join([name, "dense", name_ext])
+    else:
+        x = Dense(name="_".join([name, "dense", name_ext]), **kwargs)(x)
     return x
 
 
