@@ -28,8 +28,8 @@ setuptools.setup(
         'numpy',
         'pandas',
         'sklearn',
-        'tensorflow',
-        'tensorboard'
+        'tensorflow==2.7.0',
+        'tensorboard==2.7.0'
     ],
     classifiers=['Programming Language :: Python :: 3',
                  'License :: OSI Approved :: BSD License',
