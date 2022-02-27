@@ -1,4 +1,5 @@
 import json
+import os.path
 
 import numpy as np
 from tensorflow.keras.layers import *
@@ -58,11 +59,11 @@ class ImageClassifierNN(Model):
         return self.encoder(inputs)
 
     def save_weights(self, path):
-        with open(path + "_encoder", "w") as f:
+        with open(path + "_weights", "w") as f:
             json.dump([w.tolist() for w in self.encoder.get_weights()], f)
 
     def load_weights(self, path):
-        with open(path + "_encoder", "r") as f:
+        with open(path + "_weights", "r") as f:
             encoder_weights = [np.array(w) for w in json.load(f)]
         self.encoder.set_weights(encoder_weights)
 
