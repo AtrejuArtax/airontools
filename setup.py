@@ -29,7 +29,7 @@ setuptools.setup(
         'pandas',
         'sklearn',
         'tensorflow==2.7.0',
-        'tensorboard'
+        'tensorboard==2.7.0'
     ],
     classifiers=['Programming Language :: Python :: 3',
                  'License :: OSI Approved :: BSD License',
