@@ -1,10 +1,10 @@
 import json
-import os.path
 
 import numpy as np
+import tensorflow as tf
 from tensorflow.keras.layers import *
-from tensorflow.keras.losses import CategoricalCrossentropy
 from tensorflow.keras.metrics import Mean
+from tensorflow.keras.losses import categorical_crossentropy
 from tensorflow.keras.models import Model
 
 from airontools.constructors.layers import layer_constructor
@@ -25,7 +25,6 @@ class ImageClassifierNN(Model):
         super(ImageClassifierNN, self).__init__(**kwargs)
 
         reg_kwargs_ = dict(
-            input_shape=input_shape,
             dropout_rate=dropout_rate,
             kernel_regularizer_l1=kernel_regularizer_l1,
             kernel_regularizer_l2=kernel_regularizer_l2,
@@ -33,15 +32,14 @@ class ImageClassifierNN(Model):
             bias_regularizer_l2=bias_regularizer_l2,
             bn=bn,
         )
+
         self.loss_tracker = Mean(name="loss")
-        self.classification_loss_tracker = Mean(name="classification_loss")
-        self.cce = CategoricalCrossentropy()
 
         # Encoder
         encoder_inputs = Input(shape=input_shape)
-        encoder_inputs = Lambda(divide_by_255)(encoder_inputs)
         encoder = layer_constructor(
             encoder_inputs,
+            input_shape=input_shape,
             name="encoder_conv",
             filters=32,  # Number of filters used for the convolutional layer
             kernel_size=15,  # Kernel size used for the convolutional layer
@@ -55,6 +53,34 @@ class ImageClassifierNN(Model):
         )
         self.encoder = Model(encoder_inputs, encoder, name="encoder")
 
+    @tf.function
+    def train_step(self, data, **kwargs):
+        if len(data) == 3:
+            x, y, sample_weight = data
+        else:
+            x, y = data
+            sample_weight = 1
+        with tf.GradientTape() as tape:
+            loss = self._loss_evaluation(y, self.encoder(x), sample_weight)
+        grads = tape.gradient(loss, self.trainable_weights)
+        self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
+        self.loss_tracker.update_state(loss)
+        return {"loss": self.loss_tracker.result()}
+
+    @tf.function
+    def evaluate(self, x, y, **kwargs):
+        if "sample_weight_val" in kwargs.keys():
+            sample_weight = kwargs["sample_weight_val"]
+        else:
+            sample_weight = 1
+        return {"loss": self._loss_evaluation(y, self.encoder(x), sample_weight)}
+
+    def _loss_evaluation(self, y, y_pred, sample_weight):
+        loss = categorical_crossentropy(y, y_pred) * sample_weight
+        loss = tf.reduce_mean(tf.reduce_sum(loss))
+        return loss
+
+    @tf.function
     def call(self, inputs):
         return self.encoder(inputs)
 
@@ -67,9 +93,6 @@ class ImageClassifierNN(Model):
             encoder_weights = [np.array(w) for w in json.load(f)]
         self.encoder.set_weights(encoder_weights)
 
+    @tf.function
     def summary(self):
         self.encoder.summary()
-
-
-def divide_by_255(x):
-    return x / 255
