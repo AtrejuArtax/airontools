@@ -18,30 +18,31 @@ def get_latent_model(model: Model, layer_name: str):
             layer_found = True
             break
     if layer_found:
-        return Model(
-            inputs=model.inputs,
-            outputs=outputs,
-            name=layer_name + '_model'
-        )
+        return Model(inputs=model.inputs, outputs=outputs, name=layer_name + "_model")
     else:
-        warnings.warn('could not find the layer')
+        warnings.warn("could not find the layer")
 
 
 def set_precision(precision: float):
-    if 'float16' in precision:
-        if precision == 'mixed_float16':
-            policy = mixed_precision.Policy('mixed_float16')
+    if "float16" in precision:
+        if precision == "mixed_float16":
+            policy = mixed_precision.Policy("mixed_float16")
             mixed_precision.set_policy(policy)
         else:
-            tf.keras.backend.set_floatx('float16')
+            tf.keras.backend.set_floatx("float16")
 
 
 def to_time_series(tensor: tf.Tensor) -> tf.Tensor:
     return k_bcknd.expand_dims(tensor, axis=2)
 
 
-def get_layer_units(input_dim: int, output_dim: int, n_layers: int, min_hidden_units=2) -> list:
-    units = [max(int(units), min_hidden_units) for units in np.linspace(input_dim, output_dim, n_layers + 1)]
+def get_layer_units(
+    input_dim: int, output_dim: int, n_layers: int, min_hidden_units=2
+) -> list:
+    units = [
+        max(int(units), min_hidden_units)
+        for units in np.linspace(input_dim, output_dim, n_layers + 1)
+    ]
     units[0], units[-1] = input_dim, output_dim
     return units
 

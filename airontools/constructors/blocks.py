@@ -4,17 +4,19 @@ from tensorflow.keras.models import Model
 from airontools.constructors.layers import layer_constructor
 
 
-def block_constructor(units,
-                      input_shape,
-                      name=None,
-                      sequential=False,
-                      length=None,
-                      bidirectional=False,
-                      from_l=1,
-                      hidden_activation=None,
-                      output_activation=None,
-                      advanced_reg=False,
-                      **reg_kwargs):
+def block_constructor(
+    units,
+    input_shape,
+    name=None,
+    sequential=False,
+    length=None,
+    bidirectional=False,
+    from_l=1,
+    hidden_activation=None,
+    output_activation=None,
+    advanced_reg=False,
+    **reg_kwargs
+):
     """ It builds a custom block. reg_kwargs contain everything regarding regularization.
 
         Parameters:
@@ -42,31 +44,34 @@ def block_constructor(units,
     """
 
     # Initializations
-    name = name if name else 'block'
-    hidden_activation = hidden_activation if hidden_activation else 'prelu'
-    output_activation = output_activation if output_activation else 'linear'
+    name = name if name else "block"
+    hidden_activation = hidden_activation if hidden_activation else "prelu"
+    output_activation = output_activation if output_activation else "linear"
 
     # Hidden layers
-    i_l, o_l = Input(shape=input_shape, name=''.join([name, 'input'])), None
+    i_l, o_l = Input(shape=input_shape, name="".join([name, "input"])), None
     to_l = from_l + len(units)
     pre_o_dim = None
     for l, o_dim in zip(range(from_l, to_l), units):
         if l > from_l:
-            input_shape = (length, pre_o_dim,) if sequential else (pre_o_dim,)
+            input_shape = (length, pre_o_dim) if sequential else (pre_o_dim,)
         else:
             o_l = i_l
         o_l = layer_constructor(
             x=o_l,
             input_shape=input_shape,
             units=o_dim,
-            activation=hidden_activation if l == to_l - 1 is None else output_activation,
+            activation=hidden_activation
+            if l == to_l - 1 is None
+            else output_activation,
             name=name,
             name_ext=str(l),
             sequential=sequential,
             return_sequences=True if l < to_l - 1 and sequential else False,
             bidirectional=bidirectional,
             advanced_reg=advanced_reg,
-            **reg_kwargs)
+            **reg_kwargs
+        )
         pre_o_dim = o_dim
 
     # Model

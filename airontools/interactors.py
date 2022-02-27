@@ -44,16 +44,16 @@ def summary(model):
         Parameters:
             model (Model): Model to summarize.
     """
-    print('\n')
-    print('________________________ Model Summary __________________________')
-    print('Main model name: ' + model.name)
+    print("\n")
+    print("________________________ Model Summary __________________________")
+    print("Main model name: " + model.name)
     print(model.summary())
-    print('\n')
-    print('_________________ Layers/Sub-Models Summaries ___________________')
+    print("\n")
+    print("_________________ Layers/Sub-Models Summaries ___________________")
     for layer in model.layers:
         print(layer.name)
         try:
             print(layer.summary())
         except:
             pass
-    print('\n')
+    print("\n")

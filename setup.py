@@ -14,7 +14,7 @@ with open('README.md', 'r') as fh:
 
 setuptools.setup(
     name=PACKAGE_NAME,
-    version='0.1.15',
+    version='0.1.16',
     scripts=[],
     author='Claudi Ruiz Camps',
     author_email='claudi_ruiz@hotmail.com',
@@ -28,8 +28,8 @@ setuptools.setup(
         'numpy',
         'pandas',
         'sklearn',
-        'tensorflow==2.7.0',
-        'tensorboard==2.7.0'
+        'tensorflow',
+        'tensorboard'
     ],
     classifiers=['Programming Language :: Python :: 3',
                  'License :: OSI Approved :: BSD License',
