@@ -28,7 +28,7 @@ setuptools.setup(
         'numpy',
         'pandas',
         'sklearn',
-        'tensorflow',
+        'tensorflow==2.7.0',
         'tensorboard'
     ],
     classifiers=['Programming Language :: Python :: 3',
