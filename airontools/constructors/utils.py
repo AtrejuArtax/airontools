@@ -9,18 +9,24 @@ from tensorflow.keras.models import Model
 
 
 def get_latent_model(model: Model, layer_name: str):
-    # ToDo: Make it for models with a non-trivial architecture
-    outputs = model.inputs
-    layer_found = False
-    for layer in model.layers:
-        outputs = layer(outputs)
-        if layer.name == layer_name:
-            layer_found = True
-            break
-    if layer_found:
-        return Model(inputs=model.inputs, outputs=outputs, name=layer_name + "_model")
-    else:
-        warnings.warn("could not find the layer")
+    try:
+        return Model(
+            inputs=model.inputs,
+            outputs=model.get_layer(layer_name).output,
+            name=layer_name + "_model"
+        )
+    except ValueError:
+        outputs = model.inputs
+        layer_found = False
+        for layer in model.layers:
+            outputs = layer(outputs)
+            if layer.name == layer_name:
+                layer_found = True
+                break
+        if layer_found:
+            return Model(inputs=model.inputs, outputs=outputs, name=layer_name + "_model")
+        else:
+            warnings.warn("could not find the layer")
 
 
 def set_precision(precision: float):
