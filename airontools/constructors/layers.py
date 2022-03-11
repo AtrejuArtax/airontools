@@ -69,7 +69,6 @@ def layer_constructor(x,
             advanced_reg (bool): Whether to automatically set advanced regularization. Useful to quickly make use of all
             the regularization properties.
             custom_layer (Layer): Custom Layer class constructed with keras Functional API
-            if is_activated_custom=True
             dropout_rate (float): Probability of each intput being disconnected.
             kernel_regularizer_l1 (float): Kernel regularization using l1 penalization (Lasso).
             kernel_regularizer_l2 (float): Kernel regularization using l2 penalization (Ridge).
