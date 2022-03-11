@@ -346,7 +346,7 @@ def dense_layer_constructor(
     
     if not len(x.shape[1:]) == 1:
         x = Flatten(name="_".join([name, "pre", "dense", "flatten", name_ext]))(x)
-    if is_activated_custom:
+    if custom_layer is not None:
         x = custom_model_obj(x)
         custom_model_obj._name = "_".join([name, "dense", name_ext])
     else:
