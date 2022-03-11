@@ -28,7 +28,7 @@ def layer_constructor(x,
                       strides=(1, 1),
                       sequential_axis=1,
                       advanced_reg=False,
-                      custom_model_obj=None,
+                      custom_model=None,
                       **reg_kwargs):
     """ It builds a custom layer. reg_kwargs contain everything regarding regularization. For now only 2D convolutions
     are supported for input of rank 4.
