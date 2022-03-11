@@ -339,7 +339,7 @@ def dense_layer_constructor(
     x: Layer,
     name: str,
     name_ext: str,
-    custom_model_obj: object,
+    custom_layer: Layer,
     **kwargs
 ) -> Layer:
     
