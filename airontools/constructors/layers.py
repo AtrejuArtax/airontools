@@ -236,7 +236,7 @@ def layer_constructor(x,
             x,
             name=name,
             name_ext=name_ext,
-            custom_model_obj=custom_model_obj,
+            custom_layer=custom_layer,
             **dense_kwargs,
         )
 
