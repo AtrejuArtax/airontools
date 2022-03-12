@@ -76,6 +76,9 @@ class ImageVAE(Model):
         )
         self.decoder = Model(latent_inputs, decoder_outputs, name="decoder")
 
+    def call(self, input_tensor, training=False):
+        return self.decoder(self.z(self.encoder(input_tensor)))
+
     @property
     def metrics(self):
         return [
