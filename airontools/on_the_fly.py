@@ -14,11 +14,10 @@ class HyperDesignDropoutRate(object):
                     self.__append_rate(sub_layer)
             elif isinstance(layer, Layer):
                 self.__append_rate(layer)
-        self.actions_space = dict(
-            down=tf.constant(down, dtype=model.dtype, name="rate_down"),
-            stay=0,
-            up=tf.constant(up, dtype=model.dtype, name="rate_up"),
-        )
+        self.actions_space = {}
+        for action_name, action_value in zip(["down", "stay", "up"], [down, 0., up]):
+            self.actions_space.update({
+                action_name: tf.constant(action_value, dtype=model.dtype, name="_".join(["rate", action_name]))})
 
     def __append_rate(self, layer: Layer):
         if hasattr(layer, "rate"):
