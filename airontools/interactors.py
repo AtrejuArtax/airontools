@@ -15,21 +15,20 @@ def save_model(model, name, save_entire_model=False, format='tf'):
         model.save(name + format)
 
 
-def load_model(name, custom_objects=None, load_entire_model=False, format='tf'):
-    assert format in ['tf', 'h5']
-    if format == 'tf':
-        format = ''
+def load_model(name, custom_objects=None, load_entire_model=False, file_format='tf'):
+    assert file_format in ['tf', 'h5']
+    if file_format == 'tf':
+        file_format = ''
     else:
-        format = '.' + format
-        
+        file_format = '.' + file_format
     if load_entire_model:
-        model = _load_model(name + format)
+        model = _load_model(name + file_format)
     else:
         json_file = open(name + '_topology', 'r')
         loaded_model_json = json_file.read()
         json_file.close()
         model = model_from_json(loaded_model_json, custom_objects)
-        model.load_weights(filepath=name + '_weights' + format)
+        model.load_weights(filepath=name + '_weights' + file_format)
     
     return model
 
