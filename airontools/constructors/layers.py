@@ -8,30 +8,29 @@ from tensorflow.keras.layers import *
 from airontools.constructors.utils import regularizer
 
 
-def layer_constructor(
-    x,
-    name=None,
-    name_ext=None,
-    units=None,
-    num_heads=None,
-    key_dim=None,
-    value_dim=None,
-    activation=None,
-    use_bias=True,
-    sequential=False,
-    bidirectional=False,
-    return_sequences=False,
-    filters=None,
-    kernel_size=None,
-    padding="valid",
-    pooling=None,
-    pool_size=None,
-    conv_transpose=False,
-    strides=(1, 1),
-    sequential_axis=1,
-    advanced_reg=False,
-    **reg_kwargs
-):
+def layer_constructor(x,
+                      name=None,
+                      name_ext=None,
+                      units=None,
+                      num_heads=None,
+                      key_dim=None,
+                      value_dim=None,
+                      activation=None,
+                      use_bias=True,
+                      sequential=False,
+                      bidirectional=False,
+                      return_sequences=False,
+                      filters=None,
+                      kernel_size=None,
+                      padding='valid',
+                      pooling=None,
+                      pool_size=None,
+                      conv_transpose=False,
+                      strides=(1, 1),
+                      sequential_axis=1,
+                      advanced_reg=False,
+                      custom_layer=None,
+                      **reg_kwargs):
     """ It builds a custom layer. reg_kwargs contain everything regarding regularization. For now only 2D convolutions
     are supported for input of rank 4.
 
@@ -70,6 +69,7 @@ def layer_constructor(
             images and 4 for 3D images).
             advanced_reg (bool): Whether to automatically set advanced regularization. Useful to quickly make use of all
             the regularization properties.
+            custom_layer (Layer): Custom Layer class constructed with keras Functional API
             dropout_rate (float): Probability of each intput being disconnected.
             kernel_regularizer_l1 (float): Kernel regularization using l1 penalization (Lasso).
             kernel_regularizer_l2 (float): Kernel regularization using l2 penalization (Ridge).
@@ -231,12 +231,15 @@ def layer_constructor(
         dense_kwargs = dict(
             units=units,
             use_bias=use_bias,
-            kernel_regularizer=regularizer(
-                kernel_regularizer_l1, kernel_regularizer_l2
-            ),
-            bias_regularizer=regularizer(bias_regularizer_l1, bias_regularizer_l2),
+            kernel_regularizer=regularizer(kernel_regularizer_l1, kernel_regularizer_l2),
+            bias_regularizer=regularizer(bias_regularizer_l1, bias_regularizer_l2))
+        x = dense_layer_constructor(
+            x,
+            name=name,
+            name_ext=name_ext,
+            custom_layer=custom_layer,
+            **dense_kwargs,
         )
-        x = dense_layer_constructor(x, name=name, name_ext=name_ext, **dense_kwargs)
 
     # Batch Normalization
     if bn:
@@ -333,10 +336,21 @@ def sequential_layer_constructor(
     return x
 
 
-def dense_layer_constructor(x: Layer, name: str, name_ext: str, **kwargs) -> Layer:
+def dense_layer_constructor(
+    x: Layer,
+    name: str,
+    name_ext: str,
+    custom_layer: Layer,
+    **kwargs
+) -> Layer:
+    
     if not len(x.shape[1:]) == 1:
         x = Flatten(name="_".join([name, "pre", "dense", "flatten", name_ext]))(x)
-    x = Dense(name="_".join([name, "dense", name_ext]), **kwargs)(x)
+    if custom_layer is not None:
+        x = custom_layer(x)
+        custom_layer._name = "_".join([name, "dense", name_ext])
+    else:
+        x = Dense(name="_".join([name, "dense", name_ext]), **kwargs)(x)
     return x
 
 
