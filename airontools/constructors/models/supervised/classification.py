@@ -6,6 +6,7 @@ from tensorflow.keras.layers import *
 from tensorflow.keras.metrics import Mean
 from tensorflow.keras.losses import categorical_crossentropy
 from tensorflow.keras.models import Model
+from airontools.on_the_fly import HyperDesignDropoutRate
 
 from airontools.constructors.layers import layer_constructor
 
@@ -52,6 +53,9 @@ class ImageClassifierNN(Model):
             **reg_kwargs_  # Regularization arguments
         )
         self.encoder = Model(encoder_inputs, encoder, name="encoder")
+
+        # Hyper design on the fly
+        self.hyper_design_dropout_rate = HyperDesignDropoutRate(model=self.encoder)
 
     @tf.function
     def train_step(self, data, **kwargs):

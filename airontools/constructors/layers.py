@@ -2,6 +2,7 @@ import warnings
 from typing import Union
 
 import numpy as np
+import tensorflow as tf
 from tensorflow.keras.layers import *
 
 from airontools.constructors.utils import regularizer
@@ -267,7 +268,7 @@ def dropout_layer_constructor(
     if len(input_shape) > 2:
         output_reshape = input_shape
         x = Flatten(name="_".join([name, "pre", "dropout", "flatten", name_ext]))(x)
-    x = Dropout(name="_".join([name, "dropout", name_ext]), rate=dropout_rate)(x)
+    x = CustomDropout(name="_".join([name, "dropout", name_ext]), rate=dropout_rate)(x)
     if output_reshape is not None:
         x = Reshape(
             name="_".join([name, "post", "dropout", "reshape", name_ext]),
@@ -423,3 +424,9 @@ def sequential_permutation(
 
 def identity(x) -> Layer:
     return x
+
+
+class CustomDropout(Dropout):
+    def __init__(self, **kwargs):
+        super(CustomDropout, self).__init__(**kwargs)
+        self.rate = tf.Variable(self.rate, trainable=False, name="_".join([self.name, "rate"]), dtype=self.dtype)
