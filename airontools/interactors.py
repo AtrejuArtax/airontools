@@ -4,7 +4,7 @@ from tensorflow.keras.models import load_model as __load_model
 
 
 def save_model(model, name, save_entire_model=False, file_format='tf'):
-    assert file_format in ['tf','h5']
+    assert file_format in ['tf', 'h5']
     if file_format == 'tf':
         file_format = ''
     else:
