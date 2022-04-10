@@ -1,18 +1,19 @@
 import tensorflow.keras.backend as k_bcknd
-from tensorflow.keras.models import model_from_json, Model, _load_model
+from tensorflow.keras.models import model_from_json, Model
+from tensorflow.keras.models import load_model as __load_model
 
 
-def save_model(model, name, save_entire_model=False, format='tf'):
-    assert format in ['tf','h5']
-    if format == 'tf':
-        format = ''
+def save_model(model, name, save_entire_model=False, file_format='tf'):
+    assert file_format in ['tf','h5']
+    if file_format == 'tf':
+        file_format = ''
     else:
-        format = '.' + format
-    model.save_weights(filepath=name + '_weights' + format)
+        file_format = '.' + file_format
+    model.save_weights(filepath=name + '_weights' + file_format)
     with open(name + '_topology', "w") as json_file:
         json_file.write(model.to_json())
     if save_entire_model:
-        model.save(name + format)
+        model.save(name + file_format)
 
 
 def load_model(name, custom_objects=None, load_entire_model=False, file_format='tf'):
@@ -22,7 +23,7 @@ def load_model(name, custom_objects=None, load_entire_model=False, file_format='
     else:
         file_format = '.' + file_format
     if load_entire_model:
-        model = _load_model(name + file_format)
+        model = __load_model(name + file_format)
     else:
         json_file = open(name + '_topology', 'r')
         loaded_model_json = json_file.read()
