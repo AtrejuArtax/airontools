@@ -1,6 +1,8 @@
 import tensorflow.keras.backend as k_bcknd
-from tensorflow.keras.models import model_from_json, Model
 from tensorflow.keras.models import load_model as __load_model
+from tensorflow.keras.models import model_from_json, Model
+
+from airontools.constructors.layers import CustomDropout
 
 
 def save_model(model, name, save_entire_model=False, file_format='tf'):
@@ -17,6 +19,11 @@ def save_model(model, name, save_entire_model=False, file_format='tf'):
 
 
 def load_model(name, custom_objects=None, load_entire_model=False, file_format='tf'):
+    # ToDo: make the addition of custom objects more general
+    if custom_objects is None:
+        custom_objects = {'CustomDropout': CustomDropout}
+    elif isinstance(custom_objects, dict) and 'CustomDropout' not in custom_objects.keys():
+        custom_objects.update({'CustomDropout': CustomDropout})
     assert file_format in ['tf', 'h5']
     if file_format == 'tf':
         file_format = ''
