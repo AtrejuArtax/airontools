@@ -14,7 +14,7 @@ with open('README.md', 'r') as fh:
 
 setuptools.setup(
     name=PACKAGE_NAME,
-    version='0.1.17',
+    version='0.1.18',
     scripts=[],
     author='Claudi Ruiz Camps',
     author_email='claudi_ruiz@hotmail.com',
@@ -26,7 +26,6 @@ setuptools.setup(
         include=[PACKAGE_NAME] + SUB_PACKAGES_NAMES),
     install_requires=[
         'numpy',
-        'pandas',
         'sklearn',
         'tensorflow==2.7.0',
         'tensorboard==2.7.0'

@@ -1,0 +1,21 @@
+# pyproject.toml
+
+[tool.poetry]
+name = "airontools"
+version = "0.1.18"
+description = "AIronTools (Beta) is a Python library that provides the user with deep learning tools built to work with tensorflow as a backend."
+authors = ["Claudi Ruiz Camps <claudi_ruiz@hotmail.com>"]
+
+[tool.poetry.dependencies]
+python = ">=3.8.10,<3.10"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+numpy = "*"
+sklearn = "*"
+tensorflow = "2.7.0"
+tensorboard = "2.7.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
