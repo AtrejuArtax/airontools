@@ -1,23 +1,19 @@
 # Checks that we can build and validate the Unittest
 name: Pull-Request-Checks
-
 on: [push]
-
 jobs:
-
   test:
     runs-on: ubuntu-latest
-
     steps:
       - name: Check out the code
         uses: actions/checkout@v1
         with:
           fetch-depth: 1
 
-      - name: Set up Python 3.8.10
+      - name: Set up Python 3.7
         uses: actions/setup-python@v1
         with:
-          python-version: 3.8.10
+          python-version: 3.7
 
       - name: Install Poetry
         uses: dschep/install-poetry-action@v1.2
@@ -30,3 +26,21 @@ jobs:
           key: poetry-$
           restore-keys: |
             poetry-$
+
+      - name: Config Github URL to download Private Repo
+        env:
+          GITHUB_TOKEN: $
+        run: git config --global url."https://$GITHUB_TOKEN@github.com/".insteadOf "https://github.com/"
+
+      - name: Install Dependencies using Poetry
+        run: poetry install
+        if: steps.cache.outputs.cache-hit != 'true'
+
+      - name: Run pytest
+        run: PYTHONPATH=src/ poetry run python -m pytest -v --cov=src/ tests/
+
+      - name: Run Coverage
+        run: PYTHONPATH=src/ poetry run python -m coverage report -m;
+
+      - name: Generate XML Report
+        run: PYTHONPATH=src/ poetry run python -m coverage xml
