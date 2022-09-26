@@ -1,6 +1,13 @@
 name: test
 
-on: pull_request
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+  workflow_call:
 
 jobs:
     runs-on: ubuntu-latest

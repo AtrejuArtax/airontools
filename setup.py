@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import setuptools
 
 PACKAGE_NAME = 'airontools'
@@ -8,7 +10,7 @@ SUB_PACKAGES_NAMES = [
     'airontools.constructors.models.unsupervised',
 ]
 
-with open('README.md', 'r') as fh:
+with open('README.md') as fh:
     long_description = fh.read()
 
 
@@ -24,13 +26,12 @@ setuptools.setup(
     url='https://github.com/AtrejuArtax/airontools',
     packages=setuptools.find_packages(
         include=[PACKAGE_NAME] + SUB_PACKAGES_NAMES),
-    install_requires=[
-        'numpy',
-        'sklearn',
-        'tensorflow==2.7.0',
-        'tensorboard==2.7.0'
+    install_requires=['numpy', 'sklearn',
+                      'tensorflow==2.7.0', 'tensorboard==2.7.0'],
+    classifiers=[
+        'Programming Language :: Python :: 3',
+        'License :: OSI Approved :: BSD License',
+        'Operating System :: OS Independent',
     ],
-    classifiers=['Programming Language :: Python :: 3',
-                 'License :: OSI Approved :: BSD License',
-                 'Operating System :: OS Independent'],
-    license='BSD')
+    license='BSD',
+)
