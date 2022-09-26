@@ -10,7 +10,7 @@ on:
   workflow_call:
 
 jobs:
-  main:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
