@@ -1,14 +1,16 @@
+from __future__ import annotations
+
 import json
 
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import *
-from tensorflow.keras.metrics import Mean
 from tensorflow.keras.losses import categorical_crossentropy
+from tensorflow.keras.metrics import Mean
 from tensorflow.keras.models import Model
-from airontools.on_the_fly import HyperDesignDropoutRate
 
 from airontools.constructors.layers import layer_constructor
+from airontools.on_the_fly import HyperDesignDropoutRate
 
 
 class ImageClassifierNN(Model):
@@ -21,9 +23,9 @@ class ImageClassifierNN(Model):
         bias_regularizer_l1,
         bias_regularizer_l2,
         bn,
-        **kwargs
+        **kwargs,
     ):
-        super(ImageClassifierNN, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
         reg_kwargs_ = dict(
             dropout_rate=dropout_rate,
@@ -50,7 +52,7 @@ class ImageClassifierNN(Model):
             num_heads=3,  # Self-attention heads applied after the convolutional layer
             units=10,  # Dense units applied after the self-attention layer
             activation="softmax",  # Output activation function
-            **reg_kwargs_  # Regularization arguments
+            **reg_kwargs_,  # Regularization arguments
         )
         self.encoder = Model(encoder_inputs, encoder, name="encoder")
 
@@ -93,7 +95,7 @@ class ImageClassifierNN(Model):
             json.dump([w.tolist() for w in self.encoder.get_weights()], f)
 
     def load_weights(self, path):
-        with open(path + "_weights", "r") as f:
+        with open(path + "_weights") as f:
             encoder_weights = [np.array(w) for w in json.load(f)]
         self.encoder.set_weights(encoder_weights)
 

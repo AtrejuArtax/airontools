@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import warnings
 
 import numpy as np
@@ -13,7 +15,7 @@ def get_latent_model(model: Model, layer_name: str):
         return Model(
             inputs=model.inputs,
             outputs=model.get_layer(layer_name).output,
-            name=layer_name + "_model"
+            name=layer_name + "_model",
         )
     except ValueError:
         outputs = model.inputs
@@ -24,7 +26,11 @@ def get_latent_model(model: Model, layer_name: str):
                 layer_found = True
                 break
         if layer_found:
-            return Model(inputs=model.inputs, outputs=outputs, name=layer_name + "_model")
+            return Model(
+                inputs=model.inputs,
+                outputs=outputs,
+                name=layer_name + "_model",
+            )
         else:
             warnings.warn("could not find the layer")
 
@@ -43,7 +49,10 @@ def to_time_series(tensor: tf.Tensor) -> tf.Tensor:
 
 
 def get_layer_units(
-    input_dim: int, output_dim: int, n_layers: int, min_hidden_units=2
+    input_dim: int,
+    output_dim: int,
+    n_layers: int,
+    min_hidden_units=2,
 ) -> list:
     units = [
         max(int(units), min_hidden_units)

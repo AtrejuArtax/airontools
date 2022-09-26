@@ -1,11 +1,14 @@
+from __future__ import annotations
+
+import warnings
+
 import tensorflow as tf
 import tensorflow.keras.backend as k_bcknd
 from tensorflow.keras.layers import Layer
 from tensorflow.keras.models import Model
-import warnings
 
 
-class HyperDesignDropoutRate(object):
+class HyperDesignDropoutRate:
     def __init__(self, model: Model, down=-0.01, up=0.01):
         self.rates = []
         for layer in model.layers:
@@ -15,16 +18,27 @@ class HyperDesignDropoutRate(object):
             elif isinstance(layer, Layer):
                 self.__append_rate(layer)
         self.actions_space = {}
-        for action_name, action_value in zip(["down", "stay", "up"], [down, 0., up]):
-            self.actions_space.update({
-                action_name: tf.constant(action_value, dtype=model.dtype, name="_".join(["rate", action_name]))})
+        for action_name, action_value in zip(["down", "stay", "up"], [down, 0.0, up]):
+            self.actions_space.update(
+                {
+                    action_name: tf.constant(
+                        action_value,
+                        dtype=model.dtype,
+                        name="_".join(["rate", action_name]),
+                    ),
+                },
+            )
 
     def __append_rate(self, layer: Layer):
         if hasattr(layer, "rate"):
             if isinstance(layer.rate, tf.Variable):
                 self.rates += [layer.rate]
             else:
-                warnings.warn("layer {} does not contain a rate as a tf.Variable".format(layer.name))
+                warnings.warn(
+                    "layer {} does not contain a rate as a tf.Variable".format(
+                        layer.name,
+                    ),
+                )
 
     def set_action(self, action: str):
         assert action in ["down", "stay", "up"]

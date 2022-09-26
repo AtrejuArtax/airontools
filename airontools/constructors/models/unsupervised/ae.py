@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 
 import numpy as np
@@ -7,12 +9,12 @@ from tensorflow.keras.losses import binary_crossentropy
 from tensorflow.keras.metrics import Mean
 from tensorflow.keras.models import Model
 
-from airontools.constructors.layers import layer_constructor, identity
+from airontools.constructors.layers import identity, layer_constructor
 
 
 class ImageAE(Model):
     def __init__(self, latent_dim, **kwargs):
-        super(ImageAE, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
         self.loss_tracker = Mean(name="loss")
         self.reconstruction_loss_tracker = Mean(name="reconstruction_loss")
@@ -32,7 +34,10 @@ class ImageAE(Model):
             advanced_reg=True,
         )
         encoder_conv = layer_constructor(
-            encoder_conv, name="z", units=latent_dim, advanced_reg=True
+            encoder_conv,
+            name="z",
+            units=latent_dim,
+            advanced_reg=True,
         )
         self.encoder = Model(encoder_inputs, encoder_conv, name="encoder")
         self.inputs = self.encoder.inputs
@@ -45,7 +50,10 @@ class ImageAE(Model):
         # Decoder
         latent_inputs = Input(shape=(latent_dim,))
         decoder_outputs = layer_constructor(
-            latent_inputs, name="encoder_dense", units=7 * 7 * 64, advanced_reg=True
+            latent_inputs,
+            name="encoder_dense",
+            units=7 * 7 * 64,
+            advanced_reg=True,
         )
         decoder_outputs = Reshape((7, 7, 64))(decoder_outputs)
         for i, filters, activation in zip([1, 2], [64, 32], ["relu", "relu"]):
@@ -101,7 +109,7 @@ class ImageAE(Model):
             z = self.z(encoder)
             reconstruction = self.decoder(z)
             reconstruction_loss = tf.reduce_mean(
-                tf.reduce_sum(binary_crossentropy(data, reconstruction), axis=(1, 2))
+                tf.reduce_sum(binary_crossentropy(data, reconstruction), axis=(1, 2)),
             )
             loss = reconstruction_loss
             return loss, reconstruction_loss
@@ -121,10 +129,10 @@ class ImageAE(Model):
             json.dump([w.tolist() for w in self.decoder.get_weights()], f)
 
     def load_weights(self, path):
-        with open(path + "_encoder", "r") as f:
+        with open(path + "_encoder") as f:
             encoder_weights = [np.array(w) for w in json.load(f)]
         self.encoder.set_weights(encoder_weights)
-        with open(path + "_decoder", "r") as f:
+        with open(path + "_decoder") as f:
             decoder_weights = [np.array(w) for w in json.load(f)]
         self.decoder.set_weights(decoder_weights)
 

@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import warnings
-from typing import Union
 
 import numpy as np
 import tensorflow as tf
@@ -8,30 +9,32 @@ from tensorflow.keras.layers import *
 from airontools.constructors.utils import regularizer
 
 
-def layer_constructor(x,
-                      name=None,
-                      name_ext=None,
-                      units=None,
-                      num_heads=None,
-                      key_dim=None,
-                      value_dim=None,
-                      activation=None,
-                      use_bias=True,
-                      sequential=False,
-                      bidirectional=False,
-                      return_sequences=False,
-                      filters=None,
-                      kernel_size=None,
-                      padding='valid',
-                      pooling=None,
-                      pool_size=None,
-                      conv_transpose=False,
-                      strides=(1, 1),
-                      sequential_axis=1,
-                      advanced_reg=False,
-                      custom_layer=None,
-                      **reg_kwargs):
-    """ It builds a custom layer. reg_kwargs contain everything regarding regularization. For now only 2D convolutions
+def layer_constructor(
+    x,
+    name=None,
+    name_ext=None,
+    units=None,
+    num_heads=None,
+    key_dim=None,
+    value_dim=None,
+    activation=None,
+    use_bias=True,
+    sequential=False,
+    bidirectional=False,
+    return_sequences=False,
+    filters=None,
+    kernel_size=None,
+    padding="valid",
+    pooling=None,
+    pool_size=None,
+    conv_transpose=False,
+    strides=(1, 1),
+    sequential_axis=1,
+    advanced_reg=False,
+    custom_layer=None,
+    **reg_kwargs,
+):
+    """It builds a custom layer. reg_kwargs contain everything regarding regularization. For now only 2D convolutions
     are supported for input of rank 4.
 
         Parameters:
@@ -83,12 +86,12 @@ def layer_constructor(x,
 
     if num_heads is not None and units is None and key_dim is None:
         warnings.warn(
-            "in order to use a multi-head attention layer either units or key_dim needs to be set"
+            "in order to use a multi-head attention layer either units or key_dim needs to be set",
         )
 
     # Initializations
     conv_condition = all(
-        [conv_param is not None for conv_param in [filters, kernel_size]]
+        [conv_param is not None for conv_param in [filters, kernel_size]],
     )
     name = name if name else "layer"
     name_ext = name_ext if name_ext else ""
@@ -141,7 +144,10 @@ def layer_constructor(x,
     # Dropout
     if dropout_rate != 0:
         x = dropout_layer_constructor(
-            x, name=name, name_ext=name_ext, dropout_rate=dropout_rate
+            x,
+            name=name,
+            name_ext=name_ext,
+            dropout_rate=dropout_rate,
         )
 
     # Convolution
@@ -153,7 +159,8 @@ def layer_constructor(x,
             strides=strides,
             padding=padding,
             kernel_regularizer=regularizer(
-                kernel_regularizer_l1, kernel_regularizer_l2
+                kernel_regularizer_l1,
+                kernel_regularizer_l2,
             ),
             bias_regularizer=regularizer(bias_regularizer_l1, bias_regularizer_l2),
         )
@@ -162,7 +169,7 @@ def layer_constructor(x,
             name=name,
             name_ext=name_ext,
             conv_transpose=conv_transpose,
-            **conv_kwargs
+            **conv_kwargs,
         )
 
     # Pooling
@@ -180,7 +187,7 @@ def layer_constructor(x,
             name_ext=name_ext,
             conv_transpose=conv_transpose,
             pooling=pooling,
-            **pooling_kwargs
+            **pooling_kwargs,
         )
 
     # Multi-Head Attention
@@ -193,7 +200,8 @@ def layer_constructor(x,
             value_dim=value_dim_,
             use_bias=use_bias,
             kernel_regularizer=regularizer(
-                kernel_regularizer_l1, kernel_regularizer_l2
+                kernel_regularizer_l1,
+                kernel_regularizer_l2,
             ),
             bias_regularizer=regularizer(bias_regularizer_l1, bias_regularizer_l2),
         )
@@ -202,7 +210,7 @@ def layer_constructor(x,
             name=name,
             name_ext=name_ext,
             sequential_axis=sequential_axis,
-            **multi_head_attention_kwargs
+            **multi_head_attention_kwargs,
         )
 
     # Sequential
@@ -211,7 +219,8 @@ def layer_constructor(x,
             units=units,
             use_bias=use_bias,
             kernel_regularizer=regularizer(
-                kernel_regularizer_l1, kernel_regularizer_l2
+                kernel_regularizer_l1,
+                kernel_regularizer_l2,
             ),
             bias_regularizer=regularizer(bias_regularizer_l1, bias_regularizer_l2),
             return_sequences=return_sequences,
@@ -223,7 +232,7 @@ def layer_constructor(x,
             name_ext=name_ext,
             bidirectional=bidirectional,
             sequential_axis=sequential_axis,
-            **seq_kwargs
+            **seq_kwargs,
         )
 
     # Dense
@@ -231,8 +240,12 @@ def layer_constructor(x,
         dense_kwargs = dict(
             units=units,
             use_bias=use_bias,
-            kernel_regularizer=regularizer(kernel_regularizer_l1, kernel_regularizer_l2),
-            bias_regularizer=regularizer(bias_regularizer_l1, bias_regularizer_l2))
+            kernel_regularizer=regularizer(
+                kernel_regularizer_l1,
+                kernel_regularizer_l2,
+            ),
+            bias_regularizer=regularizer(bias_regularizer_l1, bias_regularizer_l2),
+        )
         x = dense_layer_constructor(
             x,
             name=name,
@@ -251,17 +264,24 @@ def layer_constructor(x,
 
     # Activation
     activation_kwargs = dict(
-        alpha_regularizer=regularizer(bias_regularizer_l1, bias_regularizer_l2)
+        alpha_regularizer=regularizer(bias_regularizer_l1, bias_regularizer_l2),
     )
     x = activation_layer_constructor(
-        x, name=name, name_ext=name_ext, activation=activation, **activation_kwargs
+        x,
+        name=name,
+        name_ext=name_ext,
+        activation=activation,
+        **activation_kwargs,
     )
 
     return x
 
 
 def dropout_layer_constructor(
-    x: Layer, name: str, name_ext: str, dropout_rate: float
+    x: Layer,
+    name: str,
+    name_ext: str,
+    dropout_rate: float,
 ) -> Layer:
     input_shape = x.shape
     output_reshape = None
@@ -278,19 +298,28 @@ def dropout_layer_constructor(
 
 
 def convolutional_layer_constructor(
-    x: Layer, name: str, name_ext: str, conv_transpose: bool, **kwargs
+    x: Layer,
+    name: str,
+    name_ext: str,
+    conv_transpose: bool,
+    **kwargs,
 ) -> Layer:
     conv_dim = len(x.shape) - 2
     conv_type = "transpose" if conv_transpose else ""
     conv_name = "Conv" + str(conv_dim) + "D" + conv_type.capitalize()
     x = globals()[conv_name](
-        name="_".join([name, conv_name.lower(), name_ext]), **kwargs
+        name="_".join([name, conv_name.lower(), name_ext]),
+        **kwargs,
     )(x)
     return x
 
 
 def pooling_layer_constructor(
-    x: Layer, name: str, name_ext: str, pooling: Union[str, Layer], **kwargs
+    x: Layer,
+    name: str,
+    name_ext: str,
+    pooling: str | Layer,
+    **kwargs,
 ) -> Layer:
     if isinstance(pooling, str):
         pooling_name = pooling.capitalize() + "Pooling" + str(_get_pooling_dim(x)) + "D"
@@ -307,13 +336,21 @@ def _get_pooling_dim(x: Layer) -> int:
 
 
 def self_attention_layer_constructor(
-    x: Layer, name: str, name_ext: str, sequential_axis: int, **kwargs
+    x: Layer,
+    name: str,
+    name_ext: str,
+    sequential_axis: int,
+    **kwargs,
 ) -> Layer:
     x = sequential_permutation(
-        x=x, name=name, name_ext=name_ext, sequential_axis=sequential_axis
+        x=x,
+        name=name,
+        name_ext=name_ext,
+        sequential_axis=sequential_axis,
     )
     x = MultiHeadAttention(
-        name="_".join([name, "multi_head_attention", name_ext]), **kwargs
+        name="_".join([name, "multi_head_attention", name_ext]),
+        **kwargs,
     )(x, x)
     return x
 
@@ -324,10 +361,13 @@ def sequential_layer_constructor(
     name_ext: str,
     bidirectional: bool,
     sequential_axis: int,
-    **kwargs
+    **kwargs,
 ) -> Layer:
     x = sequential_permutation(
-        x=x, name=name, name_ext=name_ext, sequential_axis=sequential_axis
+        x=x,
+        name=name,
+        name_ext=name_ext,
+        sequential_axis=sequential_axis,
     )
     if bidirectional:
         x = Bidirectional(GRU(name="_".join([name, "gru", name_ext]), **kwargs))(x)
@@ -341,9 +381,9 @@ def dense_layer_constructor(
     name: str,
     name_ext: str,
     custom_layer: Layer,
-    **kwargs
+    **kwargs,
 ) -> Layer:
-    
+
     if not len(x.shape[1:]) == 1:
         x = Flatten(name="_".join([name, "pre", "dense", "flatten", name_ext]))(x)
     if custom_layer is not None:
@@ -361,7 +401,8 @@ def bn_layer_constructor(x: Layer, name: str, name_ext: str, **kwargs) -> Layer:
         output_reshape = input_shape
         x = Flatten(name="_".join([name, "pre", "bn", "flatten", name_ext]))(x)
     x = BatchNormalization(
-        name="_".join([name, "batch_normalization", name_ext]), **kwargs
+        name="_".join([name, "batch_normalization", name_ext]),
+        **kwargs,
     )(x)
     if output_reshape is not None:
         x = Reshape(
@@ -372,7 +413,11 @@ def bn_layer_constructor(x: Layer, name: str, name_ext: str, **kwargs) -> Layer:
 
 
 def activation_layer_constructor(
-    x: Layer, name: str, name_ext: str, activation: str, **reg_kwargs
+    x: Layer,
+    name: str,
+    name_ext: str,
+    activation: str,
+    **reg_kwargs,
 ) -> Layer:
     input_shape = x.shape
     output_reshape = None
@@ -380,7 +425,7 @@ def activation_layer_constructor(
         output_reshape = input_shape
         x = Flatten(name="_".join([name, "pre", "activation", "flatten", name_ext]))(x)
     activation_name = "_".join(
-        [name, activation if isinstance(activation, str) else "activation", name_ext]
+        [name, activation if isinstance(activation, str) else "activation", name_ext],
     )
     if activation == "leakyrelu":
         x = LeakyReLU(name=activation_name)(x)
@@ -399,14 +444,17 @@ def activation_layer_constructor(
 
 
 def sequential_permutation(
-    x: Layer, name: str, name_ext: str, sequential_axis: int
+    x: Layer,
+    name: str,
+    name_ext: str,
+    sequential_axis: int,
 ) -> Layer:
     input_shape = x.shape
     sequential_axis_ = list(range(len(input_shape)))[sequential_axis]
     if sequential_axis_ != 1:
         permutation = tuple(
             [sequential_axis_]
-            + [i for i in range(1, len(input_shape[1:])) if i != sequential_axis_]
+            + [i for i in range(1, len(input_shape[1:])) if i != sequential_axis_],
         )
         x = Permute(name="_".join([name, "permutation", name_ext]), dims=permutation)(x)
     else:
@@ -428,5 +476,10 @@ def identity(x) -> Layer:
 
 class CustomDropout(Dropout):
     def __init__(self, **kwargs):
-        super(CustomDropout, self).__init__(**kwargs)
-        self.rate = tf.Variable(self.rate, trainable=False, name="_".join([self.name, "rate"]), dtype=self.dtype)
+        super().__init__(**kwargs)
+        self.rate = tf.Variable(
+            self.rate,
+            trainable=False,
+            name="_".join([self.name, "rate"]),
+            dtype=self.dtype,
+        )

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 
 import tensorflow as tf
@@ -7,15 +9,18 @@ from airontools.tools import path_management
 
 
 def save_representations(
-    representations, path, representations_name="representations", metadata=None
+    representations,
+    path,
+    representations_name="representations",
+    metadata=None,
 ):
-    """ Save representations (or embeddings).
+    """Save representations (or embeddings).
 
-        Parameters:
-            representations (array): Representations to be saved.
-            path (str): Path to save the representations.
-            representations_name (str): Embeddings names.
-            metadata (list(array), array): Metadata (a list of arrays or an array).
+    Parameters:
+        representations (array): Representations to be saved.
+        path (str): Path to save the representations.
+        representations_name (str): Embeddings names.
+        metadata (list(array), array): Metadata (a list of arrays or an array).
     """
 
     # Path management

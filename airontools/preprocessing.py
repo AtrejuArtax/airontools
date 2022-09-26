@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import random
 import tempfile
@@ -22,22 +24,22 @@ def train_val_split(
     return_tfrecord=False,
     tfrecord_name=None,
 ):
-    """ Train validation split.
+    """Train validation split.
 
-        Parameters:
-            input_data (list[array, tf.data.Dataset], array, tf.data.Dataset): Input data.
-            output_data (list[array, tf.data.Dataset], array, tf.data.Dataset): Output data.
-            meta_data (list[array, tf.data.Dataset], array, tf.data.Dataset): Meta data.
-            n_parallel_models (int): Number of parallel models.
-            do_kfolds (bool): Whether to do kfolds for cross-validation or not.
-            val_ratio (float): Ratio for validation.
-            shuffle (bool): Whether to shuffle or not.
-            seed_val (int): Seed value.
-            return_tfrecord (bool): Whether to return tfrecord or not.
-            tfrecord_name (str): Name of the tfrecord.
+    Parameters:
+        input_data (list[array, tf.data.Dataset], array, tf.data.Dataset): Input data.
+        output_data (list[array, tf.data.Dataset], array, tf.data.Dataset): Output data.
+        meta_data (list[array, tf.data.Dataset], array, tf.data.Dataset): Meta data.
+        n_parallel_models (int): Number of parallel models.
+        do_kfolds (bool): Whether to do kfolds for cross-validation or not.
+        val_ratio (float): Ratio for validation.
+        shuffle (bool): Whether to shuffle or not.
+        seed_val (int): Seed value.
+        return_tfrecord (bool): Whether to return tfrecord or not.
+        tfrecord_name (str): Name of the tfrecord.
 
-        Returns:
-            4 list[array, tf.data.Dataset].
+    Returns:
+        4 list[array, tf.data.Dataset].
     """
     distributions = ["train", "val"]
     data = dict(x=_to_list_array(input_data))
@@ -51,8 +53,8 @@ def train_val_split(
         split_data.update(meta={distribution: [] for distribution in distributions})
     if do_kfolds and n_parallel_models > 1:
         kf = KFold(n_splits=n_parallel_models, shuffle=True, random_state=seed_val)
-        n_train = min([data_[0].shape[0] for data_ in kf.split(range(n_samples))])
-        n_val = min([data_[1].shape[0] for data_ in kf.split(range(n_samples))])
+        n_train = min(data_[0].shape[0] for data_ in kf.split(range(n_samples)))
+        n_val = min(data_[1].shape[0] for data_ in kf.split(range(n_samples)))
         inds = [
             dict(train=train_inds[:n_train, ...], val=val_inds[:n_val, ...])
             for train_inds, val_inds in kf.split(range(n_samples))
@@ -87,7 +89,7 @@ def train_val_split(
                 for i in range(n_parallel_models):
                     for j in range(len(split_data[name][distribution][i])):
                         tfrecord_name_ = "_".join(
-                            [tfrecord_name, name, distribution, "fold", str(i), str(j)]
+                            [tfrecord_name, name, distribution, "fold", str(i), str(j)],
                         )
                         _data = split_data[name][distribution][i][j]
                         sample_shape = tuple(_data.shape[1:])
@@ -153,7 +155,8 @@ def _example(data: np.array):
 def _bytes_feature(value):
     """Returns a bytes_list from a string / byte."""
     if isinstance(value, type(tf.constant(0))):
-        value = value.numpy()  # BytesList won't unpack a string from an EagerTensor.
+        # BytesList won't unpack a string from an EagerTensor.
+        value = value.numpy()
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
 

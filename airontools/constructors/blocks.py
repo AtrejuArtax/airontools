@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from tensorflow.keras.layers import *
 from tensorflow.keras.models import Model
 
@@ -15,32 +17,32 @@ def block_constructor(
     hidden_activation=None,
     output_activation=None,
     advanced_reg=False,
-    **reg_kwargs
+    **reg_kwargs,
 ):
-    """ It builds a custom block. reg_kwargs contain everything regarding regularization.
+    """It builds a custom block. reg_kwargs contain everything regarding regularization.
 
-        Parameters:
-            units (list): Number of units per hidden layer.
-            input_shape (tuple): Input shape.
-            name (str): Name of the block.
-            sequential (bool): Whether to consider a sequential model or not.
-            length (int): Length of the sequence (only active if sequential).
-            bidirectional (bool): Whether to consider bidirectional case or not (only active if sequential).
-            from_l (int): The number indicator of the first hidden layer of the block, useful to make sure that layer
-            names are not repeated.
-            hidden_activation (str, Layer): Hidden activation function.
-            output_activation (str, Layer): The activation function of the output of the block.
-            advanced_reg (bool): Whether to automatically set advanced regularization. Useful to quickly make use of all
-            the regularization properties.
-            dropout_rate (float): Probability of each intput being disconnected.
-            kernel_regularizer_l1 (float): Kernel regularization using l1 penalization (Lasso).
-            kernel_regularizer_l2 (float): Kernel regularization using l2 penalization (Ridge).
-            bias_regularizer_l1 (float): Bias regularization using l1 penalization (Lasso).
-            bias_regularizer_l2 (float): Bias regularization using l2 penalization (Ridge).
-            bn (bool): If set, a batch normalization layer will be added right before the output activation function.
+    Parameters:
+        units (list): Number of units per hidden layer.
+        input_shape (tuple): Input shape.
+        name (str): Name of the block.
+        sequential (bool): Whether to consider a sequential model or not.
+        length (int): Length of the sequence (only active if sequential).
+        bidirectional (bool): Whether to consider bidirectional case or not (only active if sequential).
+        from_l (int): The number indicator of the first hidden layer of the block, useful to make sure that layer
+        names are not repeated.
+        hidden_activation (str, Layer): Hidden activation function.
+        output_activation (str, Layer): The activation function of the output of the block.
+        advanced_reg (bool): Whether to automatically set advanced regularization. Useful to quickly make use of all
+        the regularization properties.
+        dropout_rate (float): Probability of each intput being disconnected.
+        kernel_regularizer_l1 (float): Kernel regularization using l1 penalization (Lasso).
+        kernel_regularizer_l2 (float): Kernel regularization using l2 penalization (Ridge).
+        bias_regularizer_l1 (float): Bias regularization using l1 penalization (Lasso).
+        bias_regularizer_l2 (float): Bias regularization using l2 penalization (Ridge).
+        bn (bool): If set, a batch normalization layer will be added right before the output activation function.
 
-        Returns:
-            model (Model): A keras model.
+    Returns:
+        model (Model): A keras model.
     """
 
     # Initializations
@@ -70,7 +72,7 @@ def block_constructor(
             return_sequences=True if l < to_l - 1 and sequential else False,
             bidirectional=bidirectional,
             advanced_reg=advanced_reg,
-            **reg_kwargs
+            **reg_kwargs,
         )
         pre_o_dim = o_dim
 
