@@ -10,18 +10,19 @@ on:
   workflow_call:
 
 jobs:
+  main:
     runs-on: ubuntu-latest
     steps:
-        - name: Check out repository
-          uses: actions/checkout@v2
-        - name: Set up python
-          id: setup-python
-          uses: actions/setup-python@v1
-          with:
-            python-version: 3.8.10
-        - name: Install Poetry
-          run: |
-            python -m pip install poetry
-            poetry install
-        - name: Run tests
-          poetry run pytest tests/
+      - name: Check out repository
+        uses: actions/checkout@v2
+      - name: Set up python
+        id: setup-python
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8.10
+      - name: Install Poetry
+        run: |
+          python -m pip install poetry
+          poetry install
+      - name: Run tests
+        run: poetry run pytest tests/
