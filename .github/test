@@ -21,8 +21,7 @@ jobs:
             python-version: 3.8.10
         - name: Install Poetry
           run: |
-            curl -sSL https://install.python-poetry.org | python3 -
-        - name: Install dependencies
-          run: poetry install
+            python -m pip install poetry
+            poetry install
         - name: Run tests
           poetry run pytest tests/
