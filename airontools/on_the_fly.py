@@ -18,30 +18,30 @@ class HyperDesignDropoutRate:
             elif isinstance(layer, Layer):
                 self.__append_rate(layer)
         self.actions_space = {}
-        for action_name, action_value in zip(['down', 'stay', 'up'], [down, 0.0, up]):
+        for action_name, action_value in zip(["down", "stay", "up"], [down, 0.0, up]):
             self.actions_space.update(
                 {
                     action_name: tf.constant(
                         action_value,
                         dtype=model.dtype,
-                        name='_'.join(['rate', action_name]),
+                        name="_".join(["rate", action_name]),
                     ),
                 },
             )
 
     def __append_rate(self, layer: Layer):
-        if hasattr(layer, 'rate'):
+        if hasattr(layer, "rate"):
             if isinstance(layer.rate, tf.Variable):
                 self.rates += [layer.rate]
             else:
                 warnings.warn(
-                    'layer {} does not contain a rate as a tf.Variable'.format(
+                    "layer {} does not contain a rate as a tf.Variable".format(
                         layer.name,
                     ),
                 )
 
     def set_action(self, action: str):
-        assert action in ['down', 'stay', 'up']
+        assert action in ["down", "stay", "up"]
         for rate in self.rates:
             new_rate = rate + self.actions_space[action]
             new_rate_ = k_bcknd.get_value(new_rate)
