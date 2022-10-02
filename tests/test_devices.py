@@ -2,4 +2,6 @@ from airontools.devices import get_available_gpus
 
 
 def test_get_available_devices():
-    assert isinstance(get_available_gpus(), list)
+    available_gpus = get_available_gpus()
+    assert isinstance(available_gpus, list)
+    assert all(isinstance(element, str) for element in available_gpus)
