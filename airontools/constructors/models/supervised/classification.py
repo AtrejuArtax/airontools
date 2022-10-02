@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from typing import Dict, Tuple
 
 import numpy as np
 import tensorflow as tf
@@ -8,11 +9,10 @@ from tensorflow.keras.layers import *
 from tensorflow.keras.losses import categorical_crossentropy
 from tensorflow.keras.metrics import Mean
 from tensorflow.keras.models import Model as KModel
-from typing import Dict, Tuple
 
 from airontools.constructors.layers import layer_constructor
-from airontools.on_the_fly import HyperDesignDropoutRate
 from airontools.constructors.models.model import Model
+from airontools.on_the_fly import HyperDesignDropoutRate
 
 
 class ImageClassifierNN(Model, KModel):

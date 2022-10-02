@@ -1,10 +1,10 @@
 import abc
-from typing import Union, List, Dict
+from typing import Dict, List, Union
+
 import numpy as np
 
 
 class Model(abc.ABC):
-
     @abc.abstractmethod
     def compile(self, *args, **kwargs) -> None:
         pass

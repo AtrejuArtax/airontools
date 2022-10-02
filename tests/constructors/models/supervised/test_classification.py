@@ -1,26 +1,31 @@
 import os
+import tempfile
 
 import numpy as np
-
-from airontools.constructors.models.supervised.classification import ImageClassifierNN
-from airontools.constructors.models.model import Model
-from tensorflow.keras.optimizers import Adam
 from numpy.random import normal
-import tempfile
+from tensorflow.keras.optimizers import Adam
+
+from airontools.constructors.models.model import Model
+from airontools.constructors.models.supervised.classification import \
+    ImageClassifierNN
 
 
 class TestImageClassifierNN:
     n_half_samples = 50
     n_classes = 2
     img_dim = 28
-    data = np.concatenate([
-        normal(loc=0.5, scale=1, size=(n_half_samples, img_dim, img_dim)),
-        normal(loc=-0.5, scale=1, size=(n_half_samples, img_dim, img_dim))
-    ])
-    targets = np.concatenate([
-        [[1, 0]] * n_half_samples,
-        [[0, 1]] * n_half_samples,
-    ])
+    data = np.concatenate(
+        [
+            normal(loc=0.5, scale=1, size=(n_half_samples, img_dim, img_dim)),
+            normal(loc=-0.5, scale=1, size=(n_half_samples, img_dim, img_dim)),
+        ]
+    )
+    targets = np.concatenate(
+        [
+            [[1, 0]] * n_half_samples,
+            [[0, 1]] * n_half_samples,
+        ]
+    )
     specs = dict(
         filters=32,
         kernel_size=15,
@@ -59,7 +64,9 @@ class TestImageClassifierNN:
         assert prediction.shape == self.targets.shape
 
     def test_save_load_weights(self):
-        before_weights_file_name = os.sep.join([tempfile.gettempdir(), "before_weights"])
+        before_weights_file_name = os.sep.join(
+            [tempfile.gettempdir(), "before_weights"]
+        )
         after_weights_file_name = os.sep.join([tempfile.gettempdir(), "after_weights"])
         before_evaluation = self.model.evaluate(
             self.data,
@@ -78,12 +85,18 @@ class TestImageClassifierNN:
         assert before_evaluation > after_evaluation
         self.model.save_weights(after_weights_file_name)
         self.model.load_weights(before_weights_file_name)
-        assert before_evaluation == self.model.evaluate(
-            self.data,
-            self.targets,
-        )["loss"]
+        assert (
+            before_evaluation
+            == self.model.evaluate(
+                self.data,
+                self.targets,
+            )["loss"]
+        )
         self.model.load_weights(after_weights_file_name)
-        assert after_evaluation == self.model.evaluate(
-            self.data,
-            self.targets,
-        )["loss"]
+        assert (
+            after_evaluation
+            == self.model.evaluate(
+                self.data,
+                self.targets,
+            )["loss"]
+        )
