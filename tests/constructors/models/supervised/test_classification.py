@@ -6,8 +6,7 @@ from numpy.random import normal
 from tensorflow.keras.optimizers import Adam
 
 from airontools.constructors.models.model import Model
-from airontools.constructors.models.supervised.classification import \
-    ImageClassifierNN
+from airontools.constructors.models.supervised.classification import ImageClassifierNN
 
 
 class TestImageClassifierNN:
