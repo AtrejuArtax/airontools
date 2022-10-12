@@ -5,7 +5,7 @@ from typing import Dict, Tuple
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import *
+from tensorflow.keras.layers import Input
 from tensorflow.keras.losses import categorical_crossentropy
 from tensorflow.keras.metrics import Mean
 from tensorflow.keras.models import Model as KModel
@@ -21,7 +21,7 @@ class ImageClassifierNN(Model, KModel):
         input_shape: Tuple[int],
         n_classes: int,
         model_name: str = "ImageClassifierNN",
-        activation: str = "softmax",
+        output_activation: str = "softmax",
         **kwargs,
     ):
         Model.__init__(self)
@@ -37,7 +37,7 @@ class ImageClassifierNN(Model, KModel):
             input_shape=input_shape,
             units=n_classes,
             name=f"{model_name}_encoder",
-            activation=activation,
+            activation=output_activation,
             **kwargs,
         )
         self._model = KModel(

@@ -1,142 +1,127 @@
 from __future__ import annotations
 
 import json
+from typing import Dict, Tuple
 
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import *
-from tensorflow.keras.losses import binary_crossentropy
 from tensorflow.keras.metrics import Mean
-from tensorflow.keras.models import Model
+from tensorflow.keras.models import Model as KModel
+from airontools.constructors.layers import layer_constructor
+from airontools.constructors.models.model import Model
+from airontools.on_the_fly import HyperDesignDropoutRate
 
-from airontools.constructors.layers import identity, layer_constructor
 
+class AE(Model, KModel):
+    def __init__(
+        self,
+        input_shape: Tuple[int],
+        model_name: str = "AE",
+        output_activation: str = "softmax",
+        latent_dim: int = 3,
+        **kwargs,
+    ):
+        Model.__init__(self)
+        KModel.__init__(self)
 
-class ImageAE(Model):
-    def __init__(self, latent_dim, **kwargs):
-        super().__init__(**kwargs)
-
+        # Loss tracker
         self.loss_tracker = Mean(name="loss")
-        self.reconstruction_loss_tracker = Mean(name="reconstruction_loss")
 
         # Encoder
-        encoder_inputs = Input(shape=(28, 28, 1))
-        encoder_conv = layer_constructor(
+        encoder_inputs = Input(shape=input_shape)
+        self.encoder = layer_constructor(
             encoder_inputs,
-            name="encoder_conv",
-            filters=32,  # Number of filters used for the convolutional layer
-            kernel_size=3,  # Kernel size used for the convolutional layer
-            strides=2,  # Strides used for the convolutional layer
-            sequential_axis=-1,  # It's the channel axis, used to define the sequence
-            # for the self-attention layer
-            num_heads=2,  # Self-attention heads applied after the convolutional layer
-            units=latent_dim,  # Dense units applied after the self-attention layer
-            advanced_reg=True,
-        )
-        encoder_conv = layer_constructor(
-            encoder_conv,
-            name="z",
+            input_shape=input_shape,
             units=latent_dim,
-            advanced_reg=True,
+            name=f"{model_name}_encoder",
+            **kwargs,
         )
-        self.encoder = Model(encoder_inputs, encoder_conv, name="encoder")
-        self.inputs = self.encoder.inputs
+        self.encoder = KModel(
+            inputs=encoder_inputs,
+            outputs=self.encoder,
+            name=f"{model_name}_encoder",
+        )
 
         # Z
         z_inputs = Input(shape=(latent_dim,))
-        z = Lambda(identity, name="z")(z_inputs)
-        self.z = Model(z_inputs, z, name="z")
+        self.z = layer_constructor(
+            z_inputs,
+            input_shape=(latent_dim,),
+            units=latent_dim,
+            name=f"{model_name}_z",
+            **kwargs,
+        )
+        self.z = KModel(
+            inputs=z_inputs,
+            outputs=self.z,
+            name=f"{model_name}_z",
+        )
 
         # Decoder
-        latent_inputs = Input(shape=(latent_dim,))
-        decoder_outputs = layer_constructor(
-            latent_inputs,
-            name="encoder_dense",
-            units=7 * 7 * 64,
-            advanced_reg=True,
+        decoder_inputs = Input(shape=(latent_dim,))
+        self.decoder = layer_constructor(
+            decoder_inputs,
+            input_shape=(latent_dim,),
+            units=self.encoder.input_shape[-1],
+            name=f"{model_name}_decoder",
+            activation=output_activation,
+            **kwargs,
         )
-        decoder_outputs = Reshape((7, 7, 64))(decoder_outputs)
-        for i, filters, activation in zip([1, 2], [64, 32], ["relu", "relu"]):
-            decoder_outputs = layer_constructor(
-                decoder_outputs,
-                name="decoder_conv",
-                name_ext=str(i),
-                filters=filters,
-                kernel_size=3,
-                strides=2,
-                padding="same",
-                conv_transpose=True,
-                activation=activation,
-                advanced_reg=True,
-            )
-        decoder_outputs = layer_constructor(
-            decoder_outputs,
-            name="decoder_output",
-            filters=1,
-            kernel_size=3,
-            padding="same",
-            conv_transpose=True,
-            activation="sigmoid",
-            advanced_reg=True,
+        self.decoder = KModel(
+            inputs=decoder_inputs,
+            outputs=self.decoder,
+            name=f"{model_name}_decoder",
         )
-        self.decoder = Model(latent_inputs, decoder_outputs, name="decoder")
 
-    @property
-    def metrics(self):
-        return [self.loss_tracker, self.reconstruction_loss_tracker]
+        # AE
+        self._model = KModel(
+            inputs=encoder_inputs,
+            outputs=self.decoder(self.z(self.encoder(encoder_inputs))),
+            name=model_name,
+        )
 
-    def train_step(self, data):
-        loss, reconstruction_loss, tape = self.loss_evaluation(data, return_tape=True)
-        grads = tape.gradient(loss, self.trainable_weights)
-        self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
-        self.loss_tracker.update_state(loss)
-        self.reconstruction_loss_tracker.update_state(reconstruction_loss)
-        return {
-            "loss": self.loss_tracker.result(),
-            "reconstruction_loss": self.reconstruction_loss_tracker.result(),
-        }
+        # Hyper design on the fly
+        self.hyper_design_dropout_rate = HyperDesignDropoutRate(model=self._model)
 
-    def evaluate(self, x, **kwargs):
-        loss, reconstruction_loss = self.loss_evaluation(x)
-        return {
-            "loss": loss.numpy(),
-            "reconstruction_loss": reconstruction_loss.numpy(),
-        }
+    def compile(self, *args, **kwargs) -> None:
+        """Compile model."""
+        KModel.compile(self, *args, **kwargs)
 
-    def loss_evaluation(self, data, return_tape=False):
-        def loss_evaluation_():
-            encoder = self.encoder(data)
-            z = self.z(encoder)
-            reconstruction = self.decoder(z)
-            reconstruction_loss = tf.reduce_mean(
-                tf.reduce_sum(binary_crossentropy(data, reconstruction), axis=(1, 2)),
-            )
-            loss = reconstruction_loss
-            return loss, reconstruction_loss
+    def fit(self, *args, **kwargs) -> None:
+        """Compile model."""
+        KModel.fit(self, *args, **kwargs)
 
-        if return_tape:
-            with tf.GradientTape() as tape:
-                loss, reconstruction_loss = loss_evaluation_()
-            return loss, reconstruction_loss, tape
-        else:
-            loss, reconstruction_loss = loss_evaluation_()
-            return loss, reconstruction_loss
+    def evaluate(self, x: np.array, **kwargs) -> Dict[str, float]:
+        """Evaluate model."""
+        reconstructed = self._model(x)
+        return {"loss": self._loss_evaluation(reconstructed, x)}
 
-    def save_weights(self, path):
-        with open(path + "_encoder", "w") as f:
-            json.dump([w.tolist() for w in self.encoder.get_weights()], f)
-        with open(path + "_decoder", "w") as f:
-            json.dump([w.tolist() for w in self.decoder.get_weights()], f)
+    def predict(self, *args, **kwargs) -> np.array:
+        """Predict model."""
+        return KModel.predict(self, *args, **kwargs)
 
-    def load_weights(self, path):
-        with open(path + "_encoder") as f:
+    def save_weights(self, path: str) -> None:
+        with open(path + "_weights", "w") as f:
+            json.dump([w.tolist() for w in self._model.get_weights()], f)
+
+    def load_weights(self, path: str) -> None:
+        with open(path + "_weights") as f:
             encoder_weights = [np.array(w) for w in json.load(f)]
-        self.encoder.set_weights(encoder_weights)
-        with open(path + "_decoder") as f:
-            decoder_weights = [np.array(w) for w in json.load(f)]
-        self.decoder.set_weights(decoder_weights)
+        self._model.set_weights(encoder_weights)
 
-    def summary(self):
-        self.encoder.summary()
-        self.z.summary()
-        self.decoder.summary()
+    def call(self, inputs) -> None:
+        """Call model."""
+        reconstructed = self._model(inputs)
+        self.add_loss(self._loss_evaluation(inputs, reconstructed))
+        return reconstructed
+
+    def summary(self) -> None:
+        """Model summary."""
+        self._model.summary()
+
+    def _loss_evaluation(self, reconstructed, inputs, **kwargs):
+        rec_loss = tf.reduce_mean(
+            (inputs - reconstructed) ** 2
+        )
+        return rec_loss
