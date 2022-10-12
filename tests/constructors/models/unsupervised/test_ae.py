@@ -9,15 +9,8 @@ from tests.constructors.models.example_data import TABULAR_DATA
 
 
 class TestAE:
-    specs = dict(
-        filters=32,
-        kernel_size=15,
-        strides=2,
-        sequential_axis=-1,
-        num_heads=3,
-    )
     model = AE(
-        input_shape=tuple(TABULAR_DATA.shape[1:]),
+        input_shape=TABULAR_DATA.shape[1:],
         latent_dim=3,
     )
     assert isinstance(model, Model)
