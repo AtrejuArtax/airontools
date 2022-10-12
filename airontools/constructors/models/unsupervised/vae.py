@@ -5,9 +5,10 @@ from typing import Dict, Tuple
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import Layer, Input
+from tensorflow.keras.layers import Input, Layer
 from tensorflow.keras.metrics import Mean
 from tensorflow.keras.models import Model as KModel
+
 from airontools.constructors.layers import layer_constructor
 from airontools.constructors.models.model import Model
 from airontools.on_the_fly import HyperDesignDropoutRate
@@ -159,11 +160,11 @@ class VAE(Model, KModel):
         """Model summary."""
         self._model.summary()
 
-    def _loss_evaluation(self, inputs, z_mean, z_log_var, z, return_reconstruction=False, **kwargs):
+    def _loss_evaluation(
+        self, inputs, z_mean, z_log_var, z, return_reconstruction=False, **kwargs
+    ):
         reconstructed = self.decoder(z)
-        rec_loss = tf.reduce_mean(
-            (inputs - reconstructed) ** 2
-        )
+        rec_loss = tf.reduce_mean((inputs - reconstructed) ** 2)
         # Add KL divergence regularization loss.
         kld_loss = -0.5 * tf.reduce_mean(
             z_log_var - tf.square(z_mean) - tf.exp(z_log_var) + 1

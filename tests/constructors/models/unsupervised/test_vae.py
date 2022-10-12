@@ -1,11 +1,12 @@
 import os
 import tempfile
+
+import numpy as np
 from tensorflow.keras.optimizers import Adam
 
 from airontools.constructors.models.model import Model
 from airontools.constructors.models.unsupervised.vae import VAE
-from tests.constructors.models.example_data import TABULAR_DATA, LOSS_TOLERANCE
-import numpy as np
+from tests.constructors.models.example_data import LOSS_TOLERANCE, TABULAR_DATA
 
 
 class TestVAE:

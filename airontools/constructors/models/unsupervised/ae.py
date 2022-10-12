@@ -8,6 +8,7 @@ import tensorflow as tf
 from tensorflow.keras.layers import *
 from tensorflow.keras.metrics import Mean
 from tensorflow.keras.models import Model as KModel
+
 from airontools.constructors.layers import layer_constructor
 from airontools.constructors.models.model import Model
 from airontools.on_the_fly import HyperDesignDropoutRate
@@ -121,7 +122,5 @@ class AE(Model, KModel):
         self._model.summary()
 
     def _loss_evaluation(self, reconstructed, inputs, **kwargs):
-        rec_loss = tf.reduce_mean(
-            (inputs - reconstructed) ** 2
-        )
+        rec_loss = tf.reduce_mean((inputs - reconstructed) ** 2)
         return rec_loss
