@@ -47,7 +47,7 @@ class TestVAE:
         self.model.save_weights(before_weights_file_name)
         self.model.fit(
             TABULAR_DATA,
-            epochs=5,
+            epochs=15,
         )
         after_evaluation = self.model.evaluate(
             TABULAR_DATA,

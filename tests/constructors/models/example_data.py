@@ -23,4 +23,4 @@ TARGETS = np.concatenate(
         [[0, 1]] * N_HALF_SAMPLES,
     ]
 )
-LOSS_TOLERANCE = 0.03
+LOSS_TOLERANCE = 0.3
