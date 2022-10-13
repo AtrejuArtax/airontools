@@ -53,12 +53,12 @@ def block_constructor(
     pre_o_dim = None
     for l, o_dim in zip(range(from_l, to_l), units):
         if l > from_l:
-            input_shape = (length, pre_o_dim) if sequential else (pre_o_dim,)
+            _input_shape = (length, pre_o_dim) if sequential else (pre_o_dim,)
         else:
             o_l = i_l
         o_l = layer_constructor(
             x=o_l,
-            input_shape=input_shape,
+            input_shape=_input_shape,
             units=o_dim,
             activation=hidden_activation
             if l == to_l - 1 is None
