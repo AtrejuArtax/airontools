@@ -1,26 +1,27 @@
 from __future__ import annotations
 
 from tensorflow.keras.layers import *
-from tensorflow.keras.models import Model
+from tensorflow.keras.models import Model as KModel
 
 from airontools.constructors.layers import layer_constructor
+from typing import List, Tuple, Union
 
 
 def block_constructor(
-    units,
-    input_shape,
-    name=None,
-    sequential=False,
-    length=None,
-    bidirectional=False,
-    from_l=1,
-    hidden_activation=None,
-    output_activation=None,
-    advanced_reg=False,
+    units: List[int],
+    input_shape: Tuple[int],
+    name: str = None,
+    sequential: bool = False,
+    length: int = None,
+    bidirectional: bool = False,
+    from_l: int = 1,
+    hidden_activation: str = None,
+    output_activation: Union[str, Layer] = None,
+    advanced_reg: bool = False,
     **reg_kwargs,
-):
+) -> KModel:
     """It builds a custom block. reg_kwargs contain everything regarding regularization. For now only compatible with
-    dense layers.
+    dense and sequential layers.
 
     Parameters:
         units (list): Number of units per hidden layer.
@@ -78,6 +79,6 @@ def block_constructor(
         pre_o_dim = o_dim
 
     # Model
-    model = Model(inputs=i_l, outputs=o_l, name=name)
+    model = KModel(inputs=i_l, outputs=o_l, name=name)
 
     return model
