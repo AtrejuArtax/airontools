@@ -19,7 +19,8 @@ def block_constructor(
     advanced_reg=False,
     **reg_kwargs,
 ):
-    """It builds a custom block. reg_kwargs contain everything regarding regularization.
+    """It builds a custom block. reg_kwargs contain everything regarding regularization. For now only compatible with
+    dense layers.
 
     Parameters:
         units (list): Number of units per hidden layer.
