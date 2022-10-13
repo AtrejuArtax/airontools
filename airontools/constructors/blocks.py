@@ -10,13 +10,13 @@ from typing import List, Tuple, Union
 def block_constructor(
     units: List[int],
     input_shape: Tuple[int],
-    name: str = None,
+    name: str = "block",
     sequential: bool = False,
     length: int = None,
     bidirectional: bool = False,
     from_l: int = 1,
-    hidden_activation: str = None,
-    output_activation: Union[str, Layer] = None,
+    hidden_activation: str = "prelu",
+    output_activation: Union[str, Layer] = "linear",
     advanced_reg: bool = False,
     **reg_kwargs,
 ) -> KModel:
@@ -47,13 +47,8 @@ def block_constructor(
         model (Model): A keras model.
     """
 
-    # Initializations
-    name = name if name else "block"
-    hidden_activation = hidden_activation if hidden_activation else "prelu"
-    output_activation = output_activation if output_activation else "linear"
-
     # Hidden layers
-    i_l, o_l = Input(shape=input_shape, name="".join([name, "input"])), None
+    i_l, o_l = Input(shape=input_shape, name="_".join([name, "input"])), None
     to_l = from_l + len(units)
     pre_o_dim = None
     for l, o_dim in zip(range(from_l, to_l), units):
