@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from typing import List, Tuple, Union
+
 from tensorflow.keras.layers import *
 from tensorflow.keras.models import Model as KModel
 
 from airontools.constructors.layers import layer_constructor
-from typing import List, Tuple, Union
 
 
 def block_constructor(
