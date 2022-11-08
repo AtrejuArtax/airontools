@@ -1,5 +1,6 @@
-from airontools.constructors.layers import layer_constructor
 from tensorflow.keras.layers import Input
+
+from airontools.constructors.layers import layer_constructor
 
 
 class TestLayerConstructor:
