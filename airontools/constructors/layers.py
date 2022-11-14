@@ -4,7 +4,22 @@ import warnings
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import *
+from tensorflow.keras.layers import (
+    GRU,
+    Activation,
+    BatchNormalization,
+    Bidirectional,
+    Dense,
+    Dropout,
+    Flatten,
+    Layer,
+    LeakyReLU,
+    MultiHeadAttention,
+    Permute,
+    PReLU,
+    Reshape,
+    Softmax,
+)
 
 from airontools.constructors.utils import regularizer
 
@@ -279,9 +294,9 @@ def layer_constructor(
 
 def dropout_layer_constructor(
     x: Layer,
-    name: str,
-    name_ext: str,
-    dropout_rate: float,
+    name: str = "layer",
+    name_ext: str = "0",
+    dropout_rate: float = 0,
 ) -> Layer:
     input_shape = x.shape
     output_reshape = None
