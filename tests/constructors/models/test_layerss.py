@@ -1,7 +1,12 @@
+import numpy as np
 from tensorflow.keras.layers import Input
 
-from airontools.constructors.layers import dropout_layer_constructor, layer_constructor, identity, CustomDropout
-import numpy as np
+from airontools.constructors.layers import (
+    CustomDropout,
+    dropout_layer_constructor,
+    identity,
+    layer_constructor,
+)
 
 
 class TestLayerConstructor:
