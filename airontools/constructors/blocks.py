@@ -1,25 +1,28 @@
 from __future__ import annotations
 
+from typing import List, Tuple, Union
+
 from tensorflow.keras.layers import *
-from tensorflow.keras.models import Model
+from tensorflow.keras.models import Model as KModel
 
 from airontools.constructors.layers import layer_constructor
 
 
 def block_constructor(
-    units,
-    input_shape,
-    name=None,
-    sequential=False,
-    length=None,
-    bidirectional=False,
-    from_l=1,
-    hidden_activation=None,
-    output_activation=None,
-    advanced_reg=False,
+    units: List[int],
+    input_shape: Tuple[int],
+    name: str = "block",
+    sequential: bool = False,
+    length: int = None,
+    bidirectional: bool = False,
+    from_l: int = 1,
+    hidden_activation: str = "prelu",
+    output_activation: Union[str, Layer] = "linear",
+    advanced_reg: bool = False,
     **reg_kwargs,
-):
-    """It builds a custom block. reg_kwargs contain everything regarding regularization.
+) -> KModel:
+    """It builds a custom block. reg_kwargs contain everything regarding regularization. For now only compatible with
+    dense and sequential layers.
 
     Parameters:
         units (list): Number of units per hidden layer.
@@ -45,13 +48,8 @@ def block_constructor(
         model (Model): A keras model.
     """
 
-    # Initializations
-    name = name if name else "block"
-    hidden_activation = hidden_activation if hidden_activation else "prelu"
-    output_activation = output_activation if output_activation else "linear"
-
     # Hidden layers
-    i_l, o_l = Input(shape=input_shape, name="".join([name, "input"])), None
+    i_l, o_l = Input(shape=input_shape, name="_".join([name, "input"])), None
     to_l = from_l + len(units)
     pre_o_dim = None
     for l, o_dim in zip(range(from_l, to_l), units):
@@ -77,6 +75,6 @@ def block_constructor(
         pre_o_dim = o_dim
 
     # Model
-    model = Model(inputs=i_l, outputs=o_l, name=name)
+    model = KModel(inputs=i_l, outputs=o_l, name=name)
 
     return model

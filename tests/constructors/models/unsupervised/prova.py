@@ -4,7 +4,6 @@ from tensorflow.keras.optimizers import Adam
 
 from airontools.constructors.models.unsupervised.vae import VAE
 
-
 tabular_data = np.concatenate(
     [
         normal(loc=0.5, scale=1, size=(100, 10)),
@@ -12,8 +11,8 @@ tabular_data = np.concatenate(
     ]
 )
 model = VAE(
-        input_shape=tabular_data.shape[1:],
-        latent_dim=3,
+    input_shape=tabular_data.shape[1:],
+    latent_dim=3,
 )
 model.compile(optimizer=Adam(learning_rate=0.001))
 model.fit(

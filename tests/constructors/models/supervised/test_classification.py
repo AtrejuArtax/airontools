@@ -4,8 +4,7 @@ import tempfile
 from tensorflow.keras.optimizers import Adam
 
 from airontools.constructors.models.model import Model
-from airontools.constructors.models.supervised.classification import \
-    ImageClassifierNN
+from airontools.constructors.models.supervised.classification import ImageClassifierNN
 from tests.constructors.models.example_data import IMG_DATA, N_CLASSES, TARGETS
 
 
