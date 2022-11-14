@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List, Tuple, Union
 
-from tensorflow.keras.layers import *
+from tensorflow.keras.layers import Input, Layer
 from tensorflow.keras.models import Model as KModel
 
 from airontools.constructors.layers import layer_constructor
@@ -51,15 +51,11 @@ def block_constructor(
     # Hidden layers
     i_l, o_l = Input(shape=input_shape, name="_".join([name, "input"])), None
     to_l = from_l + len(units)
-    pre_o_dim = None
     for l, o_dim in zip(range(from_l, to_l), units):
-        if l > from_l:
-            input_shape = (length, pre_o_dim) if sequential else (pre_o_dim,)
-        else:
+        if l <= from_l:
             o_l = i_l
         o_l = layer_constructor(
             x=o_l,
-            input_shape=input_shape,
             units=o_dim,
             activation=hidden_activation
             if l == to_l - 1 is None
@@ -72,7 +68,6 @@ def block_constructor(
             advanced_reg=advanced_reg,
             **reg_kwargs,
         )
-        pre_o_dim = o_dim
 
     # Model
     model = KModel(inputs=i_l, outputs=o_l, name=name)

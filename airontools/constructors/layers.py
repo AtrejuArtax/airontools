@@ -279,9 +279,9 @@ def layer_constructor(
 
 def dropout_layer_constructor(
     x: Layer,
-    name: str,
-    name_ext: str,
-    dropout_rate: float,
+    name: str = "layer",
+    name_ext: str = "0",
+    dropout_rate: float = 0,
 ) -> Layer:
     input_shape = x.shape
     output_reshape = None
@@ -299,9 +299,9 @@ def dropout_layer_constructor(
 
 def convolutional_layer_constructor(
     x: Layer,
-    name: str,
-    name_ext: str,
-    conv_transpose: bool,
+    name: str = "layer",
+    name_ext: str = "0",
+    conv_transpose: bool = False,
     **kwargs,
 ) -> Layer:
     conv_dim = len(x.shape) - 2
@@ -316,9 +316,9 @@ def convolutional_layer_constructor(
 
 def pooling_layer_constructor(
     x: Layer,
-    name: str,
-    name_ext: str,
-    pooling: str | Layer,
+    name: str = "layer",
+    name_ext: str = "0",
+    pooling: str | Layer = "max",
     **kwargs,
 ) -> Layer:
     if isinstance(pooling, str):
