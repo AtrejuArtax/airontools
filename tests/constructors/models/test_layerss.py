@@ -35,6 +35,7 @@ def test_identity():
 
 class TestCustomDropout:
     def test_output_units(self):
+        # Test output dimensions are the same as input dimensions.
         units = [10, 5, 2]
         for n_units in units:
             input_layer = Input(shape=(n_units,))
