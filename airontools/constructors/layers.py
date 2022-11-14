@@ -4,22 +4,7 @@ import warnings
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import (
-    GRU,
-    Activation,
-    BatchNormalization,
-    Bidirectional,
-    Dense,
-    Dropout,
-    Flatten,
-    Layer,
-    LeakyReLU,
-    MultiHeadAttention,
-    Permute,
-    PReLU,
-    Reshape,
-    Softmax,
-)
+from tensorflow.keras.layers import *
 
 from airontools.constructors.utils import regularizer
 
@@ -314,9 +299,9 @@ def dropout_layer_constructor(
 
 def convolutional_layer_constructor(
     x: Layer,
-    name: str,
-    name_ext: str,
-    conv_transpose: bool,
+    name: str = "layer",
+    name_ext: str = "0",
+    conv_transpose: bool = False,
     **kwargs,
 ) -> Layer:
     conv_dim = len(x.shape) - 2
@@ -331,9 +316,9 @@ def convolutional_layer_constructor(
 
 def pooling_layer_constructor(
     x: Layer,
-    name: str,
-    name_ext: str,
-    pooling: str | Layer,
+    name: str = "layer",
+    name_ext: str = "0",
+    pooling: str | Layer = "max",
     **kwargs,
 ) -> Layer:
     if isinstance(pooling, str):
