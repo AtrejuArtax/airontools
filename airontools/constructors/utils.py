@@ -5,9 +5,10 @@ import warnings
 import numpy as np
 import tensorflow as tf
 import tensorflow.python.keras.backend as k_bcknd
-from tensorflow.python.keras.regularizers import l1, l2, l1_l2, Regularizer
-from tensorflow.python.keras.mixed_precision.policy import Policy, set_global_policy
-from tensorflow.keras.models import Model
+from tensorflow.python.keras.mixed_precision.policy import (Policy,
+                                                            set_global_policy)
+from tensorflow.python.keras.models import Model
+from tensorflow.python.keras.regularizers import Regularizer, l1, l1_l2, l2
 
 
 def get_latent_model(model: Model, layer_name: str):
