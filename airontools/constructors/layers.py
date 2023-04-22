@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import *
 
-from airontools.constructors.utils import regularizer
+from airontools.constructors.utils import get_regularizer
 
 
 def layer_constructor(
@@ -158,11 +158,11 @@ def layer_constructor(
             kernel_size=kernel_size,
             strides=strides,
             padding=padding,
-            kernel_regularizer=regularizer(
+            kernel_regularizer=get_regularizer(
                 kernel_regularizer_l1,
                 kernel_regularizer_l2,
             ),
-            bias_regularizer=regularizer(bias_regularizer_l1, bias_regularizer_l2),
+            bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
         )
         x = convolutional_layer_constructor(
             x,
@@ -199,11 +199,11 @@ def layer_constructor(
             key_dim=key_dim_,
             value_dim=value_dim_,
             use_bias=use_bias,
-            kernel_regularizer=regularizer(
+            kernel_regularizer=get_regularizer(
                 kernel_regularizer_l1,
                 kernel_regularizer_l2,
             ),
-            bias_regularizer=regularizer(bias_regularizer_l1, bias_regularizer_l2),
+            bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
         )
         x = self_attention_layer_constructor(
             x,
@@ -218,11 +218,11 @@ def layer_constructor(
         seq_kwargs = dict(
             units=units,
             use_bias=use_bias,
-            kernel_regularizer=regularizer(
+            kernel_regularizer=get_regularizer(
                 kernel_regularizer_l1,
                 kernel_regularizer_l2,
             ),
-            bias_regularizer=regularizer(bias_regularizer_l1, bias_regularizer_l2),
+            bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
             return_sequences=return_sequences,
             activation="linear",
         )
@@ -240,11 +240,11 @@ def layer_constructor(
         dense_kwargs = dict(
             units=units,
             use_bias=use_bias,
-            kernel_regularizer=regularizer(
+            kernel_regularizer=get_regularizer(
                 kernel_regularizer_l1,
                 kernel_regularizer_l2,
             ),
-            bias_regularizer=regularizer(bias_regularizer_l1, bias_regularizer_l2),
+            bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
         )
         x = dense_layer_constructor(
             x,
@@ -257,14 +257,14 @@ def layer_constructor(
     # Batch Normalization
     if bn:
         bn_kwargs = dict(
-            beta_regularizer=regularizer(bias_regularizer_l1, bias_regularizer_l2),
-            gamma_regularizer=regularizer(bias_regularizer_l1, bias_regularizer_l2),
+            beta_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
+            gamma_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
         )
         x = bn_layer_constructor(x, name=name, name_ext=name_ext, **bn_kwargs)
 
     # Activation
     activation_kwargs = dict(
-        alpha_regularizer=regularizer(bias_regularizer_l1, bias_regularizer_l2),
+        alpha_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
     )
     x = activation_layer_constructor(
         x,

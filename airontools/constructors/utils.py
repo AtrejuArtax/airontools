@@ -4,8 +4,8 @@ import warnings
 
 import numpy as np
 import tensorflow as tf
-import tensorflow.keras.backend as k_bcknd
-from tensorflow.keras import regularizers
+import tensorflow.python.keras.backend as k_bcknd
+from tensorflow.python.keras.regularizers import l1, l2, l1_l2, Regularizer
 from tensorflow.keras.mixed_precision import experimental as mixed_precision
 from tensorflow.keras.models import Model
 
@@ -74,13 +74,10 @@ def rm_redundant(values: list, value: int) -> list:
     return values_
 
 
-def regularizer(l1=None, l2=None) -> regularizers.Regularizer:
-    if l1 and l2:
-        regularizer = regularizers.l1_l2(l1=l1, l2=l2)
-    elif l1:
-        regularizer = regularizers.l1(l1)
-    elif l2:
-        regularizer = regularizers.l2(l2)
-    else:
-        regularizer = None
-    return regularizer
+def get_regularizer(l1_value: float = None, l2_value: float = None) -> Regularizer:
+    if l1_value and l2_value:
+        return l1_l2(l1=l1_value, l2=l2_value)
+    elif l1_value:
+        return l1(l1_value)
+    elif l2_value:
+        return l2(l2_value)
