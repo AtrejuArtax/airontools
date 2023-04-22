@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.python.keras.backend as k_bcknd
 from tensorflow.python.keras.regularizers import l1, l2, l1_l2, Regularizer
-from tensorflow.keras.mixed_precision import experimental as mixed_precision
+from tensorflow.python.keras.mixed_precision.policy import Policy, set_global_policy
 from tensorflow.keras.models import Model
 
 
@@ -35,11 +35,11 @@ def get_latent_model(model: Model, layer_name: str):
             warnings.warn("could not find the layer")
 
 
-def set_precision(precision: float):
+def set_precision(precision: str) -> None:
     if "float16" in precision:
         if precision == "mixed_float16":
-            policy = mixed_precision.Policy("mixed_float16")
-            mixed_precision.set_policy(policy)
+            policy = Policy("mixed_float16")
+            set_global_policy(policy)
         else:
             tf.keras.backend.set_floatx("float16")
 

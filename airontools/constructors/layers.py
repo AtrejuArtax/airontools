@@ -383,7 +383,6 @@ def dense_layer_constructor(
     custom_layer: Layer,
     **kwargs,
 ) -> Layer:
-
     if not len(x.shape[1:]) == 1:
         x = Flatten(name="_".join([name, "pre", "dense", "flatten", name_ext]))(x)
     if custom_layer is not None:
