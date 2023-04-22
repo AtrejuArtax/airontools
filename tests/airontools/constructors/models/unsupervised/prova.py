@@ -1,6 +1,6 @@
 import numpy as np
-from numpy.random import normal
 import tensorflow as tf
+from numpy.random import normal
 
 from airontools.constructors.models.unsupervised.vae import VAE
 

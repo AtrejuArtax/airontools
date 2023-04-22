@@ -1,10 +1,11 @@
 import os
 import tempfile
+
 import tensorflow as tf
 
 from airontools.constructors.models.model import Model
 from airontools.constructors.models.unsupervised.ae import AE
-from tests.constructors.models.example_data import TABULAR_DATA
+from tests.airontools.constructors.models.example_data import TABULAR_DATA
 
 
 class TestAE:
