@@ -6,8 +6,10 @@ from tensorflow.keras.optimizers import Adam
 
 from airontools.constructors.models.model import Model
 from airontools.constructors.models.unsupervised.vae import VAE
-from tests.airontools.constructors.models.example_data import (LOSS_TOLERANCE,
-                                                               TABULAR_DATA)
+from tests.airontools.constructors.models.example_data import (
+    LOSS_TOLERANCE,
+    TABULAR_DATA,
+)
 
 
 class TestVAE:

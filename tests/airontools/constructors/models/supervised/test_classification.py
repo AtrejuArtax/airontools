@@ -4,11 +4,12 @@ import tempfile
 import tensorflow as tf
 
 from airontools.constructors.models.model import Model
-from airontools.constructors.models.supervised.classification import \
-    ImageClassifierNN
-from tests.airontools.constructors.models.example_data import (IMG_DATA,
-                                                               N_CLASSES,
-                                                               TARGETS)
+from airontools.constructors.models.supervised.classification import ImageClassifierNN
+from tests.airontools.constructors.models.example_data import (
+    IMG_DATA,
+    N_CLASSES,
+    TARGETS,
+)
 
 
 class TestImageClassifierNN:

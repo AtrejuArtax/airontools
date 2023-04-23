@@ -5,8 +5,7 @@ import warnings
 import numpy as np
 import tensorflow as tf
 import tensorflow.python.keras.backend as k_bcknd
-from tensorflow.python.keras.mixed_precision.policy import (Policy,
-                                                            set_global_policy)
+from tensorflow.python.keras.mixed_precision.policy import Policy, set_global_policy
 from tensorflow.python.keras.models import Model
 from tensorflow.python.keras.regularizers import Regularizer, l1, l1_l2, l2
 
