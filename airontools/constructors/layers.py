@@ -304,11 +304,19 @@ def convolutional_layer_constructor(
     conv_transpose: bool = False,
     **kwargs,
 ) -> tf.keras.layers.Layer:
+    assert len(x.shape) <= 3, "x layer shape should have 5 or less dimensions"
     conv_dim = len(x.shape) - 2
     conv_type = "transpose" if conv_transpose else ""
     conv_name = "Conv" + str(conv_dim) + "D" + conv_type.capitalize()
-    x = globals()[conv_name](
-        name="_".join([name, conv_name.lower(), name_ext]),
+    layer_name = "_".join([name, conv_name.lower(), name_ext])
+    if conv_dim == 1:
+        conv_layer = tf.keras.layers.Conv1D
+    elif conv_dim == 2:
+        conv_layer = tf.keras.layers.Conv2D
+    else:
+        conv_layer = tf.keras.layers.Conv3D
+    x = conv_layer(
+        name=layer_name,
         **kwargs,
     )(x)
     return x
