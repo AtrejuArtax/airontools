@@ -94,7 +94,8 @@ class AE(Model, tf.keras.models.Model):
     def evaluate(self, x: NDArray[float], **kwargs) -> Dict[str, tf.Tensor]:
         """Evaluate model."""
         reconstructed = self._model(x)
-        return {"loss": self._loss_evaluation(reconstructed, x)}
+        loss = self._loss_evaluation(reconstructed, x)
+        return {"loss": loss}
 
     def predict(self, *args, **kwargs) -> NDArray[float]:
         """Predict."""
@@ -119,8 +120,8 @@ class AE(Model, tf.keras.models.Model):
 
     def summary(self, **kwargs) -> None:
         """Model summary."""
-        self._model.summary()
+        self._model.summary(**kwargs)
 
-    def _loss_evaluation(self, reconstructed: NDArray[float], inputs: NDArray[float]):
+    def _loss_evaluation(self, reconstructed: tf.Tensor, inputs: tf.Tensor):
         rec_loss = tf.reduce_mean((inputs - reconstructed) ** 2)
         return rec_loss

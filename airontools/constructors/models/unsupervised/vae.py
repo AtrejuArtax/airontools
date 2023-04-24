@@ -3,6 +3,7 @@ from typing import Dict, Tuple
 
 import numpy as np
 import tensorflow as tf
+from numpy.typing import NDArray
 
 from airontools.constructors.layers import layer_constructor
 from airontools.constructors.models.model import Model
@@ -12,7 +13,7 @@ from airontools.on_the_fly import HyperDesignDropoutRate
 class Sampling(tf.keras.layers.Layer):
     """Uses (z_mean, z_log_var) to sample z, the vector encoding a digit."""
 
-    def call(self, inputs):
+    def call(self, inputs, **kwargs) -> tf.Tensor:
         z_mean, z_log_var = inputs
         batch = tf.shape(z_mean)[0]
         dim = tf.shape(z_mean)[1]
@@ -21,6 +22,9 @@ class Sampling(tf.keras.layers.Layer):
 
 
 class VAE(Model, tf.keras.models.Model):
+    """Variational AutoEncoder model.
+    For more information refer to this paper: https://arxiv.org/pdf/1312.6114.pdf"""
+
     def __init__(
         self,
         input_shape: Tuple[int],
@@ -114,7 +118,7 @@ class VAE(Model, tf.keras.models.Model):
         """Compile model."""
         tf.keras.models.Model.fit(self, *args, **kwargs)
 
-    def evaluate(self, x: np.array, **kwargs) -> Dict[str, float]:
+    def evaluate(self, x: NDArray[float], **kwargs) -> Dict[str, tf.Tensor]:
         """Evaluate model."""
         z_mean, z_log_var, z = self.encoder(x)
         loss = self._loss_evaluation(
@@ -125,20 +129,22 @@ class VAE(Model, tf.keras.models.Model):
         )
         return {"loss": loss}
 
-    def predict(self, *args, **kwargs) -> np.array:
-        """Predict model."""
+    def predict(self, *args, **kwargs) -> NDArray[float]:
+        """Predict."""
         return tf.keras.models.Model.predict(self, *args, **kwargs)
 
     def save_weights(self, path: str) -> None:
+        """Save model weights."""
         with open(path + "_weights", "w") as f:
             json.dump([w.tolist() for w in self._model.get_weights()], f)
 
     def load_weights(self, path: str) -> None:
+        """Load model weights."""
         with open(path + "_weights") as f:
             encoder_weights = [np.array(w) for w in json.load(f)]
         self._model.set_weights(encoder_weights)
 
-    def call(self, inputs) -> None:
+    def call(self, inputs, **kwargs) -> tf.Tensor:
         """Call model."""
         z_mean, z_log_var, z = self.encoder(inputs)
         loss, reconstructed = self._loss_evaluation(
@@ -151,12 +157,17 @@ class VAE(Model, tf.keras.models.Model):
         self.add_loss(loss)
         return reconstructed
 
-    def summary(self) -> None:
+    def summary(self, **kwargs) -> None:
         """Model summary."""
-        self._model.summary()
+        self._model.summary(**kwargs)
 
     def _loss_evaluation(
-        self, inputs, z_mean, z_log_var, z, return_reconstruction=False, **kwargs
+        self,
+        inputs: tf.Tensor,
+        z_mean: tf.Tensor,
+        z_log_var: tf.Tensor,
+        z: tf.Tensor,
+        return_reconstruction: bool = False,
     ):
         reconstructed = self.decoder(z)
         rec_loss = tf.reduce_mean((inputs - reconstructed) ** 2)
