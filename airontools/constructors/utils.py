@@ -1,18 +1,13 @@
-from __future__ import annotations
-
 import warnings
 
 import numpy as np
 import tensorflow as tf
 import tensorflow.python.keras.backend as k_bcknd
-from tensorflow.python.keras.mixed_precision.policy import Policy, set_global_policy
-from tensorflow.python.keras.models import Model
-from tensorflow.python.keras.regularizers import Regularizer, l1, l1_l2, l2
 
 
-def get_latent_model(model: Model, layer_name: str):
+def get_latent_model(model: tf.keras.models.Model, layer_name: str):
     try:
-        return Model(
+        return tf.keras.models.Model(
             inputs=model.inputs,
             outputs=model.get_layer(layer_name).output,
             name=layer_name + "_model",
@@ -26,7 +21,7 @@ def get_latent_model(model: Model, layer_name: str):
                 layer_found = True
                 break
         if layer_found:
-            return Model(
+            return tf.keras.models.Model(
                 inputs=model.inputs,
                 outputs=outputs,
                 name=layer_name + "_model",
@@ -38,8 +33,8 @@ def get_latent_model(model: Model, layer_name: str):
 def set_precision(precision: str) -> None:
     if "float16" in precision:
         if precision == "mixed_float16":
-            policy = Policy("mixed_float16")
-            set_global_policy(policy)
+            policy = tf.keras.mixed_precision.Policy("mixed_float16")
+            tf.keras.mixed_precision.set_global_policy(policy)
         else:
             tf.keras.backend.set_floatx("float16")
 
@@ -74,10 +69,12 @@ def rm_redundant(values: list, value: int) -> list:
     return values_
 
 
-def get_regularizer(l1_value: float = None, l2_value: float = None) -> Regularizer:
+def get_regularizer(
+    l1_value: float = None, l2_value: float = None
+) -> tf.keras.regularizers.Regularizer:
     if l1_value and l2_value:
-        return l1_l2(l1=l1_value, l2=l2_value)
+        return tf.keras.regularizers.l1_l2(l1=l1_value, l2=l2_value)
     elif l1_value:
-        return l1(l1_value)
+        return tf.keras.regularizers.l1(l1_value)
     elif l2_value:
-        return l2(l2_value)
+        return tf.keras.regularizers.l2(l2_value)

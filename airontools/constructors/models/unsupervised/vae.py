@@ -1,20 +1,15 @@
-from __future__ import annotations
-
 import json
 from typing import Dict, Tuple
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import Input, Layer
-from tensorflow.keras.metrics import Mean
-from tensorflow.keras.models import Model as KModel
 
 from airontools.constructors.layers import layer_constructor
 from airontools.constructors.models.model import Model
 from airontools.on_the_fly import HyperDesignDropoutRate
 
 
-class Sampling(Layer):
+class Sampling(tf.keras.layers.Layer):
     """Uses (z_mean, z_log_var) to sample z, the vector encoding a digit."""
 
     def call(self, inputs):
@@ -25,7 +20,7 @@ class Sampling(Layer):
         return z_mean + tf.exp(0.5 * z_log_var) * epsilon
 
 
-class VAE(Model, KModel):
+class VAE(Model, tf.keras.models.Model):
     def __init__(
         self,
         input_shape: Tuple[int],
@@ -35,13 +30,13 @@ class VAE(Model, KModel):
         **kwargs,
     ):
         Model.__init__(self)
-        KModel.__init__(self)
+        tf.keras.models.Model.__init__(self)
 
         # Loss tracker
-        self.loss_tracker = Mean(name="loss")
+        self.loss_tracker = tf.keras.metrics.Mean(name="loss")
 
         # Encoder
-        encoder_inputs = Input(shape=input_shape)
+        encoder_inputs = tf.keras.layers.Input(shape=input_shape)
         self.encoder = layer_constructor(
             encoder_inputs,
             input_shape=input_shape,
@@ -64,14 +59,14 @@ class VAE(Model, KModel):
             **kwargs,
         )
         self.z = Sampling(name=f"{model_name}_z")([self.z_mean, self.z_log_var])
-        self.encoder = KModel(
+        self.encoder = tf.keras.models.Model(
             inputs=encoder_inputs,
             outputs=[self.z_mean, self.z_log_var, self.z],
             name=f"{model_name}_encoder",
         )
 
         # Z
-        z_inputs = Input(shape=(latent_dim,))
+        z_inputs = tf.keras.layers.Input(shape=(latent_dim,))
         self.z = layer_constructor(
             z_inputs,
             input_shape=(latent_dim,),
@@ -79,14 +74,14 @@ class VAE(Model, KModel):
             name=f"{model_name}_z",
             **kwargs,
         )
-        self.z = KModel(
+        self.z = tf.keras.models.Model(
             inputs=z_inputs,
             outputs=self.z,
             name=f"{model_name}_z",
         )
 
         # Decoder
-        decoder_inputs = Input(shape=(latent_dim,))
+        decoder_inputs = tf.keras.layers.Input(shape=(latent_dim,))
         self.decoder = layer_constructor(
             decoder_inputs,
             input_shape=(latent_dim,),
@@ -95,14 +90,14 @@ class VAE(Model, KModel):
             activation=output_activation,
             **kwargs,
         )
-        self.decoder = KModel(
+        self.decoder = tf.keras.models.Model(
             inputs=decoder_inputs,
             outputs=self.decoder,
             name=f"{model_name}_decoder",
         )
 
         # AE
-        self._model = KModel(
+        self._model = tf.keras.models.Model(
             inputs=encoder_inputs,
             outputs=self.decoder(self.z(self.encoder(encoder_inputs))),
             name=model_name,
@@ -113,11 +108,11 @@ class VAE(Model, KModel):
 
     def compile(self, *args, **kwargs) -> None:
         """Compile model."""
-        KModel.compile(self, *args, **kwargs)
+        tf.keras.models.Model.compile(self, *args, **kwargs)
 
     def fit(self, *args, **kwargs) -> None:
         """Compile model."""
-        KModel.fit(self, *args, **kwargs)
+        tf.keras.models.Model.fit(self, *args, **kwargs)
 
     def evaluate(self, x: np.array, **kwargs) -> Dict[str, float]:
         """Evaluate model."""
@@ -132,7 +127,7 @@ class VAE(Model, KModel):
 
     def predict(self, *args, **kwargs) -> np.array:
         """Predict model."""
-        return KModel.predict(self, *args, **kwargs)
+        return tf.keras.models.Model.predict(self, *args, **kwargs)
 
     def save_weights(self, path: str) -> None:
         with open(path + "_weights", "w") as f:

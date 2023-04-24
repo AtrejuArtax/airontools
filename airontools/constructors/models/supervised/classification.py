@@ -1,21 +1,15 @@
-from __future__ import annotations
-
 import json
 from typing import Dict, Tuple
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import Input
-from tensorflow.keras.losses import categorical_crossentropy
-from tensorflow.keras.metrics import Mean
-from tensorflow.keras.models import Model as KModel
 
 from airontools.constructors.layers import layer_constructor
 from airontools.constructors.models.model import Model
 from airontools.on_the_fly import HyperDesignDropoutRate
 
 
-class ImageClassifierNN(Model, KModel):
+class ImageClassifierNN(Model, tf.keras.models.Model):
     def __init__(
         self,
         input_shape: Tuple[int],
@@ -25,13 +19,13 @@ class ImageClassifierNN(Model, KModel):
         **kwargs,
     ):
         Model.__init__(self)
-        KModel.__init__(self)
+        tf.keras.models.Model.__init__(self)
 
         # Loss tracker
-        self.loss_tracker = Mean(name="loss")
+        self.loss_tracker = tf.keras.metrics.Mean(name="loss")
 
         # Encoder
-        encoder_inputs = Input(shape=input_shape)
+        encoder_inputs = tf.keras.layers.Input(shape=input_shape)
         self._model = layer_constructor(
             encoder_inputs,
             input_shape=input_shape,
@@ -40,7 +34,7 @@ class ImageClassifierNN(Model, KModel):
             activation=output_activation,
             **kwargs,
         )
-        self._model = KModel(
+        self._model = tf.keras.models.Model(
             inputs=encoder_inputs,
             outputs=self._model,
             name=model_name,
@@ -51,11 +45,11 @@ class ImageClassifierNN(Model, KModel):
 
     def compile(self, *args, **kwargs) -> None:
         """Compile model."""
-        KModel.compile(self, *args, **kwargs)
+        tf.keras.models.Model.compile(self, *args, **kwargs)
 
     def fit(self, *args, **kwargs) -> None:
         """Compile model."""
-        KModel.fit(self, *args, **kwargs)
+        tf.keras.models.Model.fit(self, *args, **kwargs)
 
     def evaluate(self, x: np.array, y: np.array, **kwargs) -> Dict[str, float]:
         if "sample_weight_val" in kwargs.keys():
@@ -66,7 +60,7 @@ class ImageClassifierNN(Model, KModel):
 
     def predict(self, *args, **kwargs) -> np.array:
         """Predict model."""
-        return KModel.predict(self, *args, **kwargs)
+        return tf.keras.models.Model.predict(self, *args, **kwargs)
 
     def save_weights(self, path: str) -> None:
         with open(path + "_weights", "w") as f:
@@ -91,7 +85,7 @@ class ImageClassifierNN(Model, KModel):
         return {"loss": self.loss_tracker.result()}
 
     def _loss_evaluation(self, y, y_pred, sample_weight):
-        loss = categorical_crossentropy(y, y_pred) * sample_weight
+        loss = tf.keras.metrics.categorical_crossentropy(y, y_pred) * sample_weight
         loss = tf.reduce_mean(tf.reduce_sum(loss))
         return loss
 
