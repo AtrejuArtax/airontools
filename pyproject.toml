@@ -7,12 +7,10 @@ description = "AIronTools (Beta) is a Python library that provides the user with
 authors = ["Claudi Ruiz Camps <claudi_ruiz@hotmail.com>"]
 
 [tool.poetry.dependencies]
-python = ">=3.9.16,<=3.11.3"
-protobuf = "^3.20"
-numpy = "*"
-sklearn = "*"
-tensorflow = {version = "^2.11", markers = "sys_platform != 'darwin' and platform_machine != 'arm64'"}
-tensorflow-macos = {version = "^2.11", markers = "sys_platform == 'darwin' and platform_machine == 'arm64'"}
+python = ">=3.9,<3.11"
+tensorflow = {version = "2.12", markers = "sys_platform != 'darwin'"}
+tensorflow-macos = {version = "2.12", markers = "sys_platform == 'darwin'"}
+tensorflow-metal = {version = "0.8.0", markers = "sys_platform == 'darwin' and platform_machine == 'arm64'"}
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
