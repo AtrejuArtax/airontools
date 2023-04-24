@@ -1,7 +1,8 @@
 import abc
 from typing import Dict, List, Union
 
-import numpy as np
+import tensorflow as tf
+from numpy.typing import NDArray
 
 
 class Model(abc.ABC):
@@ -14,11 +15,11 @@ class Model(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def evaluate(self, *args, **kwargs) -> Dict[str, float]:
+    def evaluate(self, *args, **kwargs) -> Dict[str, tf.Tensor]:
         pass
 
     @abc.abstractmethod
-    def predict(self, *args, **kwargs) -> Union[List[np.array], np.array]:
+    def predict(self, *args, **kwargs) -> Union[List[NDArray[float]], NDArray[float]]:
         pass
 
     @abc.abstractmethod
