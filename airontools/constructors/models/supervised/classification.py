@@ -1,5 +1,5 @@
 import json
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple
 
 import numpy as np
 import tensorflow as tf
@@ -79,9 +79,7 @@ class ImageClassifierNN(Model, tf.keras.models.Model):
             encoder_weights = [np.array(w) for w in json.load(f)]
         self._model.set_weights(encoder_weights)
 
-    def train_step(
-        self, data: Union[List[NDArray[float]]], **kwargs
-    ) -> Dict[str, float]:
+    def train_step(self, data: List[NDArray[float]], **kwargs) -> Dict[str, float]:
         """Train step."""
         if len(data) == 3:
             x, y, sample_weight = data
@@ -95,13 +93,6 @@ class ImageClassifierNN(Model, tf.keras.models.Model):
         self.loss_tracker.update_state(loss)
         return {"loss": self.loss_tracker.result()}
 
-    def _loss_evaluation(
-        self, y: NDArray[float], y_pred: NDArray[float], sample_weight: NDArray[float]
-    ) -> tf.Tensor:
-        loss = tf.keras.metrics.categorical_crossentropy(y, y_pred) * sample_weight
-        loss = tf.reduce_mean(tf.reduce_sum(loss))
-        return loss
-
     def call(self, inputs, **kwargs) -> tf.Tensor:
         """Call model."""
         return self._model(inputs, **kwargs)
@@ -109,3 +100,10 @@ class ImageClassifierNN(Model, tf.keras.models.Model):
     def summary(self, **kwargs) -> None:
         """Model summary."""
         self._model.summary(**kwargs)
+
+    def _loss_evaluation(
+        self, y: NDArray[float], y_pred: NDArray[float], sample_weight: NDArray[float]
+    ) -> tf.Tensor:
+        loss = tf.keras.metrics.categorical_crossentropy(y, y_pred) * sample_weight
+        loss = tf.reduce_mean(tf.reduce_sum(loss))
+        return loss
