@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import List
 
 from tensorflow.python.client import device_lib

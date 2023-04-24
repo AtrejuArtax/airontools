@@ -1,5 +1,5 @@
 import numpy as np
-from tensorflow.keras.layers import Input
+from tensorflow.python.keras.layers import Input
 
 from airontools.constructors.layers import (
     CustomDropout,

@@ -1,12 +1,10 @@
-from __future__ import annotations
-
 import warnings
+from typing import Union
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import *
 
-from airontools.constructors.utils import regularizer
+from airontools.constructors.utils import get_regularizer
 
 
 def layer_constructor(
@@ -158,11 +156,11 @@ def layer_constructor(
             kernel_size=kernel_size,
             strides=strides,
             padding=padding,
-            kernel_regularizer=regularizer(
+            kernel_regularizer=get_regularizer(
                 kernel_regularizer_l1,
                 kernel_regularizer_l2,
             ),
-            bias_regularizer=regularizer(bias_regularizer_l1, bias_regularizer_l2),
+            bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
         )
         x = convolutional_layer_constructor(
             x,
@@ -199,11 +197,11 @@ def layer_constructor(
             key_dim=key_dim_,
             value_dim=value_dim_,
             use_bias=use_bias,
-            kernel_regularizer=regularizer(
+            kernel_regularizer=get_regularizer(
                 kernel_regularizer_l1,
                 kernel_regularizer_l2,
             ),
-            bias_regularizer=regularizer(bias_regularizer_l1, bias_regularizer_l2),
+            bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
         )
         x = self_attention_layer_constructor(
             x,
@@ -218,11 +216,11 @@ def layer_constructor(
         seq_kwargs = dict(
             units=units,
             use_bias=use_bias,
-            kernel_regularizer=regularizer(
+            kernel_regularizer=get_regularizer(
                 kernel_regularizer_l1,
                 kernel_regularizer_l2,
             ),
-            bias_regularizer=regularizer(bias_regularizer_l1, bias_regularizer_l2),
+            bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
             return_sequences=return_sequences,
             activation="linear",
         )
@@ -240,11 +238,11 @@ def layer_constructor(
         dense_kwargs = dict(
             units=units,
             use_bias=use_bias,
-            kernel_regularizer=regularizer(
+            kernel_regularizer=get_regularizer(
                 kernel_regularizer_l1,
                 kernel_regularizer_l2,
             ),
-            bias_regularizer=regularizer(bias_regularizer_l1, bias_regularizer_l2),
+            bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
         )
         x = dense_layer_constructor(
             x,
@@ -257,14 +255,14 @@ def layer_constructor(
     # Batch Normalization
     if bn:
         bn_kwargs = dict(
-            beta_regularizer=regularizer(bias_regularizer_l1, bias_regularizer_l2),
-            gamma_regularizer=regularizer(bias_regularizer_l1, bias_regularizer_l2),
+            beta_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
+            gamma_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
         )
         x = bn_layer_constructor(x, name=name, name_ext=name_ext, **bn_kwargs)
 
     # Activation
     activation_kwargs = dict(
-        alpha_regularizer=regularizer(bias_regularizer_l1, bias_regularizer_l2),
+        alpha_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
     )
     x = activation_layer_constructor(
         x,
@@ -278,19 +276,21 @@ def layer_constructor(
 
 
 def dropout_layer_constructor(
-    x: Layer,
+    x: tf.keras.layers.Layer,
     name: str = "layer",
     name_ext: str = "0",
     dropout_rate: float = 0,
-) -> Layer:
+) -> tf.keras.layers.Layer:
     input_shape = x.shape
     output_reshape = None
     if len(input_shape) > 2:
         output_reshape = input_shape
-        x = Flatten(name="_".join([name, "pre", "dropout", "flatten", name_ext]))(x)
+        x = tf.keras.layers.Flatten(
+            name="_".join([name, "pre", "dropout", "flatten", name_ext])
+        )(x)
     x = CustomDropout(name="_".join([name, "dropout", name_ext]), rate=dropout_rate)(x)
     if output_reshape is not None:
-        x = Reshape(
+        x = tf.keras.layers.Reshape(
             name="_".join([name, "post", "dropout", "reshape", name_ext]),
             target_shape=output_reshape[1:],
         )(x)
@@ -298,29 +298,37 @@ def dropout_layer_constructor(
 
 
 def convolutional_layer_constructor(
-    x: Layer,
+    x: tf.keras.layers.Layer,
     name: str = "layer",
     name_ext: str = "0",
     conv_transpose: bool = False,
     **kwargs,
-) -> Layer:
+) -> tf.keras.layers.Layer:
+    assert len(x.shape) <= 3, "x layer shape should have 5 or less dimensions"
     conv_dim = len(x.shape) - 2
     conv_type = "transpose" if conv_transpose else ""
     conv_name = "Conv" + str(conv_dim) + "D" + conv_type.capitalize()
-    x = globals()[conv_name](
-        name="_".join([name, conv_name.lower(), name_ext]),
+    layer_name = "_".join([name, conv_name.lower(), name_ext])
+    if conv_dim == 1:
+        conv_layer = tf.keras.layers.Conv1D
+    elif conv_dim == 2:
+        conv_layer = tf.keras.layers.Conv2D
+    else:
+        conv_layer = tf.keras.layers.Conv3D
+    x = conv_layer(
+        name=layer_name,
         **kwargs,
     )(x)
     return x
 
 
 def pooling_layer_constructor(
-    x: Layer,
+    x: tf.keras.layers.Layer,
     name: str = "layer",
     name_ext: str = "0",
-    pooling: str | Layer = "max",
+    pooling: Union[str, tf.keras.layers.Layer] = "max",
     **kwargs,
-) -> Layer:
+) -> tf.keras.layers.Layer:
     if isinstance(pooling, str):
         pooling_name = pooling.capitalize() + "Pooling" + str(_get_pooling_dim(x)) + "D"
         pooling_layer = globals()[pooling_name]
@@ -331,24 +339,24 @@ def pooling_layer_constructor(
     return x
 
 
-def _get_pooling_dim(x: Layer) -> int:
+def _get_pooling_dim(x: tf.keras.layers.Layer) -> int:
     return len(x.shape) - 2
 
 
 def self_attention_layer_constructor(
-    x: Layer,
+    x: tf.keras.layers.Layer,
     name: str,
     name_ext: str,
     sequential_axis: int,
     **kwargs,
-) -> Layer:
+) -> tf.keras.layers.Layer:
     x = sequential_permutation(
         x=x,
         name=name,
         name_ext=name_ext,
         sequential_axis=sequential_axis,
     )
-    x = MultiHeadAttention(
+    x = tf.keras.layers.MultiHeadAttention(
         name="_".join([name, "multi_head_attention", name_ext]),
         **kwargs,
     )(x, x)
@@ -356,13 +364,13 @@ def self_attention_layer_constructor(
 
 
 def sequential_layer_constructor(
-    x: Layer,
+    x: tf.keras.layers.Layer,
     name: str,
     name_ext: str,
     bidirectional: bool,
     sequential_axis: int,
     **kwargs,
-) -> Layer:
+) -> tf.keras.layers.Layer:
     x = sequential_permutation(
         x=x,
         name=name,
@@ -370,42 +378,49 @@ def sequential_layer_constructor(
         sequential_axis=sequential_axis,
     )
     if bidirectional:
-        x = Bidirectional(GRU(name="_".join([name, "gru", name_ext]), **kwargs))(x)
+        x = tf.keras.layers.Bidirectional(
+            tf.keras.layers.GRU(name="_".join([name, "gru", name_ext]), **kwargs)
+        )(x)
     else:
-        x = GRU(name="_".join([name, "gru", name_ext]), **kwargs)(x)
+        x = tf.keras.layers.GRU(name="_".join([name, "gru", name_ext]), **kwargs)(x)
     return x
 
 
 def dense_layer_constructor(
-    x: Layer,
+    x: tf.keras.layers.Layer,
     name: str,
     name_ext: str,
-    custom_layer: Layer,
+    custom_layer: tf.keras.layers.Layer,
     **kwargs,
-) -> Layer:
-
+) -> tf.keras.layers.Layer:
     if not len(x.shape[1:]) == 1:
-        x = Flatten(name="_".join([name, "pre", "dense", "flatten", name_ext]))(x)
+        x = tf.keras.layers.Flatten(
+            name="_".join([name, "pre", "dense", "flatten", name_ext])
+        )(x)
     if custom_layer is not None:
         x = custom_layer(x)
         custom_layer._name = "_".join([name, "dense", name_ext])
     else:
-        x = Dense(name="_".join([name, "dense", name_ext]), **kwargs)(x)
+        x = tf.keras.layers.Dense(name="_".join([name, "dense", name_ext]), **kwargs)(x)
     return x
 
 
-def bn_layer_constructor(x: Layer, name: str, name_ext: str, **kwargs) -> Layer:
+def bn_layer_constructor(
+    x: tf.keras.layers.Layer, name: str, name_ext: str, **kwargs
+) -> tf.keras.layers.Layer:
     input_shape = x.shape
     output_reshape = None
     if len(input_shape) > 2:
         output_reshape = input_shape
-        x = Flatten(name="_".join([name, "pre", "bn", "flatten", name_ext]))(x)
-    x = BatchNormalization(
+        x = tf.keras.layers.Flatten(
+            name="_".join([name, "pre", "bn", "flatten", name_ext])
+        )(x)
+    x = tf.keras.layers.BatchNormalization(
         name="_".join([name, "batch_normalization", name_ext]),
         **kwargs,
     )(x)
     if output_reshape is not None:
-        x = Reshape(
+        x = tf.keras.layers.Reshape(
             name="_".join([name, "post", "bn", "reshape", name_ext]),
             target_shape=output_reshape[1:],
         )(x)
@@ -413,30 +428,32 @@ def bn_layer_constructor(x: Layer, name: str, name_ext: str, **kwargs) -> Layer:
 
 
 def activation_layer_constructor(
-    x: Layer,
+    x: tf.keras.layers.Layer,
     name: str,
     name_ext: str,
     activation: str,
     **reg_kwargs,
-) -> Layer:
+) -> tf.keras.layers.Layer:
     input_shape = x.shape
     output_reshape = None
     if len(input_shape) > 2:
         output_reshape = input_shape
-        x = Flatten(name="_".join([name, "pre", "activation", "flatten", name_ext]))(x)
+        x = tf.keras.layers.Flatten(
+            name="_".join([name, "pre", "activation", "flatten", name_ext])
+        )(x)
     activation_name = "_".join(
         [name, activation if isinstance(activation, str) else "activation", name_ext],
     )
     if activation == "leakyrelu":
-        x = LeakyReLU(name=activation_name)(x)
+        x = tf.keras.layers.LeakyReLU(name=activation_name)(x)
     elif activation == "prelu":
-        x = PReLU(name=activation_name, **reg_kwargs)(x)
+        x = tf.keras.layers.PReLU(name=activation_name, **reg_kwargs)(x)
     elif activation == "softmax":
-        x = Softmax(name=activation_name, dtype="float32")(x)
+        x = tf.keras.layers.Softmax(name=activation_name, dtype="float32")(x)
     else:
-        x = Activation(name=activation_name, activation=activation)(x)
+        x = tf.keras.layers.Activation(name=activation_name, activation=activation)(x)
     if output_reshape is not None:
-        x = Reshape(
+        x = tf.keras.layers.Reshape(
             name="_".join([name, "post", "activation", "reshape", name_ext]),
             target_shape=output_reshape[1:],
         )(x)
@@ -444,11 +461,11 @@ def activation_layer_constructor(
 
 
 def sequential_permutation(
-    x: Layer,
+    x: tf.keras.layers.Layer,
     name: str,
     name_ext: str,
     sequential_axis: int,
-) -> Layer:
+) -> tf.keras.layers.Layer:
     input_shape = x.shape
     sequential_axis_ = list(range(len(input_shape)))[sequential_axis]
     if sequential_axis_ != 1:
@@ -456,11 +473,13 @@ def sequential_permutation(
             [sequential_axis_]
             + [i for i in range(1, len(input_shape[1:])) if i != sequential_axis_],
         )
-        x = Permute(name="_".join([name, "permutation", name_ext]), dims=permutation)(x)
+        x = tf.keras.layers.Permute(
+            name="_".join([name, "permutation", name_ext]), dims=permutation
+        )(x)
     else:
         permutation = list(range(1, len(input_shape)))
     if len(input_shape) > 2:
-        x = Reshape(
+        x = tf.keras.layers.Reshape(
             name="_".join([name, "reshape", name_ext]),
             target_shape=(
                 input_shape[permutation[0]],
@@ -470,11 +489,11 @@ def sequential_permutation(
     return x
 
 
-def identity(x) -> Layer:
+def identity(x) -> tf.keras.layers.Layer:
     return x
 
 
-class CustomDropout(Dropout):
+class CustomDropout(tf.keras.layers.Dropout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.rate = tf.Variable(

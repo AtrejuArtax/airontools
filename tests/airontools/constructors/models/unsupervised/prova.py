@@ -1,6 +1,6 @@
 import numpy as np
+import tensorflow as tf
 from numpy.random import normal
-from tensorflow.keras.optimizers import Adam
 
 from airontools.constructors.models.unsupervised.vae import VAE
 
@@ -14,7 +14,7 @@ model = VAE(
     input_shape=tabular_data.shape[1:],
     latent_dim=3,
 )
-model.compile(optimizer=Adam(learning_rate=0.001))
+model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001))
 model.fit(
     tabular_data,
     epochs=10,

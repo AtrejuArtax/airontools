@@ -1,22 +1,21 @@
 import os
 import tempfile
 
-import numpy as np
-from tensorflow.keras.optimizers import Adam
+import tensorflow as tf
 
 from airontools.constructors.models.model import Model
-from airontools.constructors.models.unsupervised.vae import VAE
-from tests.constructors.models.example_data import LOSS_TOLERANCE, TABULAR_DATA
+from airontools.constructors.models.unsupervised.ae import AE
+from tests.airontools.constructors.models.example_data import TABULAR_DATA
 
 
-class TestVAE:
-    model = VAE(
+class TestAE:
+    model = AE(
         input_shape=TABULAR_DATA.shape[1:],
         latent_dim=3,
     )
     assert isinstance(model, Model)
     assert not model._is_compiled
-    model.compile(optimizer=Adam(learning_rate=0.001))
+    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001))
     assert model._is_compiled
 
     def test_fit(self):
@@ -25,7 +24,7 @@ class TestVAE:
         )["loss"]
         self.model.fit(
             TABULAR_DATA,
-            epochs=10,
+            epochs=5,
         )
         after_evaluation = self.model.evaluate(
             TABULAR_DATA,
@@ -47,7 +46,7 @@ class TestVAE:
         self.model.save_weights(before_weights_file_name)
         self.model.fit(
             TABULAR_DATA,
-            epochs=15,
+            epochs=5,
         )
         after_evaluation = self.model.evaluate(
             TABULAR_DATA,
@@ -55,18 +54,16 @@ class TestVAE:
         assert before_evaluation > after_evaluation
         self.model.save_weights(after_weights_file_name)
         self.model.load_weights(before_weights_file_name)
-        loss_difference = np.absolute(
+        assert (
             before_evaluation
-            - self.model.evaluate(
+            == self.model.evaluate(
                 TABULAR_DATA,
             )["loss"]
         )
-        assert loss_difference / before_evaluation <= LOSS_TOLERANCE
         self.model.load_weights(after_weights_file_name)
-        loss_difference = np.absolute(
+        assert (
             after_evaluation
-            - self.model.evaluate(
+            == self.model.evaluate(
                 TABULAR_DATA,
             )["loss"]
         )
-        assert loss_difference / after_evaluation <= LOSS_TOLERANCE

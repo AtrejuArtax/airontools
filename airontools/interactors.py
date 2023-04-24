@@ -1,9 +1,4 @@
-from __future__ import annotations
-
-import tensorflow.keras.backend as k_bcknd
-from tensorflow.keras.models import Model
-from tensorflow.keras.models import load_model as __load_model
-from tensorflow.keras.models import model_from_json
+import tensorflow as tf
 
 from airontools.constructors.layers import CustomDropout
 
@@ -36,19 +31,19 @@ def load_model(name, custom_objects=None, load_entire_model=False, file_format="
     else:
         file_format = "." + file_format
     if load_entire_model:
-        model = __load_model(name + file_format)
+        model = tf.keras.models.load_model(name + file_format)
     else:
         json_file = open(name + "_topology")
         loaded_model_json = json_file.read()
         json_file.close()
-        model = model_from_json(loaded_model_json, custom_objects)
+        model = tf.keras.models.model_from_json(loaded_model_json, custom_objects)
         model.load_weights(filepath=name + "_weights" + file_format)
 
     return model
 
 
 def clear_session():
-    k_bcknd.clear_session()
+    tf.keras.backend.clear_session()
 
 
 def summary(model):
