@@ -91,9 +91,7 @@ class AE(Model, tf.keras.models.Model):
         """Compile model."""
         tf.keras.models.Model.fit(self, *args, **kwargs)
 
-    def evaluate(
-        self, x: NDArray[float], y: NDArray[float], **kwargs
-    ) -> Dict[str, tf.Tensor]:
+    def evaluate(self, x: NDArray[float], **kwargs) -> Dict[str, tf.Tensor]:
         """Evaluate model."""
         reconstructed = self._model(x)
         return {"loss": self._loss_evaluation(reconstructed, x)}
