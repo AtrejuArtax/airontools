@@ -122,6 +122,8 @@ class AE(Model, tf.keras.models.Model):
         """Model summary."""
         self._model.summary(**kwargs)
 
-    def _loss_evaluation(self, reconstructed: tf.Tensor, inputs: tf.Tensor):
+    def _loss_evaluation(
+        self, reconstructed: tf.Tensor, inputs: tf.Tensor
+    ) -> tf.Tensor:
         rec_loss = tf.reduce_mean((inputs - reconstructed) ** 2)
         return rec_loss

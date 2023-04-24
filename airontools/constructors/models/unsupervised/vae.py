@@ -168,7 +168,7 @@ class VAE(Model, tf.keras.models.Model):
         z_log_var: tf.Tensor,
         z: tf.Tensor,
         return_reconstruction: bool = False,
-    ):
+    ) -> tf.Tensor:
         reconstructed = self.decoder(z)
         rec_loss = tf.reduce_mean((inputs - reconstructed) ** 2)
         # Add KL divergence regularization loss.

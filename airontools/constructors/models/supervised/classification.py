@@ -102,7 +102,7 @@ class ImageClassifierNN(Model, tf.keras.models.Model):
         self._model.summary(**kwargs)
 
     def _loss_evaluation(
-        self, y: NDArray[float], y_pred: NDArray[float], sample_weight: NDArray[float]
+        self, y: tf.Tensor, y_pred: tf.Tensor, sample_weight: tf.Tensor
     ) -> tf.Tensor:
         loss = tf.keras.metrics.categorical_crossentropy(y, y_pred) * sample_weight
         loss = tf.reduce_mean(tf.reduce_sum(loss))
