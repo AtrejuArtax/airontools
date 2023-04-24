@@ -10,29 +10,29 @@ from airontools.constructors.utils import get_regularizer
 
 
 def layer_constructor(
-        x,
-        name=None,
-        name_ext=None,
-        units=None,
-        num_heads=None,
-        key_dim=None,
-        value_dim=None,
-        activation=None,
-        use_bias=True,
-        sequential=False,
-        bidirectional=False,
-        return_sequences=False,
-        filters=None,
-        kernel_size=None,
-        padding="valid",
-        pooling=None,
-        pool_size=None,
-        conv_transpose=False,
-        strides=(1, 1),
-        sequential_axis=1,
-        advanced_reg=False,
-        custom_layer=None,
-        **reg_kwargs,
+    x,
+    name=None,
+    name_ext=None,
+    units=None,
+    num_heads=None,
+    key_dim=None,
+    value_dim=None,
+    activation=None,
+    use_bias=True,
+    sequential=False,
+    bidirectional=False,
+    return_sequences=False,
+    filters=None,
+    kernel_size=None,
+    padding="valid",
+    pooling=None,
+    pool_size=None,
+    conv_transpose=False,
+    strides=(1, 1),
+    sequential_axis=1,
+    advanced_reg=False,
+    custom_layer=None,
+    **reg_kwargs,
 ):
     """It builds a custom layer. reg_kwargs contain everything regarding regularization. For now only 2D convolutions
     are supported for input of rank 4.
@@ -278,10 +278,10 @@ def layer_constructor(
 
 
 def dropout_layer_constructor(
-        x: Layer,
-        name: str = "layer",
-        name_ext: str = "0",
-        dropout_rate: float = 0,
+    x: Layer,
+    name: str = "layer",
+    name_ext: str = "0",
+    dropout_rate: float = 0,
 ) -> Layer:
     input_shape = x.shape
     output_reshape = None
@@ -298,11 +298,11 @@ def dropout_layer_constructor(
 
 
 def convolutional_layer_constructor(
-        x: Layer,
-        name: str = "layer",
-        name_ext: str = "0",
-        conv_transpose: bool = False,
-        **kwargs,
+    x: Layer,
+    name: str = "layer",
+    name_ext: str = "0",
+    conv_transpose: bool = False,
+    **kwargs,
 ) -> Layer:
     conv_dim = len(x.shape) - 2
     conv_type = "transpose" if conv_transpose else ""
@@ -315,11 +315,11 @@ def convolutional_layer_constructor(
 
 
 def pooling_layer_constructor(
-        x: Layer,
-        name: str = "layer",
-        name_ext: str = "0",
-        pooling: str | Layer = "max",
-        **kwargs,
+    x: Layer,
+    name: str = "layer",
+    name_ext: str = "0",
+    pooling: str | Layer = "max",
+    **kwargs,
 ) -> Layer:
     if isinstance(pooling, str):
         pooling_name = pooling.capitalize() + "Pooling" + str(_get_pooling_dim(x)) + "D"
@@ -336,11 +336,11 @@ def _get_pooling_dim(x: Layer) -> int:
 
 
 def self_attention_layer_constructor(
-        x: Layer,
-        name: str,
-        name_ext: str,
-        sequential_axis: int,
-        **kwargs,
+    x: Layer,
+    name: str,
+    name_ext: str,
+    sequential_axis: int,
+    **kwargs,
 ) -> Layer:
     x = sequential_permutation(
         x=x,
@@ -356,12 +356,12 @@ def self_attention_layer_constructor(
 
 
 def sequential_layer_constructor(
-        x: Layer,
-        name: str,
-        name_ext: str,
-        bidirectional: bool,
-        sequential_axis: int,
-        **kwargs,
+    x: Layer,
+    name: str,
+    name_ext: str,
+    bidirectional: bool,
+    sequential_axis: int,
+    **kwargs,
 ) -> Layer:
     x = sequential_permutation(
         x=x,
@@ -379,11 +379,11 @@ def sequential_layer_constructor(
 
 
 def dense_layer_constructor(
-        x: Layer,
-        name: str,
-        name_ext: str,
-        custom_layer: Layer,
-        **kwargs,
+    x: Layer,
+    name: str,
+    name_ext: str,
+    custom_layer: Layer,
+    **kwargs,
 ) -> Layer:
     if not len(x.shape[1:]) == 1:
         x = Flatten(name="_".join([name, "pre", "dense", "flatten", name_ext]))(x)
@@ -414,11 +414,11 @@ def bn_layer_constructor(x: Layer, name: str, name_ext: str, **kwargs) -> Layer:
 
 
 def activation_layer_constructor(
-        x: Layer,
-        name: str,
-        name_ext: str,
-        activation: str,
-        **reg_kwargs,
+    x: Layer,
+    name: str,
+    name_ext: str,
+    activation: str,
+    **reg_kwargs,
 ) -> Layer:
     input_shape = x.shape
     output_reshape = None
@@ -445,10 +445,10 @@ def activation_layer_constructor(
 
 
 def sequential_permutation(
-        x: Layer,
-        name: str,
-        name_ext: str,
-        sequential_axis: int,
+    x: Layer,
+    name: str,
+    name_ext: str,
+    sequential_axis: int,
 ) -> Layer:
     input_shape = x.shape
     sequential_axis_ = list(range(len(input_shape)))[sequential_axis]
