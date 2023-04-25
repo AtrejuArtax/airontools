@@ -147,12 +147,12 @@ def layer_constructor(
 
     # Multi-Head Attention
     if num_heads > 0:
-        key_dim_ = key_dim if key_dim > 0 else units
-        value_dim_ = value_dim if value_dim > 0 else key_dim_
+        _key_dim = key_dim if key_dim > 0 else units
+        _value_dim = value_dim if value_dim > 0 else _key_dim
         multi_head_attention_kwargs = dict(
             num_heads=num_heads,
-            key_dim=key_dim_,
-            value_dim=value_dim_,
+            key_dim=_key_dim,
+            value_dim=_value_dim,
             use_bias=use_bias,
             kernel_regularizer=get_regularizer(
                 kernel_regularizer_l1,
@@ -232,10 +232,10 @@ def layer_constructor(
 
 
 def dropout_layer_constructor(
-    x: tf.keras.layers.Layer,
+    x: Union[tf.Tensor, tf.keras.layers.Layer],
+    dropout_rate: float,
     name: str = "layer",
-    name_ext: str = "0",
-    dropout_rate: float = 0,
+    name_ext: str = "",
 ) -> tf.keras.layers.Layer:
     input_shape = x.shape
     output_reshape = None
