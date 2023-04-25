@@ -13,7 +13,7 @@ def layer_constructor(
     name: str = "layer",
     name_ext: str = "",
     num_heads: int = 0,
-    key_dim: int = None,
+    key_dim: int = 0,
     value_dim: int = None,
     activation: Union[str, tf.keras.layers.Activation] = "prelu",
     use_bias: bool = True,
@@ -82,7 +82,7 @@ def layer_constructor(
             x (tf.keras.layers.Layer): A keras layer.
     """
 
-    if num_heads > 0 and units is None and key_dim is None:
+    if num_heads > 0 and units is None and key_dim == 0:
         warnings.warn(
             "in order to use a multi-head attention layer either units or key_dim needs to be set",
         )
@@ -143,7 +143,7 @@ def layer_constructor(
 
     # Multi-Head Attention
     if num_heads > 0:
-        key_dim_ = key_dim if key_dim is not None else units
+        key_dim_ = key_dim if key_dim > 0 else units
         value_dim_ = value_dim if value_dim is not None else key_dim_
         multi_head_attention_kwargs = dict(
             num_heads=num_heads,
