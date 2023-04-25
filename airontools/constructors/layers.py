@@ -12,7 +12,7 @@ def layer_constructor(
     units: int,
     name: str = None,
     name_ext: str = None,
-    num_heads: int = None,
+    num_heads: int = 0,
     key_dim: int = None,
     value_dim: int = None,
     activation: Union[str, tf.keras.layers.Activation] = "prelu",
@@ -44,7 +44,7 @@ def layer_constructor(
             automatically if not sequential, else a sequential model. Useful to force an output dimensionality of the
             custom layer when using convolutional layers.
             name (str): Name of the custom layer.
-            name_ext (str): Extension name for the custom layer that will be at the end of of it.
+            name_ext (str): Extension name for the custom layer that will be at the end of it.
             num_heads (int): Number of heads for the multi-head attention layer.
             key_dim (int): Key dimensionality for the multi-head attention layer, if None then the number of units is
             used instead.
@@ -82,7 +82,7 @@ def layer_constructor(
             x (tf.keras.layers.Layer): A keras layer.
     """
 
-    if num_heads is not None and units is None and key_dim is None:
+    if num_heads > 0 and units is None and key_dim is None:
         warnings.warn(
             "in order to use a multi-head attention layer either units or key_dim needs to be set",
         )
@@ -144,7 +144,7 @@ def layer_constructor(
         )
 
     # Multi-Head Attention
-    if num_heads is not None:
+    if num_heads > 0:
         key_dim_ = key_dim if key_dim is not None else units
         value_dim_ = value_dim if value_dim is not None else key_dim_
         multi_head_attention_kwargs = dict(
