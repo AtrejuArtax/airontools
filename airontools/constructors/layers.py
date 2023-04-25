@@ -321,10 +321,10 @@ def self_attention_layer_constructor(
 
 def sequential_layer_constructor(
     x: tf.keras.layers.Layer,
-    name: str,
-    name_ext: str,
-    bidirectional: bool,
-    sequential_axis: int,
+    name: str = "sequential",
+    name_ext: str = "",
+    bidirectional: bool = False,
+    sequential_axis: int = 1,
     **kwargs,
 ) -> tf.keras.layers.Layer:
     x = sequential_permutation(
