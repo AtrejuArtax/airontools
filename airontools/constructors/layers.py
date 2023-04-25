@@ -10,8 +10,8 @@ from airontools.constructors.utils import get_regularizer
 def layer_constructor(
     x: Union[tf.Tensor, tf.keras.layers.Layer],
     units: int,
-    name: str = None,
-    name_ext: str = None,
+    name: str = "layer",
+    name_ext: str = "",
     num_heads: int = 0,
     key_dim: int = None,
     value_dim: int = None,
@@ -91,8 +91,6 @@ def layer_constructor(
     conv_condition = all(
         [conv_param is not None for conv_param in [filters, kernel_size]],
     )
-    name = name if name else "layer"
-    name_ext = name_ext if name_ext else ""
 
     # Dropout
     if dropout_rate != 0:
