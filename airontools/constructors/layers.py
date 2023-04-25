@@ -24,7 +24,7 @@ def layer_constructor(
     kernel_size: Union[int, Tuple[int]] = 0,
     padding: str = "valid",
     pooling: Union[str, tf.keras.layers.Layer] = None,
-    pool_size: Union[int, Tuple[int]] = None,
+    pool_size: Union[int, Tuple[int]] = 0,
     conv_transpose: bool = False,
     strides: Union[int, Tuple[int]] = (1, 1),
     sequential_axis: int = 1,
@@ -125,10 +125,12 @@ def layer_constructor(
 
     # Pooling
     if pooling is not None:
+        if isinstance(pool_size, int):
+            _pool_size = tuple([pool_size] * _get_pooling_dim(x))
+        else:
+            _pool_size = pool_size
         pooling_kwargs = dict(
-            pool_size=pool_size
-            if pool_size is not None
-            else tuple([2] * _get_pooling_dim(x)),
+            pool_size=_pool_size,
             strides=strides,
             padding=padding,
         )
