@@ -234,7 +234,7 @@ def layer_constructor(
 def dropout_layer_constructor(
     x: Union[tf.Tensor, tf.keras.layers.Layer],
     dropout_rate: float,
-    name: str = "layer",
+    name: str = "dropout",
     name_ext: str = "",
 ) -> tf.keras.layers.Layer:
     input_shape = x.shape
@@ -254,17 +254,17 @@ def dropout_layer_constructor(
 
 
 def convolutional_layer_constructor(
-    x: tf.keras.layers.Layer,
-    name: str = "layer",
-    name_ext: str = "0",
+    x: Union[tf.Tensor, tf.keras.layers.Layer],
+    name: str = "convolution",
+    name_ext: str = "",
     conv_transpose: bool = False,
     **kwargs,
 ) -> tf.keras.layers.Layer:
     assert len(x.shape) <= 3, "x layer shape should have 5 or less dimensions"
     conv_dim = len(x.shape) - 2
     conv_type = "transpose" if conv_transpose else ""
-    conv_name = "Conv" + str(conv_dim) + "D" + conv_type.capitalize()
-    layer_name = "_".join([name, conv_name.lower(), name_ext])
+    conv_name = "conv" + str(conv_dim) + "d" + conv_type.capitalize()
+    layer_name = "_".join([name, conv_name, name_ext])
     if conv_dim == 1:
         conv_layer = tf.keras.layers.Conv1D
     elif conv_dim == 2:
@@ -279,9 +279,9 @@ def convolutional_layer_constructor(
 
 
 def pooling_layer_constructor(
-    x: tf.keras.layers.Layer,
-    name: str = "layer",
-    name_ext: str = "0",
+    x: Union[tf.Tensor, tf.keras.layers.Layer],
+    name: str = "pooling",
+    name_ext: str = "",
     pooling: Union[str, tf.keras.layers.Layer] = "max",
     **kwargs,
 ) -> tf.keras.layers.Layer:
@@ -300,10 +300,10 @@ def _get_pooling_dim(x: tf.keras.layers.Layer) -> int:
 
 
 def self_attention_layer_constructor(
-    x: tf.keras.layers.Layer,
-    name: str,
-    name_ext: str,
-    sequential_axis: int,
+    x: Union[tf.Tensor, tf.keras.layers.Layer],
+    name: str = "self_attention",
+    name_ext: str = "",
+    sequential_axis: int = 1,
     **kwargs,
 ) -> tf.keras.layers.Layer:
     x = sequential_permutation(
