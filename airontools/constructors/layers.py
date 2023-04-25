@@ -320,7 +320,7 @@ def self_attention_layer_constructor(
 
 
 def sequential_layer_constructor(
-    x: tf.keras.layers.Layer,
+    x: Union[tf.Tensor, tf.keras.layers.Layer],
     name: str = "sequential",
     name_ext: str = "",
     bidirectional: bool = False,
@@ -343,9 +343,9 @@ def sequential_layer_constructor(
 
 
 def dense_layer_constructor(
-    x: tf.keras.layers.Layer,
-    name: str,
-    name_ext: str,
+    x: Union[tf.Tensor, tf.keras.layers.Layer],
+    name: str = "dense",
+    name_ext: str = "",
     **kwargs,
 ) -> tf.keras.layers.Layer:
     if not len(x.shape[1:]) == 1:
@@ -357,7 +357,7 @@ def dense_layer_constructor(
 
 
 def bn_layer_constructor(
-    x: tf.keras.layers.Layer, name: str, name_ext: str, **kwargs
+    x: Union[tf.Tensor, tf.keras.layers.Layer], name: str, name_ext: str, **kwargs
 ) -> tf.keras.layers.Layer:
     input_shape = x.shape
     output_reshape = None
@@ -379,10 +379,10 @@ def bn_layer_constructor(
 
 
 def activation_layer_constructor(
-    x: tf.keras.layers.Layer,
-    name: str,
-    name_ext: str,
-    activation: str,
+    x: Union[tf.Tensor, tf.keras.layers.Layer],
+    name: str = "activation",
+    name_ext: str = "",
+    activation: str = "prelu",
     **reg_kwargs,
 ) -> tf.keras.layers.Layer:
     input_shape = x.shape
