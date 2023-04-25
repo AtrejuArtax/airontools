@@ -1,5 +1,5 @@
 import warnings
-from typing import Union
+from typing import Tuple, Union
 
 import numpy as np
 import tensorflow as tf
@@ -8,46 +8,49 @@ from airontools.constructors.utils import get_regularizer
 
 
 def layer_constructor(
-    x,
-    name=None,
-    name_ext=None,
-    units=None,
-    num_heads=None,
-    key_dim=None,
-    value_dim=None,
-    activation=None,
-    use_bias=True,
-    sequential=False,
-    bidirectional=False,
-    return_sequences=False,
-    filters=None,
-    kernel_size=None,
-    padding="valid",
-    pooling=None,
-    pool_size=None,
-    conv_transpose=False,
-    strides=(1, 1),
-    sequential_axis=1,
-    advanced_reg=False,
-    custom_layer=None,
-    **reg_kwargs,
-):
+    x: Union[tf.Tensor, tf.keras.layers.Layer],
+    units: int,
+    name: str = None,
+    name_ext: str = None,
+    num_heads: int = None,
+    key_dim: int = None,
+    value_dim: int = None,
+    activation: Union[str, tf.keras.layers.Activation] = "prelu",
+    use_bias: bool = True,
+    sequential: bool = False,
+    bidirectional: bool = False,
+    return_sequences: bool = False,
+    filters: int = None,
+    kernel_size: Union[int, Tuple[int]] = None,
+    padding: str = "valid",
+    pooling: Union[str, tf.keras.layers.Layer] = None,
+    pool_size: Union[int, Tuple[int]] = None,
+    conv_transpose: bool = False,
+    strides: Union[int, Tuple[int]] = (1, 1),
+    sequential_axis: int = 1,
+    kernel_regularizer_l1: float = 0.001,
+    kernel_regularizer_l2: float = 0.001,
+    bias_regularizer_l1: float = 0.001,
+    bias_regularizer_l2: float = 0.001,
+    dropout_rate: float = 0.0,
+    bn: bool = False,
+) -> tf.Tensor:
     """It builds a custom layer. reg_kwargs contain everything regarding regularization. For now only 2D convolutions
     are supported for input of rank 4.
 
         Parameters:
-            x (Layer): Input layer.
-            name (str): Name of the custom layer.
-            name_ext (str): Extension name for the custom layer that will be at the end of of it.
+            x (tf.Tensor, tf.keras.layers.Layer): Input layer.
             units (int): Number of units for the dense layer. If a value is given, a dense layer will be added
             automatically if not sequential, else a sequential model. Useful to force an output dimensionality of the
             custom layer when using convolutional layers.
+            name (str): Name of the custom layer.
+            name_ext (str): Extension name for the custom layer that will be at the end of of it.
             num_heads (int): Number of heads for the multi-head attention layer.
             key_dim (int): Key dimensionality for the multi-head attention layer, if None then the number of units is
             used instead.
             value_dim (int): Value dimensionality for the multi-head attention layer, if None then key_dim is used
             instead.
-            activation (str, Layer): The activation function of the output of the last hidden layer.
+            activation (str, tf.keras.layers.Activation): The activation function of the output of the last hidden layer.
             use_bias (bool): Whether to sue bias or not.
             sequential (bool): Whether to consider a sequential custom layer or not. Sequential and self-attention
             (num_heads > 0) are not compatible.
@@ -56,30 +59,27 @@ def layer_constructor(
             return_sequences (bool): Whether to return sequences or not (only active if sequential).
             filters (int): Number of filters to be used. If a value is given, a convolutional layer will be
             automatically added.
-            kernel_size (int, tuple): Kernel size for the convolutional layer.
+            kernel_size (int, Tuple[int]): Kernel size for the convolutional layer.
             conv_transpose (bool): Whether to use a transpose conv layer or not (only active if filters and
             kernel_size are set).
-            strides (tuple, int): Strides for the conv layer (only active if filters and
+            strides (int, Tuple[int]): Strides for the conv layer (only active if filters and
             kernel_size are set).
             padding (str): Padding to be applied (only active if filters and
             kernel_size are set).
-            pooling (str, layer): Pooling type.
-            pool_size (int, tuple): Pooling size.
+            pooling (str, tf.keras.layers.Layer): Pooling type.
+            pool_size (int, Tuple[int]): Pooling size.
             sequential_axis (int): The axis that defines the sequence. For sequential models is normally 1. For
             self-attention (num_heads > 0) and image-like inputs, the sequential axis is the channel axis (3 for 2D
             images and 4 for 3D images).
-            advanced_reg (bool): Whether to automatically set advanced regularization. Useful to quickly make use of all
-            the regularization properties.
-            custom_layer (Layer): Custom Layer class constructed with keras Functional API
-            dropout_rate (float): Probability of each intput being disconnected.
             kernel_regularizer_l1 (float): Kernel regularization using l1 penalization (Lasso).
             kernel_regularizer_l2 (float): Kernel regularization using l2 penalization (Ridge).
             bias_regularizer_l1 (float): Bias regularization using l1 penalization (Lasso).
             bias_regularizer_l2 (float): Bias regularization using l2 penalization (Ridge).
+            dropout_rate (float): Dropout rate.
             bn (bool): If set, a batch normalization layer will be added right before the output activation function.
 
         Returns:
-            x (Layer): A keras layer.
+            x (tf.keras.layers.Layer): A keras layer.
     """
 
     if num_heads is not None and units is None and key_dim is None:
@@ -93,51 +93,6 @@ def layer_constructor(
     )
     name = name if name else "layer"
     name_ext = name_ext if name_ext else ""
-    activation = activation if activation else "prelu"
-
-    # Regularization parameters
-    dropout_rate = (
-        reg_kwargs["dropout_rate"]
-        if "dropout_rate" in reg_kwargs.keys()
-        else 0.1
-        if advanced_reg
-        else 0
-    )
-    kernel_regularizer_l1 = (
-        reg_kwargs["kernel_regularizer_l1"]
-        if "kernel_regularizer_l1" in reg_kwargs.keys()
-        else 0.001
-        if advanced_reg
-        else None
-    )
-    kernel_regularizer_l2 = (
-        reg_kwargs["kernel_regularizer_l2"]
-        if "kernel_regularizer_l2" in reg_kwargs.keys()
-        else 0.001
-        if advanced_reg
-        else None
-    )
-    bias_regularizer_l1 = (
-        reg_kwargs["bias_regularizer_l1"]
-        if "bias_regularizer_l1" in reg_kwargs.keys()
-        else 0.001
-        if advanced_reg
-        else None
-    )
-    bias_regularizer_l2 = (
-        reg_kwargs["bias_regularizer_l2"]
-        if "bias_regularizer_l2" in reg_kwargs.keys()
-        else 0.001
-        if advanced_reg
-        else None
-    )
-    bn = (
-        reg_kwargs["bn"]
-        if "bn" in reg_kwargs.keys()
-        else True
-        if advanced_reg
-        else False
-    )
 
     # Dropout
     if dropout_rate != 0:
@@ -248,7 +203,6 @@ def layer_constructor(
             x,
             name=name,
             name_ext=name_ext,
-            custom_layer=custom_layer,
             **dense_kwargs,
         )
 
@@ -390,18 +344,13 @@ def dense_layer_constructor(
     x: tf.keras.layers.Layer,
     name: str,
     name_ext: str,
-    custom_layer: tf.keras.layers.Layer,
     **kwargs,
 ) -> tf.keras.layers.Layer:
     if not len(x.shape[1:]) == 1:
         x = tf.keras.layers.Flatten(
             name="_".join([name, "pre", "dense", "flatten", name_ext])
         )(x)
-    if custom_layer is not None:
-        x = custom_layer(x)
-        custom_layer._name = "_".join([name, "dense", name_ext])
-    else:
-        x = tf.keras.layers.Dense(name="_".join([name, "dense", name_ext]), **kwargs)(x)
+    x = tf.keras.layers.Dense(name="_".join([name, "dense", name_ext]), **kwargs)(x)
     return x
 
 

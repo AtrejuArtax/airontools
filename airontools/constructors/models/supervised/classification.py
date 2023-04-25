@@ -31,7 +31,6 @@ class ImageClassifierNN(Model, tf.keras.models.Model):
         encoder_inputs = tf.keras.layers.Input(shape=input_shape)
         self._model = layer_constructor(
             encoder_inputs,
-            input_shape=input_shape,
             units=n_classes,
             name=f"{model_name}_encoder",
             activation=output_activation,

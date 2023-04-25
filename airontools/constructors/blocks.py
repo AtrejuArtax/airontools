@@ -15,7 +15,6 @@ def block_constructor(
     from_l: int = 1,
     hidden_activation: str = "prelu",
     output_activation: Union[str, tf.keras.layers.Layer] = "linear",
-    advanced_reg: bool = False,
     **reg_kwargs,
 ) -> tf.keras.models.Model:
     """It builds a custom block. reg_kwargs contain everything regarding regularization. For now only compatible with
@@ -65,7 +64,6 @@ def block_constructor(
             sequential=sequential,
             return_sequences=True if l < to_l - 1 and sequential else False,
             bidirectional=bidirectional,
-            advanced_reg=advanced_reg,
             **reg_kwargs,
         )
 
