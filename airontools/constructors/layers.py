@@ -24,9 +24,9 @@ def layer_constructor(
     kernel_size: Union[int, Tuple[int]] = 0,
     padding: str = "valid",
     pooling: Union[str, tf.keras.layers.Layer] = None,
-    pool_size: Union[int, Tuple[int]] = 0,
+    pool_size: Union[int, Tuple[int]] = 1,
     conv_transpose: bool = False,
-    strides: Union[int, Tuple[int]] = (1, 1),
+    strides: Union[int, Tuple[int]] = 1,
     sequential_axis: int = 1,
     kernel_regularizer_l1: float = 0.001,
     kernel_regularizer_l2: float = 0.001,
@@ -35,11 +35,11 @@ def layer_constructor(
     dropout_rate: float = 0.0,
     bn: bool = False,
 ) -> tf.Tensor:
-    """It builds a custom layer. reg_kwargs contain everything regarding regularization. For now only 2D convolutions
+    """It builds a custom layer. For now only 2D convolutions
     are supported for input of rank 4.
 
         Parameters:
-            x (tf.Tensor, tf.keras.layers.Layer): Input layer.
+            x (tf.Tensor, tf.keras.layers.Layer): Input layer or tensor.
             units (int): Number of units for the dense layer. If a value is given, a dense layer will be added
             automatically if not sequential, else a sequential model. Useful to force an output dimensionality of the
             custom layer when using convolutional layers.
@@ -87,11 +87,6 @@ def layer_constructor(
             "in order to use a multi-head attention layer either units or key_dim needs to be set",
         )
 
-    # Initializations
-    conv_condition = all(
-        [conv_param != 0 for conv_param in [filters, kernel_size]],
-    )
-
     # Dropout
     if dropout_rate != 0:
         x = dropout_layer_constructor(
@@ -102,12 +97,19 @@ def layer_constructor(
         )
 
     # Convolution
+    conv_condition = all(
+        [conv_param != 0 for conv_param in [filters, kernel_size]],
+    )
     if conv_condition:
+        if isinstance(strides, int):
+            _strides = tuple([strides] * _get_pooling_dim(x))
+        else:
+            _strides = strides
         conv_kwargs = dict(
             use_bias=use_bias,
             filters=filters,
             kernel_size=kernel_size,
-            strides=strides,
+            strides=_strides,
             padding=padding,
             kernel_regularizer=get_regularizer(
                 kernel_regularizer_l1,
@@ -189,7 +191,7 @@ def layer_constructor(
         )
 
     # Dense
-    if units:
+    if units > 0:
         dense_kwargs = dict(
             units=units,
             use_bias=use_bias,
