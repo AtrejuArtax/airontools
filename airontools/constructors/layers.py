@@ -14,7 +14,7 @@ def layer_constructor(
     name_ext: str = "",
     num_heads: int = 0,
     key_dim: int = 0,
-    value_dim: int = None,
+    value_dim: int = 0,
     activation: Union[str, tf.keras.layers.Activation] = "prelu",
     use_bias: bool = True,
     sequential: bool = False,
@@ -144,7 +144,7 @@ def layer_constructor(
     # Multi-Head Attention
     if num_heads > 0:
         key_dim_ = key_dim if key_dim > 0 else units
-        value_dim_ = value_dim if value_dim is not None else key_dim_
+        value_dim_ = value_dim if value_dim > 0 else key_dim_
         multi_head_attention_kwargs = dict(
             num_heads=num_heads,
             key_dim=key_dim_,
