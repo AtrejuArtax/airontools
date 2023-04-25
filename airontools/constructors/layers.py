@@ -440,7 +440,8 @@ def sequential_permutation(
     return x
 
 
-def identity(x) -> tf.keras.layers.Layer:
+def identity(x: tf.keras.layers.Layer) -> tf.keras.layers.Layer:
+    """Identity layer."""
     return x
 
 
