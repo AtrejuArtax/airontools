@@ -412,10 +412,10 @@ def activation_layer_constructor(
 
 
 def sequential_permutation(
-    x: tf.keras.layers.Layer,
-    name: str,
-    name_ext: str,
-    sequential_axis: int,
+    x: Union[tf.Tensor, tf.keras.layers.Layer],
+    name: str = "permutation",
+    name_ext: str = "",
+    sequential_axis: int = 1,
 ) -> tf.keras.layers.Layer:
     input_shape = x.shape
     sequential_axis_ = list(range(len(input_shape)))[sequential_axis]
