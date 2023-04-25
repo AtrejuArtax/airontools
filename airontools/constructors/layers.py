@@ -20,8 +20,8 @@ def layer_constructor(
     sequential: bool = False,
     bidirectional: bool = False,
     return_sequences: bool = False,
-    filters: int = None,
-    kernel_size: Union[int, Tuple[int]] = None,
+    filters: int = 0,
+    kernel_size: Union[int, Tuple[int]] = 0,
     padding: str = "valid",
     pooling: Union[str, tf.keras.layers.Layer] = None,
     pool_size: Union[int, Tuple[int]] = None,
@@ -89,7 +89,7 @@ def layer_constructor(
 
     # Initializations
     conv_condition = all(
-        [conv_param is not None for conv_param in [filters, kernel_size]],
+        [conv_param != 0 for conv_param in [filters, kernel_size]],
     )
 
     # Dropout
