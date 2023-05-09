@@ -4,21 +4,25 @@ import tensorflow as tf
 from tensorboard.plugins import projector
 
 from airontools.tools import path_management
+from numpy.typing import NDArray
+from typing import List, Union
 
 
 def save_representations(
-    representations,
-    path,
-    representations_name="representations",
-    metadata=None,
-):
+    representations: NDArray[float],
+    path: str,
+    representations_name: str = "representations",
+    metadata: Union[
+        List[NDArray[Union[float, str]]], NDArray[Union[float, str]]
+    ] = None,
+) -> None:
     """Save representations (or embeddings).
 
     Parameters:
-        representations (array): Representations to be saved.
+        representations (NDArray[float]): Representations to be saved.
         path (str): Path to save the representations.
         representations_name (str): Embeddings names.
-        metadata (list(array), array): Metadata (a list of arrays or an array).
+        metadata (Union[List[NDArray[Union[float, str]]], NDArray[Union[float, str]]]): Metadata (a list of arrays or an array).
     """
 
     # Path management
