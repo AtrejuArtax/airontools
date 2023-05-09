@@ -35,7 +35,8 @@ def load_model(
     return model
 
 
-def clear_session():
+def clear_session() -> None:
+    """Clear session."""
     tf.keras.backend.clear_session()
 
 
