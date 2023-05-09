@@ -4,7 +4,11 @@ import tensorflow as tf
 
 
 class HyperDesignDropoutRate:
-    def __init__(self, model: tf.keras.models.Model, down=-0.01, up=0.01):
+    """Hyper-parameter designer for the dropout rate on the fly."""
+
+    def __init__(
+        self, model: tf.keras.models.Model, down: float = -0.01, up: float = 0.01
+    ):
         self.rates = []
         for layer in model.layers:
             if isinstance(layer, tf.keras.models.Model):
@@ -24,7 +28,7 @@ class HyperDesignDropoutRate:
                 },
             )
 
-    def __append_rate(self, layer: tf.keras.layers.Layer):
+    def __append_rate(self, layer: tf.keras.layers.Layer) -> None:
         if hasattr(layer, "rate"):
             if isinstance(layer.rate, tf.Variable):
                 self.rates += [layer.rate]
@@ -35,7 +39,8 @@ class HyperDesignDropoutRate:
                     ),
                 )
 
-    def set_action(self, action: str):
+    def set_action(self, action: str) -> None:
+        """Set action for the dropout rate. Whether to go down, stay or up."""
         assert action in ["down", "stay", "up"]
         for rate in self.rates:
             new_rate = rate + self.actions_space[action]
