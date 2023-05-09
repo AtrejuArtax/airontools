@@ -3,6 +3,7 @@ from typing import Dict, Tuple
 
 import numpy as np
 import tensorflow as tf
+from numpy.typing import NDArray
 
 from airontools.constructors.layers import layer_constructor
 from airontools.constructors.models.model import Model
@@ -10,6 +11,8 @@ from airontools.on_the_fly import HyperDesignDropoutRate
 
 
 class AE(Model, tf.keras.models.Model):
+    """AutoEncoder model."""
+
     def __init__(
         self,
         input_shape: Tuple[int],
@@ -28,7 +31,6 @@ class AE(Model, tf.keras.models.Model):
         encoder_inputs = tf.keras.layers.Input(shape=input_shape)
         self.encoder = layer_constructor(
             encoder_inputs,
-            input_shape=input_shape,
             units=latent_dim,
             name=f"{model_name}_encoder",
             **kwargs,
@@ -43,7 +45,6 @@ class AE(Model, tf.keras.models.Model):
         z_inputs = tf.keras.layers.Input(shape=(latent_dim,))
         self.z = layer_constructor(
             z_inputs,
-            input_shape=(latent_dim,),
             units=latent_dim,
             name=f"{model_name}_z",
             **kwargs,
@@ -58,7 +59,6 @@ class AE(Model, tf.keras.models.Model):
         decoder_inputs = tf.keras.layers.Input(shape=(latent_dim,))
         self.decoder = layer_constructor(
             decoder_inputs,
-            input_shape=(latent_dim,),
             units=self.encoder.input_shape[-1],
             name=f"{model_name}_decoder",
             activation=output_activation,
@@ -88,34 +88,39 @@ class AE(Model, tf.keras.models.Model):
         """Compile model."""
         tf.keras.models.Model.fit(self, *args, **kwargs)
 
-    def evaluate(self, x: np.array, **kwargs) -> Dict[str, float]:
+    def evaluate(self, x: NDArray[float], **kwargs) -> Dict[str, tf.Tensor]:
         """Evaluate model."""
         reconstructed = self._model(x)
-        return {"loss": self._loss_evaluation(reconstructed, x)}
+        loss = self._loss_evaluation(reconstructed, x)
+        return {"loss": loss}
 
-    def predict(self, *args, **kwargs) -> np.array:
-        """Predict model."""
+    def predict(self, *args, **kwargs) -> NDArray[float]:
+        """Predict."""
         return tf.keras.models.Model.predict(self, *args, **kwargs)
 
     def save_weights(self, path: str) -> None:
+        """Save model weights."""
         with open(path + "_weights", "w") as f:
             json.dump([w.tolist() for w in self._model.get_weights()], f)
 
     def load_weights(self, path: str) -> None:
+        """Load model weights."""
         with open(path + "_weights") as f:
             encoder_weights = [np.array(w) for w in json.load(f)]
         self._model.set_weights(encoder_weights)
 
-    def call(self, inputs) -> None:
+    def call(self, inputs, **kwargs) -> tf.Tensor:
         """Call model."""
         reconstructed = self._model(inputs)
-        self.add_loss(self._loss_evaluation(inputs, reconstructed))
+        self.add_loss(self._loss_evaluation(reconstructed, inputs))
         return reconstructed
 
-    def summary(self) -> None:
+    def summary(self, **kwargs) -> None:
         """Model summary."""
-        self._model.summary()
+        self._model.summary(**kwargs)
 
-    def _loss_evaluation(self, reconstructed, inputs, **kwargs):
+    def _loss_evaluation(
+        self, reconstructed: tf.Tensor, inputs: tf.Tensor
+    ) -> tf.Tensor:
         rec_loss = tf.reduce_mean((inputs - reconstructed) ** 2)
         return rec_loss

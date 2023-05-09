@@ -24,7 +24,7 @@ class TestDropoutLayerConstructor:
         input_layer = Input(shape=(units[0],))
         for n_units in units:
             layer = layer_constructor(x=input_layer, units=n_units)
-            layer = dropout_layer_constructor(x=layer)
+            layer = dropout_layer_constructor(x=layer, dropout_rate=0.1)
             assert n_units == layer.shape[-1]
 
 
