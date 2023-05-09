@@ -3,20 +3,13 @@ import tensorflow as tf
 from airontools.constructors.layers import CustomDropout
 
 
-def save_model(model, name, save_entire_model=False, file_format="tf"):
-    assert file_format in ["tf", "h5"]
-    if file_format == "tf":
-        file_format = ""
-    else:
-        file_format = "." + file_format
-    model.save_weights(filepath=name + "_weights" + file_format)
-    with open(name + "_topology", "w") as json_file:
-        json_file.write(model.to_json())
-    if save_entire_model:
-        model.save(name + file_format)
-
-
-def load_model(name, custom_objects=None, load_entire_model=False, file_format="tf"):
+def load_model(
+    name: str,
+    custom_objects: dict = None,
+    load_entire_model: bool = False,
+    file_format: str = "tf",
+) -> tf.keras.models.Model:
+    """Load model."""
     # ToDo: make the addition of custom objects more general
     if custom_objects is None:
         custom_objects = {"CustomDropout": CustomDropout}
