@@ -40,7 +40,7 @@ def clear_session() -> None:
     tf.keras.backend.clear_session()
 
 
-def summary(model):
+def summary(model) -> None:
     """Model summary.
 
     Parameters:
