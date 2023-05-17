@@ -8,8 +8,9 @@ authors = ["Claudi Ruiz Camps <claudi_ruiz@hotmail.com>"]
 license = "License :: OSI Approved :: BSD License"
 repository = "https://github.com/AtrejuArtax/airontools"
 classifiers= [
-        "Programming Language :: Python :: 3",
         "License :: OSI Approved :: BSD License",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python :: 3",
 ]
 
 [tool.poetry.dependencies]
