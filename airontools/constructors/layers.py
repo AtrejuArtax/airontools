@@ -101,8 +101,9 @@ def layer_constructor(
         [conv_param != 0 for conv_param in [filters, kernel_size]],
     )
     if conv_condition:
-        if isinstance(strides, int):
-            _strides = tuple([strides] * _get_pooling_dim(x))
+        pooling_dim = _get_pooling_dim(x)
+        if isinstance(strides, int) and pooling_dim > 0:
+            _strides = tuple([strides] * pooling_dim)
         else:
             _strides = strides
         conv_kwargs = dict(
@@ -127,8 +128,9 @@ def layer_constructor(
 
     # Pooling
     if pooling is not None:
-        if isinstance(pool_size, int):
-            _pool_size = tuple([pool_size] * _get_pooling_dim(x))
+        pooling_dim = _get_pooling_dim(x)
+        if isinstance(pool_size, int) and pooling_dim > 0:
+            _pool_size = tuple([pool_size] * pooling_dim)
         else:
             _pool_size = pool_size
         pooling_kwargs = dict(
@@ -260,7 +262,7 @@ def convolutional_layer_constructor(
     conv_transpose: bool = False,
     **kwargs,
 ) -> tf.keras.layers.Layer:
-    assert len(x.shape) <= 3, "x layer shape should have 5 or less dimensions"
+    assert len(x.shape) <= 5, "x layer shape should have 5 or less dimensions"
     conv_dim = len(x.shape) - 2
     conv_type = "transpose" if conv_transpose else ""
     conv_name = "conv" + str(conv_dim) + "d" + conv_type.capitalize()
