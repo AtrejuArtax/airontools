@@ -1,5 +1,5 @@
 import json
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Union
 
 import numpy as np
 import tensorflow as tf
@@ -96,24 +96,26 @@ class VAE(Model, tf.keras.models.Model):
         )
 
         # AE
-        self._model = tf.keras.models.Model(
+        self.model = tf.keras.models.Model(
             inputs=encoder_inputs,
             outputs=self.decoder(self.z(self.encoder(encoder_inputs))),
             name=model_name,
         )
 
         # Hyper design on the fly
-        self.hyper_design_dropout_rate = HyperDesignDropoutRate(model=self._model)
+        self.hyper_design_dropout_rate = HyperDesignDropoutRate(model=self.model)
 
     def compile(self, *args, **kwargs) -> None:
         """Compile model."""
         tf.keras.models.Model.compile(self, *args, **kwargs)
 
     def fit(self, *args, **kwargs) -> None:
-        """Compile model."""
+        """Fit."""
         tf.keras.models.Model.fit(self, *args, **kwargs)
 
-    def evaluate(self, x: NDArray[float], **kwargs) -> Dict[str, tf.Tensor]:
+    def evaluate(
+        self, x: Union[NDArray[float], tf.Tensor], **kwargs
+    ) -> Dict[str, tf.Tensor]:
         """Evaluate model."""
         z_mean, z_log_var, z = self.encoder(x)
         loss = self._loss_evaluation(
@@ -131,13 +133,13 @@ class VAE(Model, tf.keras.models.Model):
     def save_weights(self, path: str) -> None:
         """Save model weights."""
         with open(path + "_weights", "w") as f:
-            json.dump([w.tolist() for w in self._model.get_weights()], f)
+            json.dump([w.tolist() for w in self.model.get_weights()], f)
 
     def load_weights(self, path: str) -> None:
         """Load model weights."""
         with open(path + "_weights") as f:
             encoder_weights = [np.array(w) for w in json.load(f)]
-        self._model.set_weights(encoder_weights)
+        self.model.set_weights(encoder_weights)
 
     def call(self, inputs, **kwargs) -> tf.Tensor:
         """Call model."""
@@ -154,7 +156,7 @@ class VAE(Model, tf.keras.models.Model):
 
     def summary(self, **kwargs) -> None:
         """Model summary."""
-        self._model.summary(**kwargs)
+        self.model.summary(**kwargs)
 
     def _loss_evaluation(
         self,
@@ -163,7 +165,7 @@ class VAE(Model, tf.keras.models.Model):
         z_log_var: tf.Tensor,
         z: tf.Tensor,
         return_reconstruction: bool = False,
-    ) -> tf.Tensor:
+    ) -> Union[tf.Tensor, Tuple[tf.Tensor, tf.Tensor]]:
         reconstructed = self.decoder(z)
         rec_loss = tf.reduce_mean((inputs - reconstructed) ** 2)
         # Add KL divergence regularization loss.

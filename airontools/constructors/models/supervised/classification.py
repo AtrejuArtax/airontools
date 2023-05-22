@@ -29,21 +29,21 @@ class ImageClassifierNN(Model, tf.keras.models.Model):
 
         # Encoder
         encoder_inputs = tf.keras.layers.Input(shape=input_shape)
-        self._model = layer_constructor(
+        self.model = layer_constructor(
             encoder_inputs,
             units=n_classes,
             name=f"{model_name}_encoder",
             activation=output_activation,
             **kwargs,
         )
-        self._model = tf.keras.models.Model(
+        self.model = tf.keras.models.Model(
             inputs=encoder_inputs,
-            outputs=self._model,
+            outputs=self.model,
             name=model_name,
         )
 
         # Hyper design on the fly
-        self.hyper_design_dropout_rate = HyperDesignDropoutRate(model=self._model)
+        self.hyper_design_dropout_rate = HyperDesignDropoutRate(model=self.model)
 
     def compile(self, *args, **kwargs) -> None:
         """Compile model."""
@@ -61,7 +61,7 @@ class ImageClassifierNN(Model, tf.keras.models.Model):
             sample_weight = kwargs["sample_weight_val"]
         else:
             sample_weight = 1
-        return {"loss": self._loss_evaluation(y, self._model(x), sample_weight)}
+        return {"loss": self._loss_evaluation(y, self.model(x), sample_weight)}
 
     def predict(self, *args, **kwargs) -> NDArray[float]:
         """Predict."""
@@ -70,13 +70,13 @@ class ImageClassifierNN(Model, tf.keras.models.Model):
     def save_weights(self, path: str) -> None:
         """Save model weights."""
         with open(path + "_weights", "w") as f:
-            json.dump([w.tolist() for w in self._model.get_weights()], f)
+            json.dump([w.tolist() for w in self.model.get_weights()], f)
 
     def load_weights(self, path: str) -> None:
         """Load model weights."""
         with open(path + "_weights") as f:
             encoder_weights = [np.array(w) for w in json.load(f)]
-        self._model.set_weights(encoder_weights)
+        self.model.set_weights(encoder_weights)
 
     def train_step(self, data: List[NDArray[float]], **kwargs) -> Dict[str, float]:
         """Train step."""
@@ -86,7 +86,7 @@ class ImageClassifierNN(Model, tf.keras.models.Model):
             x, y = data
             sample_weight = 1
         with tf.GradientTape() as tape:
-            loss = self._loss_evaluation(y, self._model(x), sample_weight)
+            loss = self._loss_evaluation(y, self.model(x), sample_weight)
         grads = tape.gradient(loss, self.trainable_weights)
         self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
         self.loss_tracker.update_state(loss)
@@ -94,11 +94,11 @@ class ImageClassifierNN(Model, tf.keras.models.Model):
 
     def call(self, inputs, **kwargs) -> tf.Tensor:
         """Call model."""
-        return self._model(inputs, **kwargs)
+        return self.model(inputs, **kwargs)
 
     def summary(self, **kwargs) -> None:
         """Model summary."""
-        self._model.summary(**kwargs)
+        self.model.summary(**kwargs)
 
     def _loss_evaluation(
         self, y: tf.Tensor, y_pred: tf.Tensor, sample_weight: tf.Tensor

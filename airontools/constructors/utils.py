@@ -12,7 +12,7 @@ def get_latent_model(model: tf.keras.models.Model, layer_name: str):
             outputs=model.get_layer(layer_name).output,
             name=layer_name + "_model",
         )
-    except ValueError:
+    except:
         outputs = model.inputs
         layer_found = False
         for layer in model.layers:
