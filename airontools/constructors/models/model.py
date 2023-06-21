@@ -6,8 +6,6 @@ from numpy.typing import NDArray
 
 
 class Model(abc.ABC):
-    model: tf.keras.models.Model = None
-
     @abc.abstractmethod
     def compile(self, *args, **kwargs) -> None:
         pass

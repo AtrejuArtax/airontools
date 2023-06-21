@@ -1,11 +1,11 @@
 import os
+from typing import List, Union
 
 import tensorflow as tf
+from numpy.typing import NDArray
 from tensorboard.plugins import projector
 
 from airontools.tools import path_management
-from numpy.typing import NDArray
-from typing import List, Union
 
 
 def save_representations(

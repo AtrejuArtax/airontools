@@ -96,14 +96,14 @@ class VAE(Model, tf.keras.models.Model):
         )
 
         # AE
-        self.model = tf.keras.models.Model(
+        self._model = tf.keras.models.Model(
             inputs=encoder_inputs,
             outputs=self.decoder(self.z(self.encoder(encoder_inputs))),
             name=model_name,
         )
 
         # Hyper design on the fly
-        self.hyper_design_dropout_rate = HyperDesignDropoutRate(model=self.model)
+        self.hyper_design_dropout_rate = HyperDesignDropoutRate(model=self._model)
 
     def compile(self, *args, **kwargs) -> None:
         """Compile model."""
@@ -133,13 +133,13 @@ class VAE(Model, tf.keras.models.Model):
     def save_weights(self, path: str) -> None:
         """Save model weights."""
         with open(path + "_weights", "w") as f:
-            json.dump([w.tolist() for w in self.model.get_weights()], f)
+            json.dump([w.tolist() for w in self._model.get_weights()], f)
 
     def load_weights(self, path: str) -> None:
         """Load model weights."""
         with open(path + "_weights") as f:
             encoder_weights = [np.array(w) for w in json.load(f)]
-        self.model.set_weights(encoder_weights)
+        self._model.set_weights(encoder_weights)
 
     def call(self, inputs, **kwargs) -> tf.Tensor:
         """Call model."""
@@ -156,7 +156,7 @@ class VAE(Model, tf.keras.models.Model):
 
     def summary(self, **kwargs) -> None:
         """Model summary."""
-        self.model.summary(**kwargs)
+        self._model.summary(**kwargs)
 
     def _loss_evaluation(
         self,
