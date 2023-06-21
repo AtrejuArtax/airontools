@@ -317,7 +317,12 @@ def self_attention_layer_constructor(
     x = tf.keras.layers.MultiHeadAttention(
         name="_".join([name, "multi_head_attention", name_ext]),
         **kwargs,
-    )(x, x)
+    )(
+        x,
+        x,
+        x,
+        use_causal_mask=True,
+    )
     return x
 
 
