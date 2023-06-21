@@ -2,7 +2,7 @@ import os
 import tempfile
 
 import numpy as np
-import tensorflow as tf
+from tensorflow.keras.optimizers import Adam
 
 from airontools.constructors.models.model import Model
 from airontools.constructors.models.unsupervised.vae import VAE
@@ -19,7 +19,7 @@ class TestVAE:
     )
     assert isinstance(model, Model)
     assert not model._is_compiled
-    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001))
+    model.compile(optimizer=Adam(learning_rate=0.001))
     assert model._is_compiled
 
     def test_fit(self):
