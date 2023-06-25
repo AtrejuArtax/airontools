@@ -8,21 +8,21 @@ import tensorflow.python.keras.backend as k_bcknd
 def get_latent_model(model: tf.keras.models.Model, layer_name: str):
     try:
         return tf.keras.models.Model(
-            inputs=model.inputs,
-            outputs=model.get_layer(layer_name).output,
+            inputs=model._model.inputs,
+            outputs=model._model.get_layer(layer_name).outputs,
             name=layer_name + "_model",
         )
     except ValueError:
-        outputs = model.inputs
+        outputs = model._model.inputs
         layer_found = False
-        for layer in model.layers:
+        for layer in model._model.layers:
             outputs = layer(outputs)
             if layer.name == layer_name:
                 layer_found = True
                 break
         if layer_found:
             return tf.keras.models.Model(
-                inputs=model.inputs,
+                inputs=model._model.inputs,
                 outputs=outputs,
                 name=layer_name + "_model",
             )

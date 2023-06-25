@@ -1,5 +1,5 @@
 import json
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Union
 
 import numpy as np
 import tensorflow as tf
@@ -85,10 +85,12 @@ class AE(Model, tf.keras.models.Model):
         tf.keras.models.Model.compile(self, *args, **kwargs)
 
     def fit(self, *args, **kwargs) -> None:
-        """Compile model."""
+        """Fit."""
         tf.keras.models.Model.fit(self, *args, **kwargs)
 
-    def evaluate(self, x: NDArray[float], **kwargs) -> Dict[str, tf.Tensor]:
+    def evaluate(
+        self, x: Union[NDArray[float], tf.Tensor], **kwargs
+    ) -> Dict[str, tf.Tensor]:
         """Evaluate model."""
         reconstructed = self._model(x)
         loss = self._loss_evaluation(reconstructed, x)
