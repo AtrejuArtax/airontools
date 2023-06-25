@@ -1,5 +1,5 @@
 absl-py==1.4.0
-array-record==0.3.0
+array-record==0.4.0
 astunparse==1.6.3
 attrs==23.1.0
 cachetools==5.3.1
@@ -14,12 +14,12 @@ google-auth==2.17.3
 google-auth-oauthlib==1.0.0
 google-pasta==0.2.0
 googleapis-common-protos==1.59.1
-grpcio==1.54.2
+grpcio==1.56.0
 h5py==3.9.0
 idna==3.4
 importlib-metadata==6.7.0
 importlib-resources==5.12.0
-jax==0.4.12
+jax==0.4.13
 joblib==1.2.0
 keras==2.12.0
 libclang==16.0.0
