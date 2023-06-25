@@ -13,10 +13,13 @@ SUB_PACKAGES_NAMES = [
 with open("README.md") as fh:
     long_description = fh.read()
 
+with open("requirements.txt") as f:
+    required = f.read().splitlines()
+
 
 setuptools.setup(
     name=PACKAGE_NAME,
-    version="0.1.18",
+    version="0.1.23",
     scripts=[],
     author="Claudi Ruiz Camps",
     author_email="claudi_ruiz@hotmail.com",
@@ -25,7 +28,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/AtrejuArtax/airontools",
     packages=setuptools.find_packages(include=[PACKAGE_NAME] + SUB_PACKAGES_NAMES),
-    install_requires=["numpy", "sklearn", "tensorflow==2.7.0", "tensorboard==2.7.0"],
+    install_requires=required,
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: BSD License",
