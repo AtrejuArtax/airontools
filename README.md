@@ -1,6 +1,6 @@
 # AIronTools
 
-AIronTools (Beta) is a Python library that provides the user with deep learning tools built to work with 
+AIronTools (Beta) is a Python library that provides the user with higher level deep learning tools built to work with 
 [tensorflow](https://github.com/tensorflow/tensorflow) as a backend.
 
 Key features:
@@ -9,6 +9,7 @@ Key features:
 2. Block constructor to build customised blocks/models.
 3. Layer constructor to build customised layers.
 4. Preprocessing utils.
+5. On the fly non-topological hyper-parameter optimization. For now only the dropout regularization is compatible with this feature, in the future others such as l1 or l2 regularization will be compatible too.
    
 ### Installation
 
