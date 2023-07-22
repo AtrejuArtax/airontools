@@ -7,7 +7,7 @@ from numpy.typing import NDArray
 
 from airontools.constructors.layers import layer_constructor
 from airontools.constructors.models.model import Model
-from airontools.on_the_fly import HyperDesignDropoutRate
+from airontools.on_the_fly.hyper_design_dropout_rate import HyperDesignDropoutRate
 
 
 class Sampling(tf.keras.layers.Layer):

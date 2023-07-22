@@ -39,6 +39,7 @@ def train_val_split(
     Returns:
         4 list[array, tf.data.Dataset].
     """
+    # ToDo: break the function into smaller functions.
     distributions = ["train", "val"]
     data = dict(x=_to_list_array(input_data))
     n_samples = data["x"][0].shape[0]

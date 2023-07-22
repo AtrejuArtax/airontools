@@ -38,48 +38,48 @@ def layer_constructor(
     """It builds a custom layer. For now only 2D convolutions
     are supported for input of rank 4.
 
-        Parameters:
-            x (tf.Tensor, tf.keras.layers.Layer): Input layer or tensor.
-            units (int): Number of units for the dense layer. If a value is given, a dense layer will be added
-            automatically if not sequential, else a sequential model. Useful to force an output dimensionality of the
-            custom layer when using convolutional layers.
-            name (str): Name of the custom layer.
-            name_ext (str): Extension name for the custom layer that will be at the end of it.
-            num_heads (int): Number of heads for the multi-head attention layer.
-            key_dim (int): Key dimensionality for the multi-head attention layer, if None then the number of units is
-            used instead.
-            value_dim (int): Value dimensionality for the multi-head attention layer, if None then key_dim is used
-            instead.
-            activation (str, tf.keras.layers.Activation): The activation function of the output of the last hidden layer.
-            use_bias (bool): Whether to sue bias or not.
-            sequential (bool): Whether to consider a sequential custom layer or not. Sequential and self-attention
-            (num_heads > 0) are not compatible.
-            bidirectional (bool): Whether to consider bidirectional case or not (only active if sequential).
-            names are not repeated.
-            return_sequences (bool): Whether to return sequences or not (only active if sequential).
-            filters (int): Number of filters to be used. If a value is given, a convolutional layer will be
-            automatically added.
-            kernel_size (int, Tuple[int]): Kernel size for the convolutional layer.
-            conv_transpose (bool): Whether to use a transpose conv layer or not (only active if filters and
-            kernel_size are set).
-            strides (int, Tuple[int]): Strides for the conv layer (only active if filters and
-            kernel_size are set).
-            padding (str): Padding to be applied (only active if filters and
-            kernel_size are set).
-            pooling (str, tf.keras.layers.Layer): Pooling type.
-            pool_size (int, Tuple[int]): Pooling size.
-            sequential_axis (int): The axis that defines the sequence. For sequential models is normally 1. For
-            self-attention (num_heads > 0) and image-like inputs, the sequential axis is the channel axis (3 for 2D
-            images and 4 for 3D images).
-            kernel_regularizer_l1 (float): Kernel regularization using l1 penalization (Lasso).
-            kernel_regularizer_l2 (float): Kernel regularization using l2 penalization (Ridge).
-            bias_regularizer_l1 (float): Bias regularization using l1 penalization (Lasso).
-            bias_regularizer_l2 (float): Bias regularization using l2 penalization (Ridge).
-            dropout_rate (float): Dropout rate.
-            bn (bool): If set, a batch normalization layer will be added right before the output activation function.
+    Parameters:
+        x (tf.Tensor, tf.keras.layers.Layer): Input layer or tensor.
+        units (int): Number of units for the dense layer. If a value is given, a dense layer will be added
+        automatically if not sequential, else a sequential model. Useful to force an output dimensionality of the
+        custom layer when using convolutional layers.
+        name (str): Name of the custom layer.
+        name_ext (str): Extension name for the custom layer that will be at the end of it.
+        num_heads (int): Number of heads for the multi-head attention layer.
+        key_dim (int): Key dimensionality for the multi-head attention layer, if None then the number of units is
+        used instead.
+        value_dim (int): Value dimensionality for the multi-head attention layer, if None then key_dim is used
+        instead.
+        activation (str, tf.keras.layers.Activation): The activation function of the output of the last hidden layer.
+        use_bias (bool): Whether to sue bias or not.
+        sequential (bool): Whether to consider a sequential custom layer or not. Sequential and self-attention
+        (num_heads > 0) are not compatible.
+        bidirectional (bool): Whether to consider bidirectional case or not (only active if sequential).
+        names are not repeated.
+        return_sequences (bool): Whether to return sequences or not (only active if sequential).
+        filters (int): Number of filters to be used. If a value is given, a convolutional layer will be
+        automatically added.
+        kernel_size (int, Tuple[int]): Kernel size for the convolutional layer.
+        conv_transpose (bool): Whether to use a transpose conv layer or not (only active if filters and
+        kernel_size are set).
+        strides (int, Tuple[int]): Strides for the conv layer (only active if filters and
+        kernel_size are set).
+        padding (str): Padding to be applied (only active if filters and
+        kernel_size are set).
+        pooling (str, tf.keras.layers.Layer): Pooling type.
+        pool_size (int, Tuple[int]): Pooling size.
+        sequential_axis (int): The axis that defines the sequence. For sequential models is normally 1. For
+        self-attention (num_heads > 0) and image-like inputs, the sequential axis is the channel axis (3 for 2D
+        images and 4 for 3D images).
+        kernel_regularizer_l1 (float): Kernel regularization using l1 penalization (Lasso).
+        kernel_regularizer_l2 (float): Kernel regularization using l2 penalization (Ridge).
+        bias_regularizer_l1 (float): Bias regularization using l1 penalization (Lasso).
+        bias_regularizer_l2 (float): Bias regularization using l2 penalization (Ridge).
+        dropout_rate (float): Dropout rate.
+        bn (bool): If set, a batch normalization layer will be added right before the output activation function.
 
-        Returns:
-            x (tf.keras.layers.Layer): A keras layer.
+    Returns:
+        x (tf.keras.layers.Layer): A keras layer.
     """
 
     if num_heads > 0 and units is None and key_dim == 0:
