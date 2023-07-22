@@ -9,7 +9,7 @@ Key features:
 2. Block constructor to build customised blocks/models.
 3. Layer constructor to build customised layers.
 4. Preprocessing utils.
-5. On the fly non-topological hyper-parameter optimization. For now only the dropout regularization is compatible with this feature, in the future others such as l1 or l2 regularization will be compatible too.
+5. On the fly non-topological hyper-parameter optimization. For now only the dropout regularization is compatible with this feature, in the future others such as l1 and l2 regularization will be compatible too.
    
 ### Installation
 
@@ -19,11 +19,9 @@ Key features:
 
 ``` python
 import numpy as np
-from numpy.random import normal
-from tensorflow.keras.optimizers import Adam
-
+import tensorflow as tf
 from airontools.constructors.models.unsupervised.vae import VAE
-
+from numpy.random import normal
 
 tabular_data = np.concatenate(
     [
@@ -32,15 +30,16 @@ tabular_data = np.concatenate(
     ]
 )
 model = VAE(
-        input_shape=tabular_data.shape[1:],
-        latent_dim=3,
+    input_shape=tabular_data.shape[1:],
+    latent_dim=3,
 )
-model.compile(optimizer=Adam(learning_rate=0.001))
+model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001))
 model.fit(
     tabular_data,
     epochs=10,
 )
 print("VAE evaluation:", float(model.evaluate(tabular_data)["loss"]))
+
 ```
 
 ### More examples
