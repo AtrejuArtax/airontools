@@ -4,7 +4,8 @@ import tensorflow as tf
 
 
 class HyperDesignDropoutRate:
-    """Hyper-parameter designer for the dropout rate on the fly."""
+    """Hyper-parameter designer for the dropout rate on the fly. This allows for dropout optimization during model
+    training, without having to have a single training per dropout value."""
 
     def __init__(
         self, model: tf.keras.models.Model, down: float = -0.01, up: float = 0.01
@@ -40,7 +41,12 @@ class HyperDesignDropoutRate:
                 )
 
     def set_action(self, action: str) -> None:
-        """Set action for the dropout rate. Whether to go down, stay or up."""
+        """Set action for the dropout rate. Whether to go down, stay or up.
+
+        Parameters:
+            action (str): Action to be performed ["down", "stay", "up"].
+
+        """
         assert action in ["down", "stay", "up"]
         for rate in self.rates:
             new_rate = rate + self.actions_space[action]
