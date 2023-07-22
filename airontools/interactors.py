@@ -5,21 +5,30 @@ from airontools.constructors.layers import CustomDropout
 
 def save_model(
     model: tf.keras.models.Model,
-    name: str,
+    filepath: str,
     save_entire_model: bool = False,
     file_format: str = "tf",
 ) -> None:
-    """Save model."""
+    """Save a Keras model.
+    # ToDo: challenge whether this function is still relevant.
+
+    Parameters:
+        model (tf.keras.models.Model): Keras model to save.
+        filepath (str): File path to save the model.
+        save_entire_model (bool): Whether to save the entire model.
+        file_format (str): The format of the file, which can be either tf or h5.
+
+    """
     assert file_format in ["tf", "h5"]
     if file_format == "tf":
         file_format = ""
     else:
         file_format = "." + file_format
-    model.save_weights(filepath=name + "_weights" + file_format)
-    with open(name + "_topology", "w") as json_file:
+    model.save_weights(filepath=filepath + "_weights" + file_format)
+    with open(filepath + "_topology", "w") as json_file:
         json_file.write(model.to_json())
     if save_entire_model:
-        model.save(name + file_format)
+        model.save(filepath + file_format)
 
 
 def load_model(
