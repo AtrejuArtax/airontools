@@ -12,6 +12,81 @@ from sklearn.model_selection import KFold
 from tensorflow import DType
 
 
+def to_time_series(
+    dataset: NDArray, targets: NDArray, look_back: int = 1
+) -> Tuple[NDArray, NDArray]:
+    """To time series. It assumes the data is sequentially ordered, i.e. the first raw is the most recent sample in
+    time.
+
+    Parameters:
+        dataset (NDArray): Dataset.
+        targets (NDArray): Targets.
+        look_back (int): Meta data.
+
+    Returns:
+        2 NDArray, one for the data and the other one for the targets.
+    """
+    union_dataset = np.concatenate((dataset, targets), axis=-1)
+    x, y = [], []
+    for i in range(len(union_dataset) - look_back - 1):
+        x.append(union_dataset[i : (i + look_back), ...])
+        y.append(targets[i + look_back, ...])
+    return np.array(x), np.array(y)
+
+
+def write_tfrecord(dataset: NDArray, filepath: str) -> None:
+    """Write tensorflow record.
+
+    Parameters:
+        dataset (NDArray): Dataset.
+        filepath (str): File path.
+    """
+    with tf.io.TFRecordWriter(filepath) as writer:
+        for i in range(len(dataset)):
+            sample = dataset[i].reshape((np.prod(dataset[i].shape),)).astype(np.float32)
+            example = _example(sample)
+            writer.write(example.SerializeToString())
+
+
+def read_tfrecord(
+    filepath: str, sample_shape: tuple, dtype: tf.DType = tf.float32
+) -> NDArray:
+    """Read tensorflow record.
+
+    Parameters:
+        filepath (str): File path.
+        sample_shape: Sample shape.
+        dtype (tf.DType): Data type.
+
+    Returns:
+        An NDArray.
+    """
+    dataset = tf.data.TFRecordDataset(filepath)
+    dataset = dataset.map(parse_function(sample_shape=sample_shape, dtype=dtype))
+    return dataset
+
+
+def parse_function(sample_shape: Tuple[int], dtype: DType):
+    """Parse function.
+
+    Parameters:
+        sample_shape: Sample shape.
+        dtype (tf.DType): Data type.
+
+    Returns:
+        A function.
+    """
+
+    def parse_function_(record):
+        feature_description = {"data": tf.io.FixedLenFeature([], tf.string)}
+        data = tf.io.parse_single_example(record, feature_description)
+        data = tf.io.decode_raw(data["data"], out_type=dtype)
+        data = tf.reshape(data, sample_shape)
+        return data
+
+    return parse_function_
+
+
 def train_val_split(
     input_data: Union[List[Union[NDArray, tf.data.Dataset]], NDArray, tf.data.Dataset],
     output_data: Optional[
@@ -116,71 +191,6 @@ def train_val_split(
             returns += [return_]
     returns += [inds]
     return returns
-
-
-def to_time_series(
-    dataset: NDArray, targets: NDArray, look_back: int = 1
-) -> Tuple[NDArray, NDArray]:
-    """To time series. It assumes the data is sequentially ordered, i.e. the first raw is the most recent sample in
-    time.
-
-    Parameters:
-        dataset (NDArray): Dataset.
-        targets (NDArray): Targets.
-        look_back (int): Meta data.
-
-    Returns:
-        2 NDArray, one for the data and the other one for the targets.
-    """
-    union_dataset = np.concatenate((dataset, targets), axis=-1)
-    x, y = [], []
-    for i in range(len(union_dataset) - look_back - 1):
-        x.append(union_dataset[i : (i + look_back), ...])
-        y.append(targets[i + look_back, ...])
-    return np.array(x), np.array(y)
-
-
-def write_tfrecord(dataset: NDArray, filepath: str) -> None:
-    """Write tensorflow record.
-
-    Parameters:
-        dataset (NDArray): Dataset.
-        filepath (str): File path.
-    """
-    with tf.io.TFRecordWriter(filepath) as writer:
-        for i in range(len(dataset)):
-            sample = dataset[i].reshape((np.prod(dataset[i].shape),)).astype(np.float32)
-            example = _example(sample)
-            writer.write(example.SerializeToString())
-
-
-def read_tfrecord(
-    filepath: str, sample_shape: tuple, dtype: tf.DType = tf.float32
-) -> NDArray:
-    """Read tensorflow record.
-
-    Parameters:
-        filepath (str): File path.
-        sample_shape: Sample shape.
-        dtype (tf.DType): Data type.
-
-    Returns:
-        An NDArray.
-    """
-    dataset = tf.data.TFRecordDataset(filepath)
-    dataset = dataset.map(parse_function(sample_shape=sample_shape, dtype=dtype))
-    return dataset
-
-
-def parse_function(sample_shape, dtype: DType):
-    def parse_function_(record):
-        feature_description = {"data": tf.io.FixedLenFeature([], tf.string)}
-        data = tf.io.parse_single_example(record, feature_description)
-        data = tf.io.decode_raw(data["data"], out_type=dtype)
-        data = tf.reshape(data, sample_shape)
-        return data
-
-    return parse_function_
 
 
 def _example(data: np.array):
