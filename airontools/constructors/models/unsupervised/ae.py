@@ -43,18 +43,12 @@ class AE(Model, tf.keras.models.Model):
         )
 
         # Decoder
-        decoder_inputs = tf.keras.layers.Input(shape=(latent_dim,))
-        self.decoder = layer_constructor(
-            decoder_inputs,
+        self.decoder = self._get_decoder_model(
             units=self.encoder.input_shape[-1],
-            name=f"{model_name}_decoder",
-            activation=output_activation,
+            latent_dim=latent_dim,
+            model_name=model_name,
+            output_activation=output_activation,
             **kwargs,
-        )
-        self.decoder = tf.keras.models.Model(
-            inputs=decoder_inputs,
-            outputs=self.decoder,
-            name=f"{model_name}_decoder",
         )
 
         # AE
@@ -149,3 +143,22 @@ class AE(Model, tf.keras.models.Model):
             name=f"{model_name}_z",
         )
         return z
+
+    @staticmethod
+    def _get_decoder_model(
+        units: int, latent_dim: int, model_name: str, output_activation: str, **kwargs
+    ) -> tf.keras.models.Model:
+        decoder_inputs = tf.keras.layers.Input(shape=(latent_dim,))
+        decoder = layer_constructor(
+            decoder_inputs,
+            units=units,
+            name=f"{model_name}_decoder",
+            activation=output_activation,
+            **kwargs,
+        )
+        decoder = tf.keras.models.Model(
+            inputs=decoder_inputs,
+            outputs=decoder,
+            name=f"{model_name}_decoder",
+        )
+        return decoder
