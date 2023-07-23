@@ -43,7 +43,7 @@ def train_val_split(
         tfrecord_name (str): Name of the tfrecord.
 
     Returns:
-        4 list[Unionarray, tf.data.Dataset].
+        4 list[Union[NDArray, tf.data.Dataset]].
     """
     # ToDo: break the function into smaller functions.
     distributions = ["train", "val"]
@@ -102,7 +102,7 @@ def train_val_split(
                             dataset=_data, filepath=tfrecord_name_ + ".tfrecords"
                         )
                         split_data[name][distribution][i][j] = read_tfrecord(
-                            name=tfrecord_name_ + ".tfrecords",
+                            filepath=tfrecord_name_ + ".tfrecords",
                             sample_shape=sample_shape,
                         )
     returns = []
@@ -130,7 +130,7 @@ def to_time_series(
         look_back (int): Meta data.
 
     Returns:
-        2 arrays, one for the data and the other one for the targets.
+        2 NDArray, one for the data and the other one for the targets.
     """
     union_dataset = np.concatenate((dataset, targets), axis=-1)
     x, y = [], []
@@ -145,7 +145,7 @@ def write_tfrecord(dataset: NDArray, filepath: str) -> None:
 
     Parameters:
         dataset (NDArray): Dataset.
-        filepath (int): Meta data.
+        filepath (str): File path.
     """
     with tf.io.TFRecordWriter(filepath) as writer:
         for i in range(len(dataset)):
@@ -154,8 +154,20 @@ def write_tfrecord(dataset: NDArray, filepath: str) -> None:
             writer.write(example.SerializeToString())
 
 
-def read_tfrecord(name: str, sample_shape: tuple, dtype=tf.float32):
-    dataset = tf.data.TFRecordDataset(name)
+def read_tfrecord(
+    filepath: str, sample_shape: tuple, dtype: tf.DType = tf.float32
+) -> NDArray:
+    """Read tensorflow record.
+
+    Parameters:
+        filepath (str): File path.
+        sample_shape: Sample shape.
+        dtype (tf.DType): Data type.
+
+    Returns:
+        An NDArray.
+    """
+    dataset = tf.data.TFRecordDataset(filepath)
     dataset = dataset.map(parse_function(sample_shape=sample_shape, dtype=dtype))
     return dataset
 
