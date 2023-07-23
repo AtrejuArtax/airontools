@@ -201,7 +201,6 @@ def _example(data: np.array):
 
 
 def _bytes_feature(value):
-    """Returns a bytes_list from a string / byte."""
     if isinstance(value, type(tf.constant(0))):
         # BytesList won't unpack a string from an EagerTensor.
         value = value.numpy()
@@ -209,7 +208,6 @@ def _bytes_feature(value):
 
 
 def _int64_feature(value):
-    """Returns an int64_list from a bool / enum / int / uint."""
     return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
 
 
