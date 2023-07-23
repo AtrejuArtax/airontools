@@ -36,17 +36,10 @@ class AE(Model, tf.keras.models.Model):
         )
 
         # Z
-        z_inputs = tf.keras.layers.Input(shape=(latent_dim,))
-        self.z = layer_constructor(
-            z_inputs,
-            units=latent_dim,
-            name=f"{model_name}_z",
+        self.z = self._get_z_model(
+            latent_dim=latent_dim,
+            model_name=model_name,
             **kwargs,
-        )
-        self.z = tf.keras.models.Model(
-            inputs=z_inputs,
-            outputs=self.z,
-            name=f"{model_name}_z",
         )
 
         # Decoder
@@ -138,3 +131,21 @@ class AE(Model, tf.keras.models.Model):
             name=f"{model_name}_encoder",
         )
         return encoder_inputs, encoder
+
+    @staticmethod
+    def _get_z_model(
+        latent_dim: int, model_name: str, **kwargs
+    ) -> tf.keras.models.Model:
+        z_inputs = tf.keras.layers.Input(shape=(latent_dim,))
+        z = layer_constructor(
+            z_inputs,
+            units=latent_dim,
+            name=f"{model_name}_z",
+            **kwargs,
+        )
+        z = tf.keras.models.Model(
+            inputs=z_inputs,
+            outputs=z,
+            name=f"{model_name}_z",
+        )
+        return z
