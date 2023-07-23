@@ -1,11 +1,21 @@
 import warnings
+from typing import Optional
 
-import numpy as np
 import tensorflow as tf
-import tensorflow.python.keras.backend as k_bcknd
 
 
-def get_latent_model(model: tf.keras.models.Model, layer_name: str):
+def get_latent_model(
+    model: tf.keras.models.Model, layer_name: str
+) -> Optional[tf.keras.models.Model]:
+    """Gets latent model.
+
+    Parameters:
+        model (tf.keras.models.Model): Model.
+        layer_name (str): Layer name from which to represent the data.
+
+    Returns:
+        A tf.keras.models.Model.
+    """
     try:
         return tf.keras.models.Model(
             inputs=model._model.inputs,
@@ -31,6 +41,11 @@ def get_latent_model(model: tf.keras.models.Model, layer_name: str):
 
 
 def set_precision(precision: str) -> None:
+    """Sets variables precision.
+
+    Parameters:
+        precision (str): Precision of the variables.
+    """
     if "float16" in precision:
         if precision == "mixed_float16":
             policy = tf.keras.mixed_precision.Policy("mixed_float16")
@@ -39,39 +54,18 @@ def set_precision(precision: str) -> None:
             tf.keras.backend.set_floatx("float16")
 
 
-def to_time_series(tensor: tf.Tensor) -> tf.Tensor:
-    return k_bcknd.expand_dims(tensor, axis=2)
-
-
-def get_layer_units(
-    input_dim: int,
-    output_dim: int,
-    n_layers: int,
-    min_hidden_units=2,
-) -> list:
-    units = [
-        max(int(units), min_hidden_units)
-        for units in np.linspace(input_dim, output_dim, n_layers + 1)
-    ]
-    units[0], units[-1] = input_dim, output_dim
-    return units
-
-
-def rm_redundant(values: list, value: int) -> list:
-    taken = False
-    values_ = []
-    for n in values:
-        if n != value:
-            values_ += [n]
-        elif not taken:
-            values_ += [n]
-            taken = True
-    return values_
-
-
 def get_regularizer(
     l1_value: float = None, l2_value: float = None
 ) -> tf.keras.regularizers.Regularizer:
+    """Gets a regularizer.
+
+    Parameters:
+        l1_value (float): L1 (Lasso) regularization value.
+        l2_value (float): L2 (Ridge) regularization value.
+
+    Returns:
+        A tf.keras.regularizers.Regularizer.
+    """
     if l1_value and l2_value:
         return tf.keras.regularizers.l1_l2(l1=l1_value, l2=l2_value)
     elif l1_value:

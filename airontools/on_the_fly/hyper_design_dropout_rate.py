@@ -29,17 +29,6 @@ class HyperDesignDropoutRate:
                 },
             )
 
-    def __append_rate(self, layer: tf.keras.layers.Layer) -> None:
-        if hasattr(layer, "rate"):
-            if isinstance(layer.rate, tf.Variable):
-                self.rates += [layer.rate]
-            else:
-                warnings.warn(
-                    "layer {} does not contain a rate as a tf.Variable".format(
-                        layer.name,
-                    ),
-                )
-
     def set_action(self, action: str) -> None:
         """Set action for the dropout rate. Whether to go down, stay or up.
 
@@ -53,3 +42,14 @@ class HyperDesignDropoutRate:
             new_rate_ = tf.keras.backend.get_value(new_rate)
             if 0 <= new_rate_ < 1:
                 tf.keras.backend.set_value(rate, new_rate)
+
+    def __append_rate(self, layer: tf.keras.layers.Layer) -> None:
+        if hasattr(layer, "rate"):
+            if isinstance(layer.rate, tf.Variable):
+                self.rates += [layer.rate]
+            else:
+                warnings.warn(
+                    "layer {} does not contain a rate as a tf.Variable".format(
+                        layer.name,
+                    ),
+                )

@@ -2,32 +2,113 @@ import os
 import random
 import tempfile
 from random import seed
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import tensorflow as tf
 import tensorflow_datasets.public_api as tfds
+from numpy.typing import NDArray
 from sklearn.model_selection import KFold
 from tensorflow import DType
 
 
+def to_time_series(
+    dataset: NDArray, targets: NDArray, look_back: int = 1
+) -> Tuple[NDArray, NDArray]:
+    """To time series. It assumes the data is sequentially ordered, i.e. the first raw is the most recent sample in
+    time.
+
+    Parameters:
+        dataset (NDArray): Dataset.
+        targets (NDArray): Targets.
+        look_back (int): Meta data.
+
+    Returns:
+        2 NDArray, one for the data and the other one for the targets.
+    """
+    union_dataset = np.concatenate((dataset, targets), axis=-1)
+    x, y = [], []
+    for i in range(len(union_dataset) - look_back - 1):
+        x.append(union_dataset[i : (i + look_back), ...])
+        y.append(targets[i + look_back, ...])
+    return np.array(x), np.array(y)
+
+
+def write_tfrecord(dataset: NDArray, filepath: str) -> None:
+    """Write tensorflow record.
+
+    Parameters:
+        dataset (NDArray): Dataset.
+        filepath (str): File path.
+    """
+    with tf.io.TFRecordWriter(filepath) as writer:
+        for i in range(len(dataset)):
+            sample = dataset[i].reshape((np.prod(dataset[i].shape),)).astype(np.float32)
+            example = _example(sample)
+            writer.write(example.SerializeToString())
+
+
+def read_tfrecord(
+    filepath: str, sample_shape: tuple, dtype: tf.DType = tf.float32
+) -> NDArray:
+    """Read tensorflow record.
+
+    Parameters:
+        filepath (str): File path.
+        sample_shape: Sample shape.
+        dtype (tf.DType): Data type.
+
+    Returns:
+        An NDArray.
+    """
+    dataset = tf.data.TFRecordDataset(filepath)
+    dataset = dataset.map(parse_function(sample_shape=sample_shape, dtype=dtype))
+    return dataset
+
+
+def parse_function(sample_shape: Tuple[int], dtype: DType):
+    """Parse function.
+
+    Parameters:
+        sample_shape: Sample shape.
+        dtype (tf.DType): Data type.
+
+    Returns:
+        A function.
+    """
+
+    def parse_function_(record):
+        feature_description = {"data": tf.io.FixedLenFeature([], tf.string)}
+        data = tf.io.parse_single_example(record, feature_description)
+        data = tf.io.decode_raw(data["data"], out_type=dtype)
+        data = tf.reshape(data, sample_shape)
+        return data
+
+    return parse_function_
+
+
 def train_val_split(
-    input_data,
-    output_data=None,
-    meta_data=None,
-    n_parallel_models=1,
-    do_kfolds=False,
-    val_ratio=0.2,
-    shuffle=True,
-    seed_val=None,
-    return_tfrecord=False,
-    tfrecord_name=None,
+    input_data: Union[List[Union[NDArray, tf.data.Dataset]], NDArray, tf.data.Dataset],
+    output_data: Optional[
+        List[Union[NDArray, tf.data.Dataset]], NDArray, tf.data.Dataset
+    ] = None,
+    meta_data: Optional[
+        List[Union[NDArray, tf.data.Dataset]], NDArray, tf.data.Dataset
+    ] = None,
+    n_parallel_models: int = 1,
+    do_kfolds: bool = False,
+    val_ratio: float = 0.2,
+    shuffle: bool = True,
+    seed_val: int = None,
+    return_tfrecord: bool = False,
+    tfrecord_name: str = None,
 ):
     """Train validation split.
 
     Parameters:
-        input_data (list[array, tf.data.Dataset], array, tf.data.Dataset): Input data.
-        output_data (list[array, tf.data.Dataset], array, tf.data.Dataset): Output data.
-        meta_data (list[array, tf.data.Dataset], array, tf.data.Dataset): Meta data.
+        input_data (Union[List[Union[NDArray, tf.data.Dataset]], NDArray, tf.data.Dataset]): Input data.
+        output_data (Optional[List[Union[NDArray, tf.data.Dataset]], NDArray, tf.data.Dataset]): Output data.
+        meta_data (Optional[List[Union[NDArray, tf.data.Dataset]], NDArray, tf.data.Dataset]): Meta data.
         n_parallel_models (int): Number of parallel models.
         do_kfolds (bool): Whether to do kfolds for cross-validation or not.
         val_ratio (float): Ratio for validation.
@@ -37,7 +118,7 @@ def train_val_split(
         tfrecord_name (str): Name of the tfrecord.
 
     Returns:
-        4 list[array, tf.data.Dataset].
+        4 list[Union[NDArray, tf.data.Dataset]].
     """
     # ToDo: break the function into smaller functions.
     distributions = ["train", "val"]
@@ -92,9 +173,11 @@ def train_val_split(
                         )
                         _data = split_data[name][distribution][i][j]
                         sample_shape = tuple(_data.shape[1:])
-                        write_tfrecord(data=_data, name=tfrecord_name_ + ".tfrecords")
+                        write_tfrecord(
+                            dataset=_data, filepath=tfrecord_name_ + ".tfrecords"
+                        )
                         split_data[name][distribution][i][j] = read_tfrecord(
-                            name=tfrecord_name_ + ".tfrecords",
+                            filepath=tfrecord_name_ + ".tfrecords",
                             sample_shape=sample_shape,
                         )
     returns = []
@@ -110,40 +193,6 @@ def train_val_split(
     return returns
 
 
-def to_time_series(dataset, targets, look_back=1):
-    union_dataset = np.concatenate((dataset, targets), axis=-1)
-    x, y = [], []
-    for i in range(len(union_dataset) - look_back - 1):
-        x.append(union_dataset[i : (i + look_back), ...])
-        y.append(targets[i + look_back, ...])
-    return np.array(x), np.array(y)
-
-
-def write_tfrecord(data: np.array, name: str):
-    with tf.io.TFRecordWriter(name) as writer:
-        for i in range(len(data)):
-            sample = data[i].reshape((np.prod(data[i].shape),)).astype(np.float32)
-            example = _example(sample)
-            writer.write(example.SerializeToString())
-
-
-def read_tfrecord(name: str, sample_shape: tuple, dtype=tf.float32):
-    dataset = tf.data.TFRecordDataset(name)
-    dataset = dataset.map(parse_function(sample_shape=sample_shape, dtype=dtype))
-    return dataset
-
-
-def parse_function(sample_shape, dtype: DType):
-    def parse_function_(record):
-        feature_description = {"data": tf.io.FixedLenFeature([], tf.string)}
-        data = tf.io.parse_single_example(record, feature_description)
-        data = tf.io.decode_raw(data["data"], out_type=dtype)
-        data = tf.reshape(data, sample_shape)
-        return data
-
-    return parse_function_
-
-
 def _example(data: np.array):
     feature = {"data": _bytes_feature(data.tobytes())}
     features = tf.train.Features(feature=feature)
@@ -152,7 +201,6 @@ def _example(data: np.array):
 
 
 def _bytes_feature(value):
-    """Returns a bytes_list from a string / byte."""
     if isinstance(value, type(tf.constant(0))):
         # BytesList won't unpack a string from an EagerTensor.
         value = value.numpy()
@@ -160,7 +208,6 @@ def _bytes_feature(value):
 
 
 def _int64_feature(value):
-    """Returns an int64_list from a bool / enum / int / uint."""
     return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
 
 

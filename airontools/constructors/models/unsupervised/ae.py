@@ -28,46 +28,27 @@ class AE(Model, tf.keras.models.Model):
         self.loss_tracker = tf.keras.metrics.Mean(name="loss")
 
         # Encoder
-        encoder_inputs = tf.keras.layers.Input(shape=input_shape)
-        self.encoder = layer_constructor(
-            encoder_inputs,
-            units=latent_dim,
-            name=f"{model_name}_encoder",
+        encoder_inputs, self.encoder = self._get_encoder_model(
+            input_shape=input_shape,
+            latent_dim=latent_dim,
+            model_name=model_name,
             **kwargs,
-        )
-        self.encoder = tf.keras.models.Model(
-            inputs=encoder_inputs,
-            outputs=self.encoder,
-            name=f"{model_name}_encoder",
         )
 
         # Z
-        z_inputs = tf.keras.layers.Input(shape=(latent_dim,))
-        self.z = layer_constructor(
-            z_inputs,
-            units=latent_dim,
-            name=f"{model_name}_z",
+        self.z = self._get_z_model(
+            latent_dim=latent_dim,
+            model_name=model_name,
             **kwargs,
-        )
-        self.z = tf.keras.models.Model(
-            inputs=z_inputs,
-            outputs=self.z,
-            name=f"{model_name}_z",
         )
 
         # Decoder
-        decoder_inputs = tf.keras.layers.Input(shape=(latent_dim,))
-        self.decoder = layer_constructor(
-            decoder_inputs,
+        self.decoder = self._get_decoder_model(
             units=self.encoder.input_shape[-1],
-            name=f"{model_name}_decoder",
-            activation=output_activation,
+            latent_dim=latent_dim,
+            model_name=model_name,
+            output_activation=output_activation,
             **kwargs,
-        )
-        self.decoder = tf.keras.models.Model(
-            inputs=decoder_inputs,
-            outputs=self.decoder,
-            name=f"{model_name}_decoder",
         )
 
         # AE
@@ -126,3 +107,58 @@ class AE(Model, tf.keras.models.Model):
     ) -> tf.Tensor:
         rec_loss = tf.reduce_mean((inputs - reconstructed) ** 2)
         return rec_loss
+
+    @staticmethod
+    def _get_encoder_model(
+        input_shape: Tuple[int], latent_dim: int, model_name: str, **kwargs
+    ) -> Tuple[tf.keras.layers.Input, tf.keras.models.Model]:
+        encoder_inputs = tf.keras.layers.Input(shape=input_shape)
+        encoder = layer_constructor(
+            encoder_inputs,
+            units=latent_dim,
+            name=f"{model_name}_encoder",
+            **kwargs,
+        )
+        encoder = tf.keras.models.Model(
+            inputs=encoder_inputs,
+            outputs=encoder,
+            name=f"{model_name}_encoder",
+        )
+        return encoder_inputs, encoder
+
+    @staticmethod
+    def _get_z_model(
+        latent_dim: int, model_name: str, **kwargs
+    ) -> tf.keras.models.Model:
+        z_inputs = tf.keras.layers.Input(shape=(latent_dim,))
+        z = layer_constructor(
+            z_inputs,
+            units=latent_dim,
+            name=f"{model_name}_z",
+            **kwargs,
+        )
+        z = tf.keras.models.Model(
+            inputs=z_inputs,
+            outputs=z,
+            name=f"{model_name}_z",
+        )
+        return z
+
+    @staticmethod
+    def _get_decoder_model(
+        units: int, latent_dim: int, model_name: str, output_activation: str, **kwargs
+    ) -> tf.keras.models.Model:
+        decoder_inputs = tf.keras.layers.Input(shape=(latent_dim,))
+        decoder = layer_constructor(
+            decoder_inputs,
+            units=units,
+            name=f"{model_name}_decoder",
+            activation=output_activation,
+            **kwargs,
+        )
+        decoder = tf.keras.models.Model(
+            inputs=decoder_inputs,
+            outputs=decoder,
+            name=f"{model_name}_decoder",
+        )
+        return decoder

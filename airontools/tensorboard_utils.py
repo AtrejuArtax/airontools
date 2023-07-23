@@ -5,7 +5,7 @@ import tensorflow as tf
 from numpy.typing import NDArray
 from tensorboard.plugins import projector
 
-from airontools.tools import path_management
+from airontools.path_utils import path_management
 
 
 def save_representations(
