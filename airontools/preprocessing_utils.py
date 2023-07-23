@@ -2,7 +2,7 @@ import os
 import random
 import tempfile
 from random import seed
-from typing import Tuple
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import tensorflow as tf
@@ -13,23 +13,27 @@ from tensorflow import DType
 
 
 def train_val_split(
-    input_data,
-    output_data=None,
-    meta_data=None,
-    n_parallel_models=1,
-    do_kfolds=False,
-    val_ratio=0.2,
-    shuffle=True,
-    seed_val=None,
-    return_tfrecord=False,
-    tfrecord_name=None,
+    input_data: Union[List[Union[NDArray, tf.data.Dataset]], NDArray, tf.data.Dataset],
+    output_data: Optional[
+        List[Union[NDArray, tf.data.Dataset]], NDArray, tf.data.Dataset
+    ] = None,
+    meta_data: Optional[
+        List[Union[NDArray, tf.data.Dataset]], NDArray, tf.data.Dataset
+    ] = None,
+    n_parallel_models: int = 1,
+    do_kfolds: bool = False,
+    val_ratio: float = 0.2,
+    shuffle: bool = True,
+    seed_val: int = None,
+    return_tfrecord: bool = False,
+    tfrecord_name: str = None,
 ):
     """Train validation split.
 
     Parameters:
-        input_data (list[array, tf.data.Dataset], array, tf.data.Dataset): Input data.
-        output_data (list[array, tf.data.Dataset], array, tf.data.Dataset): Output data.
-        meta_data (list[array, tf.data.Dataset], array, tf.data.Dataset): Meta data.
+        input_data (Union[List[Union[NDArray, tf.data.Dataset]], NDArray, tf.data.Dataset]): Input data.
+        output_data (Optional[List[Union[NDArray, tf.data.Dataset]], NDArray, tf.data.Dataset]): Output data.
+        meta_data (Optional[List[Union[NDArray, tf.data.Dataset]], NDArray, tf.data.Dataset]): Meta data.
         n_parallel_models (int): Number of parallel models.
         do_kfolds (bool): Whether to do kfolds for cross-validation or not.
         val_ratio (float): Ratio for validation.
