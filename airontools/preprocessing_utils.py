@@ -2,10 +2,12 @@ import os
 import random
 import tempfile
 from random import seed
+from typing import Tuple
 
 import numpy as np
 import tensorflow as tf
 import tensorflow_datasets.public_api as tfds
+from numpy.typing import NDArray
 from sklearn.model_selection import KFold
 from tensorflow import DType
 
@@ -110,7 +112,20 @@ def train_val_split(
     return returns
 
 
-def to_time_series(dataset, targets, look_back=1):
+def to_time_series(
+    dataset: NDArray, targets: NDArray, look_back: int = 1
+) -> Tuple[NDArray, NDArray]:
+    """To time series. It assumes the data is sequentially ordered, i.e. the first raw is the most recent sample in
+    time.
+
+    Parameters:
+        dataset (NDArray): Dataset.
+        targets (NDArray): Targets.
+        look_back (int): Meta data.
+
+    Returns:
+        2 arrays, one for the data and the other one for the targets.
+    """
     union_dataset = np.concatenate((dataset, targets), axis=-1)
     x, y = [], []
     for i in range(len(union_dataset) - look_back - 1):
