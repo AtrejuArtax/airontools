@@ -7,7 +7,7 @@ def path_management(path: str, modes=None) -> None:
 
     Parameters:
         path (str): Path to manage.
-        modes (list): List of mode per path, remove as 'rm' and make as 'make'.
+        modes (list): Mode per path, remove as 'rm' and make as 'make'.
     """
     available_modes = ["rm", "make"]
     if not modes:
