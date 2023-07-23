@@ -57,6 +57,15 @@ def set_precision(precision: str) -> None:
 def get_regularizer(
     l1_value: float = None, l2_value: float = None
 ) -> tf.keras.regularizers.Regularizer:
+    """Gets a regularizer.
+
+    Parameters:
+        l1_value (float): L1 (Lasso) regularization value.
+        l2_value (float): L2 (Ridge) regularization value.
+
+    Returns:
+        A tf.keras.regularizers.Regularizer.
+    """
     if l1_value and l2_value:
         return tf.keras.regularizers.l1_l2(l1=l1_value, l2=l2_value)
     elif l1_value:
