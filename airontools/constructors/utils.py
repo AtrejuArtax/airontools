@@ -1,9 +1,21 @@
 import warnings
+from typing import Optional
 
 import tensorflow as tf
 
 
-def get_latent_model(model: tf.keras.models.Model, layer_name: str):
+def get_latent_model(
+    model: tf.keras.models.Model, layer_name: str
+) -> Optional[tf.keras.models.Model]:
+    """Gets latent model.
+
+    Parameters:
+        model (tf.keras.models.Model): Model.
+        layer_name (str): Layer name from which to represent the data.
+
+    Returns:
+        A tf.keras.models.Model.
+    """
     try:
         return tf.keras.models.Model(
             inputs=model._model.inputs,
