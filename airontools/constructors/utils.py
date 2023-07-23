@@ -41,6 +41,11 @@ def get_latent_model(
 
 
 def set_precision(precision: str) -> None:
+    """Sets variables precision.
+
+    Parameters:
+        precision (str): Precision of the variables.
+    """
     if "float16" in precision:
         if precision == "mixed_float16":
             policy = tf.keras.mixed_precision.Policy("mixed_float16")
