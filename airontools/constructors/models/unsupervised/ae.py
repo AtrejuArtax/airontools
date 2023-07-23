@@ -28,17 +28,11 @@ class AE(Model, tf.keras.models.Model):
         self.loss_tracker = tf.keras.metrics.Mean(name="loss")
 
         # Encoder
-        encoder_inputs = tf.keras.layers.Input(shape=input_shape)
-        self.encoder = layer_constructor(
-            encoder_inputs,
-            units=latent_dim,
-            name=f"{model_name}_encoder",
+        encoder_inputs, self.encoder = self._get_encoder_model(
+            input_shape=input_shape,
+            latent_dim=latent_dim,
+            model_name=model_name,
             **kwargs,
-        )
-        self.encoder = tf.keras.models.Model(
-            inputs=encoder_inputs,
-            outputs=self.encoder,
-            name=f"{model_name}_encoder",
         )
 
         # Z
@@ -126,3 +120,21 @@ class AE(Model, tf.keras.models.Model):
     ) -> tf.Tensor:
         rec_loss = tf.reduce_mean((inputs - reconstructed) ** 2)
         return rec_loss
+
+    @staticmethod
+    def _get_encoder_model(
+        input_shape: Tuple[int], latent_dim: int, model_name: str, **kwargs
+    ) -> Tuple[tf.keras.layers.Input, tf.keras.models.Model]:
+        encoder_inputs = tf.keras.layers.Input(shape=input_shape)
+        encoder = layer_constructor(
+            encoder_inputs,
+            units=latent_dim,
+            name=f"{model_name}_encoder",
+            **kwargs,
+        )
+        encoder = tf.keras.models.Model(
+            inputs=encoder_inputs,
+            outputs=encoder,
+            name=f"{model_name}_encoder",
+        )
+        return encoder_inputs, encoder
