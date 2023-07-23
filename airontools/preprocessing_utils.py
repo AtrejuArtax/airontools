@@ -43,7 +43,7 @@ def train_val_split(
         tfrecord_name (str): Name of the tfrecord.
 
     Returns:
-        4 list[array, tf.data.Dataset].
+        4 list[Unionarray, tf.data.Dataset].
     """
     # ToDo: break the function into smaller functions.
     distributions = ["train", "val"]
@@ -98,7 +98,9 @@ def train_val_split(
                         )
                         _data = split_data[name][distribution][i][j]
                         sample_shape = tuple(_data.shape[1:])
-                        write_tfrecord(data=_data, name=tfrecord_name_ + ".tfrecords")
+                        write_tfrecord(
+                            dataset=_data, filepath=tfrecord_name_ + ".tfrecords"
+                        )
                         split_data[name][distribution][i][j] = read_tfrecord(
                             name=tfrecord_name_ + ".tfrecords",
                             sample_shape=sample_shape,
@@ -138,10 +140,16 @@ def to_time_series(
     return np.array(x), np.array(y)
 
 
-def write_tfrecord(data: np.array, name: str):
-    with tf.io.TFRecordWriter(name) as writer:
-        for i in range(len(data)):
-            sample = data[i].reshape((np.prod(data[i].shape),)).astype(np.float32)
+def write_tfrecord(dataset: NDArray, filepath: str) -> None:
+    """Write tensorflow record.
+
+    Parameters:
+        dataset (NDArray): Dataset.
+        filepath (int): Meta data.
+    """
+    with tf.io.TFRecordWriter(filepath) as writer:
+        for i in range(len(dataset)):
+            sample = dataset[i].reshape((np.prod(dataset[i].shape),)).astype(np.float32)
             example = _example(sample)
             writer.write(example.SerializeToString())
 
