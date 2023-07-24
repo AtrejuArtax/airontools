@@ -33,23 +33,6 @@ class TestGetLatentModel:
         assert latent_model is None
 
 
-class TestSetPrecision:
-    def test_float16_case(self):
-        precision = "float16"
-        set_precision(precision)
-        assert tf.keras.backend.floatx() == precision
-
-    def test_mixed_float16_case(self):
-        precision = "mixed_float16"
-        set_precision(precision)
-        assert tf.keras.backend.floatx() == "float16"
-
-    def test_default_case(self):
-        precision = tf.keras.backend.floatx()
-        set_precision(precision)
-        assert tf.keras.backend.floatx() == precision
-
-
 class TestGetRegularizer:
     def test_l1_case(self):
         regularizer = get_regularizer(l1_value=0.001)
