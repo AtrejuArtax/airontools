@@ -5,12 +5,11 @@ AIronTools (Beta) is a Python library that provides the user with higher level d
 
 Key features:
 
-1. Model constructor that allows multiple models to be optimized in parallel across multiple GPUs. 
-2. Block constructor to build customised blocks/models.
-3. Layer constructor to build customised layers.
-4. Preprocessing utils.
-5. On the fly non-topological hyper-parameter optimization. For now only the dropout regularization is compatible with this feature, in the future others such as l1 and l2 regularization will be compatible too.
-6. Save latent representations for visualization purposes.
+1. Block constructor to build customised blocks/models.
+2. Layer constructor to build customised layers.
+3. Preprocessing utils.
+4. On the fly non-topological hyper-parameter optimization. For now only the dropout regularization is compatible with this feature, in the future others such as l1 and l2 regularization will be compatible too.
+5. Save latent representations for visualization purposes.
    
 ### Installation
 
