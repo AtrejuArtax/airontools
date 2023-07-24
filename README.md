@@ -17,7 +17,7 @@ Key features:
 
 `pip install airontools`
 
-### Custom Keras subclass to build a variational autoencoder (VAE) with airontools and compatible with aironsuit
+### Custom Keras subclass to build a variational autoencoder (VAE) with airontools and compatible with [aironsuit](https://github.com/AtrejuArtax/aironsuit/)
 
 ``` python
 import numpy as np
