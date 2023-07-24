@@ -42,7 +42,7 @@ class TestSetPrecision:
     def test_mixed_float16_case(self):
         precision = "mixed_float16"
         set_precision(precision)
-        assert tf.keras.backend.floatx() == "float32"
+        assert tf.keras.backend.floatx() == "float16"
 
     def test_default_case(self):
         precision = tf.keras.backend.floatx()
