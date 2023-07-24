@@ -1,12 +1,8 @@
 import tensorflow as tf
 
 from airontools.constructors.models.unsupervised.vae import VAE
-from airontools.constructors.utils import (
-    get_latent_model,
-    get_regularizer,
-    set_precision,
-)
-from tests.airontools.constructors.models.example_data import TABULAR_DATA
+from airontools.constructors.utils import get_latent_model, get_regularizer
+from tests.airontools.constructors.example_data import TABULAR_DATA
 
 
 class TestGetLatentModel:
