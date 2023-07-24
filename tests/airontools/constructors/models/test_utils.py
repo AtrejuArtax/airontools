@@ -1,7 +1,11 @@
 import tensorflow as tf
 
 from airontools.constructors.models.unsupervised.vae import VAE
-from airontools.constructors.utils import get_latent_model, set_precision
+from airontools.constructors.utils import (
+    get_latent_model,
+    get_regularizer,
+    set_precision,
+)
 from tests.airontools.constructors.models.example_data import TABULAR_DATA
 
 
@@ -44,3 +48,21 @@ class TestSetPrecision:
         precision = tf.keras.backend.floatx()
         set_precision(precision)
         assert tf.keras.backend.floatx() == precision
+
+
+class TestGetRegularizer:
+    def test_l1_case(self):
+        regularizer = get_regularizer(l1_value=0.001)
+        assert isinstance(regularizer, tf.keras.regularizers.Regularizer)
+
+    def test_l2_case(self):
+        regularizer = get_regularizer(l2_value=0.001)
+        assert isinstance(regularizer, tf.keras.regularizers.Regularizer)
+
+    def test_l1_l2_case(self):
+        regularizer = get_regularizer(l1_value=0.001, l2_value=0.001)
+        assert isinstance(regularizer, tf.keras.regularizers.Regularizer)
+
+    def test_none_case(self):
+        regularizer = get_regularizer()
+        assert regularizer is None

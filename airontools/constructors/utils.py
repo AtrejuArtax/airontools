@@ -69,6 +69,6 @@ def get_regularizer(
     if l1_value and l2_value:
         return tf.keras.regularizers.l1_l2(l1=l1_value, l2=l2_value)
     elif l1_value:
-        return tf.keras.regularizers.l1(l1_value)
+        return tf.keras.regularizers.l1(l1=l1_value)
     elif l2_value:
-        return tf.keras.regularizers.l2(l2_value)
+        return tf.keras.regularizers.l2(l2=l2_value)
