@@ -19,5 +19,5 @@ FROM build_base as build_airontools
 # Copy the code to the container image
 WORKDIR /app
 COPY . ./
-# Mount credentials to install dependencies from private packages
-RUN poetry install
+# Install packages, build the wheel and publish it
+RUN poetry install && poetry build && poetry publish
