@@ -15,6 +15,7 @@ SUB_PACKAGES_NAMES = [
     "airontools.constructors.models",
     "airontools.constructors.models.supervised",
     "airontools.constructors.models.unsupervised",
+    "airontools.on_the_fly",
 ]
 OPTIONS = {}
 if os.uname().sysname.lower() == "darwin":
