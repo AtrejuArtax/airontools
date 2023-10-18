@@ -1,0 +1,11 @@
+Dockerfile
+*.pyc
+*.pyo
+*.pyd
+__pycache__
+.pytest_cache
+airontools.egg-info
+build
+dist
+requirements.txt
+.venv
