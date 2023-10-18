@@ -5,6 +5,11 @@ import os
 import setuptools
 
 # Release new version steps
+# ToDo: crate a script to automate the following commands
+# rm -rf airontools.egg-info/
+# rm -rf build/
+# rm -rf dist/
+# rm requirements.txt
 # poetry export --without-hashes --format=requirements.txt > requirements.txt
 # poetry run python setup.py bdist_wheel
 # poetry run python -m twine upload dist/*
