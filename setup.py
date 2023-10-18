@@ -1,6 +1,13 @@
 from __future__ import annotations
 
+import os
+
 import setuptools
+
+# Release new version steps
+# poetry export --without-hashes --format=requirements.txt > requirements.txt
+# poetry run python setup.py bdist_wheel
+# poetry run python -m twine upload dist/*
 
 PACKAGE_NAME = "airontools"
 SUB_PACKAGES_NAMES = [
@@ -9,6 +16,9 @@ SUB_PACKAGES_NAMES = [
     "airontools.constructors.models.supervised",
     "airontools.constructors.models.unsupervised",
 ]
+OPTIONS = {}
+if os.uname().sysname.lower() == "darwin":
+    OPTIONS.update({"bdist_wheel": {"plat_name": "macosx_13_0_arm64"}})
 
 with open("README.md") as fh:
     long_description = fh.read()
@@ -19,7 +29,7 @@ with open("requirements.txt") as f:
 
 setuptools.setup(
     name=PACKAGE_NAME,
-    version="0.1.24",
+    version="0.1.27",
     scripts=[],
     author="Claudi Ruiz Camps",
     author_email="claudi_ruiz@hotmail.com",
@@ -35,4 +45,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     license="BSD",
+    options=OPTIONS,
 )
