@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import setuptools
 import os
+
+import setuptools
 
 # Release new version steps
 # poetry export --without-hashes --format=requirements.txt > requirements.txt
@@ -17,7 +18,7 @@ SUB_PACKAGES_NAMES = [
 ]
 OPTIONS = {}
 if os.uname().sysname.lower() == "darwin":
-    OPTIONS.update({'bdist_wheel': {'plat_name': 'macosx_13_0_arm64'}})
+    OPTIONS.update({"bdist_wheel": {"plat_name": "macosx_13_0_arm64"}})
 
 with open("README.md") as fh:
     long_description = fh.read()
