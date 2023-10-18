@@ -30,7 +30,6 @@ with open("requirements.txt") as f:
 setuptools.setup(
     name=PACKAGE_NAME,
     version="0.1.27",
-    platform="_".join([os.uname().sysname.lower(), os.uname().machine]),
     scripts=[],
     author="Claudi Ruiz Camps",
     author_email="claudi_ruiz@hotmail.com",
