@@ -17,7 +17,7 @@ class AE(Model, tf.keras.models.Model):
         self,
         input_shape: Tuple[int],
         model_name: str = "AE",
-        output_activation: str = "softmax",
+        output_activation: str = "linear",
         latent_dim: int = 3,
         **kwargs,
     ):
