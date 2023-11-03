@@ -15,7 +15,7 @@ def layer_constructor(
     num_heads: int = 0,
     key_dim: int = 0,
     value_dim: int = 0,
-    activation: Union[str, tf.keras.layers.Activation] = "prelu",
+    activation: Union[str, tf.keras.layers.Activation] = "linear",
     use_bias: bool = True,
     sequential: bool = False,
     bidirectional: bool = False,
@@ -241,7 +241,7 @@ def dropout_layer_constructor(
 ) -> tf.keras.layers.Layer:
     input_shape = x.shape
     output_reshape = None
-    if len(input_shape) > 2:
+    if len(input_shape) > 2 and all([shape is not None for shape in input_shape[1:]]):
         output_reshape = input_shape
         x = tf.keras.layers.Flatten(
             name="_".join([name, "pre", "dropout", "flatten", name_ext])
@@ -368,7 +368,7 @@ def bn_layer_constructor(
 ) -> tf.keras.layers.Layer:
     input_shape = x.shape
     output_reshape = None
-    if len(input_shape) > 2:
+    if len(input_shape) > 2 and all([shape is not None for shape in input_shape[1:]]):
         output_reshape = input_shape
         x = tf.keras.layers.Flatten(
             name="_".join([name, "pre", "bn", "flatten", name_ext])
@@ -389,12 +389,12 @@ def activation_layer_constructor(
     x: Union[tf.Tensor, tf.keras.layers.Layer],
     name: str = "activation",
     name_ext: str = "",
-    activation: str = "prelu",
+    activation: str = "linear",
     **reg_kwargs,
 ) -> tf.keras.layers.Layer:
     input_shape = x.shape
     output_reshape = None
-    if len(input_shape) > 2:
+    if len(input_shape) > 2 and all([shape is not None for shape in input_shape[1:]]):
         output_reshape = input_shape
         x = tf.keras.layers.Flatten(
             name="_".join([name, "pre", "activation", "flatten", name_ext])
@@ -436,12 +436,13 @@ def sequential_permutation(
         )(x)
     else:
         permutation = list(range(1, len(input_shape)))
-    if len(input_shape) > 2:
+    if len(input_shape) > 2 and all([shape is not None for shape in input_shape[1:]]):
+        permutation_dimensions = [input_shape[i] for i in permutation[1:]]
         x = tf.keras.layers.Reshape(
             name="_".join([name, "reshape", name_ext]),
             target_shape=(
                 input_shape[permutation[0]],
-                np.prod([input_shape[i] for i in permutation[1:]]),
+                np.prod(permutation_dimensions),
             ),
         )(x)
     return x
