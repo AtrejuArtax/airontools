@@ -437,7 +437,7 @@ def sequential_permutation(
     else:
         permutation = list(range(1, len(input_shape)))
     if len(input_shape) > 2 and all([shape is not None for shape in input_shape[1:]]):
-        permutation_dimensions = [input_shape[i] for i in input_shape[1:]]
+        permutation_dimensions = [input_shape[i] for i in permutation[1:]]
         x = tf.keras.layers.Reshape(
             name="_".join([name, "reshape", name_ext]),
             target_shape=(
