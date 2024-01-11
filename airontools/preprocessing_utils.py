@@ -90,10 +90,10 @@ def parse_function(sample_shape: Tuple[int], dtype: DType):
 def train_val_split(
     input_data: Union[List[Union[NDArray, tf.data.Dataset]], NDArray, tf.data.Dataset],
     output_data: Optional[
-        List[Union[NDArray, tf.data.Dataset]], NDArray, tf.data.Dataset
+        Union[List[Union[NDArray, tf.data.Dataset]], NDArray, tf.data.Dataset]
     ] = None,
     meta_data: Optional[
-        List[Union[NDArray, tf.data.Dataset]], NDArray, tf.data.Dataset
+        Union[List[Union[NDArray, tf.data.Dataset]], NDArray, tf.data.Dataset]
     ] = None,
     n_parallel_models: int = 1,
     do_kfolds: bool = False,
@@ -142,7 +142,8 @@ def train_val_split(
     else:
         inds = list(np.arange(n_samples))
         if shuffle:
-            random.shuffle(inds, random=seed(seed_val))
+            random.seed(seed_val)
+            random.shuffle(inds)
         line = int(len(inds) * (1 - val_ratio))
         inds = [dict(train=inds[:line], val=inds[line:])] * n_parallel_models
     for inds_ in inds:
