@@ -15,6 +15,7 @@ def layer_constructor(
     num_heads: int = 0,
     key_dim: int = 0,
     value_dim: int = 0,
+    return_attention_scores: bool = False,
     activation: Union[str, tf.keras.layers.Activation] = "linear",
     use_bias: bool = True,
     sequential: bool = False,
@@ -34,7 +35,7 @@ def layer_constructor(
     bias_regularizer_l2: float = 0.001,
     dropout_rate: float = 0.0,
     bn: bool = False,
-) -> tf.Tensor:
+) -> Union[tf.keras.layers.Layer, Tuple[tf.keras.layers.Layer, tf.keras.layers.Layer]]:
     """It builds a custom layer. For now only 2D convolutions
     are supported for input of rank 4.
 
@@ -50,6 +51,7 @@ def layer_constructor(
         used instead.
         value_dim (int): Value dimensionality for the multi-head attention layer, if None then key_dim is used
         instead.
+        return_attention_scores (bool): Whether to return attention scores or not.
         activation (str, tf.keras.layers.Activation): The activation function of the output of the last hidden layer.
         use_bias (bool): Whether to sue bias or not.
         sequential (bool): Whether to consider a sequential custom layer or not. Sequential and self-attention
@@ -79,7 +81,7 @@ def layer_constructor(
         bn (bool): If set, a batch normalization layer will be added right before the output activation function.
 
     Returns:
-        x (tf.keras.layers.Layer): A keras layer.
+        x (tf.keras.layers.Layer | tuple(tf.keras.layers.Layer, tf.keras.layers.Layer)): A keras layer.
     """
 
     if num_heads > 0 and units is None and key_dim == 0:
@@ -148,6 +150,7 @@ def layer_constructor(
         )
 
     # Multi-Head Attention
+    attention_scores = None
     if num_heads > 0:
         _key_dim = key_dim if key_dim > 0 else units
         _value_dim = value_dim if value_dim > 0 else _key_dim
@@ -167,8 +170,11 @@ def layer_constructor(
             name=name,
             name_ext=name_ext,
             sequential_axis=sequential_axis,
+            return_attention_scores=return_attention_scores,
             **multi_head_attention_kwargs,
         )
+        if return_attention_scores:
+            x, attention_scores = x
 
     # Sequential
     elif sequential:
@@ -230,7 +236,10 @@ def layer_constructor(
         **activation_kwargs,
     )
 
-    return x
+    if return_attention_scores:
+        return x, attention_scores
+    else:
+        return x
 
 
 def dropout_layer_constructor(
@@ -306,6 +315,7 @@ def self_attention_layer_constructor(
     name: str = "self_attention",
     name_ext: str = "",
     sequential_axis: int = 1,
+    return_attention_scores: bool = False,
     **kwargs,
 ) -> tf.keras.layers.Layer:
     x = sequential_permutation(
@@ -322,6 +332,7 @@ def self_attention_layer_constructor(
         x,
         x,
         use_causal_mask=True,
+        return_attention_scores=return_attention_scores,
     )
     return x
 
