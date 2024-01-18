@@ -35,7 +35,7 @@ with open("requirements.txt") as f:
 
 setuptools.setup(
     name=PACKAGE_NAME,
-    version="0.1.36",
+    version="0.1.37",
     scripts=[],
     author="Claudi Ruiz Camps",
     author_email="claudi_ruiz@hotmail.com",

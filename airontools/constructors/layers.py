@@ -15,6 +15,7 @@ def layer_constructor(
     num_heads: int = 0,
     key_dim: int = 0,
     value_dim: int = 0,
+    multi_head_attention_dropout_rate: float = 0.0,
     return_attention_scores: bool = False,
     activation: Union[str, tf.keras.layers.Activation] = "linear",
     use_bias: bool = True,
@@ -51,6 +52,7 @@ def layer_constructor(
         used instead.
         value_dim (int): Value dimensionality for the multi-head attention layer, if None then key_dim is used
         instead.
+        multi_head_attention_dropout_rate (float): Multi-head attention dropout rate.
         return_attention_scores (bool): Whether to return attention scores or not.
         activation (str, tf.keras.layers.Activation): The activation function of the output of the last hidden layer.
         use_bias (bool): Whether to sue bias or not.
@@ -164,6 +166,7 @@ def layer_constructor(
                 kernel_regularizer_l2,
             ),
             bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
+            dropout=multi_head_attention_dropout_rate,
         )
         x = self_attention_layer_constructor(
             x,
