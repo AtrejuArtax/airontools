@@ -26,4 +26,4 @@ COPY . ./
 RUN poetry install  \
     && poetry export --without-hashes --format=requirements.txt > requirements.txt  \
     && poetry run python setup.py bdist_wheel \
-    && poetry run python -m twine upload dist/* --username $PYPI_USERNAME --password $PYPI_PASSWORD
+    && poetry run python -m twine upload dist/*
