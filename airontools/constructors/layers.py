@@ -17,6 +17,7 @@ def layer_constructor(
     value_dim: int = 0,
     multi_head_attention_dropout_rate: float = 0.0,
     return_attention_scores: bool = False,
+    use_causal_mask: bool = False,
     activation: Union[str, tf.keras.layers.Activation] = "linear",
     use_bias: bool = True,
     sequential: bool = False,
@@ -54,6 +55,7 @@ def layer_constructor(
         instead.
         multi_head_attention_dropout_rate (float): Multi-head attention dropout rate.
         return_attention_scores (bool): Whether to return attention scores or not.
+        use_causal_mask: Whether to use casual mask in the multi-head attention.
         activation (str, tf.keras.layers.Activation): The activation function of the output of the last hidden layer.
         use_bias (bool): Whether to sue bias or not.
         sequential (bool): Whether to consider a sequential custom layer or not. Sequential and self-attention
@@ -174,6 +176,7 @@ def layer_constructor(
             name_ext=name_ext,
             sequential_axis=sequential_axis,
             return_attention_scores=return_attention_scores,
+            use_causal_mask=use_causal_mask,
             **multi_head_attention_kwargs,
         )
         if return_attention_scores:
@@ -319,6 +322,7 @@ def self_attention_layer_constructor(
     name_ext: str = "",
     sequential_axis: int = 1,
     return_attention_scores: bool = False,
+    use_causal_mask: bool = False,
     **kwargs,
 ) -> tf.keras.layers.Layer:
     x = sequential_permutation(
@@ -334,7 +338,7 @@ def self_attention_layer_constructor(
         x,
         x,
         x,
-        use_causal_mask=True,
+        use_causal_mask=use_causal_mask,
         return_attention_scores=return_attention_scores,
     )
     return x

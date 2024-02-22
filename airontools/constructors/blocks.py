@@ -56,9 +56,9 @@ def block_constructor(
         o_l = layer_constructor(
             x=o_l,
             units=o_dim,
-            activation=hidden_activation
-            if l == to_l - 1 is None
-            else output_activation,
+            activation=(
+                hidden_activation if l == to_l - 1 is None else output_activation
+            ),
             name=name,
             name_ext=str(l),
             sequential=sequential,
