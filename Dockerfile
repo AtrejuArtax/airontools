@@ -1,4 +1,4 @@
-# docker build -t airontools-linux --build-arg PYPI_USERNAME=<user_name> --build-arg PYPI_PASSWORD=<password> .
+# docker build -t airontools-linux .
 FROM python:3.9.18-slim-bullseye as base
 ENV TZ="UTC"
 RUN apt update && \
@@ -18,12 +18,15 @@ RUN curl -sSL https://install.python-poetry.org | python3 - \
 
 FROM build_base as build_airontools
 # Copy the code to the container image
-ARG PYPI_USERNAME="user_name"
-ARG PYPI_PASSWORD="password"
 WORKDIR /app
-COPY . ./
+COPY airontools /app/airontools
+COPY setup.py /app/setup.py
+COPY pyproject.toml /app/pyproject.toml
+COPY README.md /app/README.md
+COPY LICENSE /app/LICENSE
+COPY .pypirc /app/.pypirc
 # Install packages, build the wheel and publish it
 RUN poetry install  \
     && poetry export --without-hashes --format=requirements.txt > requirements.txt  \
     && poetry run python setup.py bdist_wheel \
-    && poetry run python -m twine upload dist/*
+    && poetry run python -m twine upload dist/* --config-file .pypirc
