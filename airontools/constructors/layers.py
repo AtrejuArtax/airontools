@@ -55,8 +55,8 @@ def layer_constructor(
         instead.
         multi_head_attention_dropout_rate (float): Multi-head attention dropout rate.
         return_attention_scores (bool): Whether to return attention scores or not.
-        activation (str, tf.keras.layers.Activation): The activation function of the output of the last hidden layer.
         use_causal_mask: Whether to use casual mask in the multi-head attention.
+        activation (str, tf.keras.layers.Activation): The activation function of the output of the last hidden layer.
         use_bias (bool): Whether to sue bias or not.
         sequential (bool): Whether to consider a sequential custom layer or not. Sequential and self-attention
         (num_heads > 0) are not compatible.
