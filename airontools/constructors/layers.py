@@ -169,7 +169,6 @@ def layer_constructor(
             ),
             bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
             dropout=multi_head_attention_dropout_rate,
-            use_causal_mask=use_causal_mask,
         )
         x = self_attention_layer_constructor(
             x,
@@ -177,6 +176,7 @@ def layer_constructor(
             name_ext=name_ext,
             sequential_axis=sequential_axis,
             return_attention_scores=return_attention_scores,
+            use_causal_mask=use_causal_mask,
             **multi_head_attention_kwargs,
         )
         if return_attention_scores:
@@ -322,6 +322,7 @@ def self_attention_layer_constructor(
     name_ext: str = "",
     sequential_axis: int = 1,
     return_attention_scores: bool = False,
+    use_causal_mask: bool = False,
     **kwargs,
 ) -> tf.keras.layers.Layer:
     x = sequential_permutation(
@@ -337,6 +338,7 @@ def self_attention_layer_constructor(
         x,
         x,
         x,
+        use_causal_mask=use_causal_mask,
         return_attention_scores=return_attention_scores,
     )
     return x
