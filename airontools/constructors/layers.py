@@ -373,7 +373,8 @@ def dense_layer_constructor(
     name_ext: str = "",
     **kwargs,
 ) -> tf.keras.layers.Layer:
-    if not len(x.shape[1:]) == 1:
+    input_shape = x.shape
+    if len(input_shape) > 2 and all([shape is not None for shape in input_shape[1:]]):
         x = tf.keras.layers.Flatten(
             name="_".join([name, "pre", "dense", "flatten", name_ext])
         )(x)
