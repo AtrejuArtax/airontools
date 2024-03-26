@@ -1,5 +1,5 @@
 # docker build -t airontools-linux .
-FROM python:3.9.18-slim-bullseye as base
+FROM python:3.10.13-slim-bullseye as base
 ENV TZ="UTC"
 RUN apt update && \
     apt install --no-install-recommends -y curl ca-certificates && \

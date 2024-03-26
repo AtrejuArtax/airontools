@@ -15,7 +15,7 @@ classifiers= [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.10.12,<3.11"
+python = ">=3.10.13,<3.11"
 tensorflow = "2.16.1"
 keras = "3.1.1"
 tensorflow-datasets = "=4.8.3"
