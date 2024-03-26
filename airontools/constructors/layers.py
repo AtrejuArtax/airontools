@@ -332,16 +332,31 @@ def self_attention_layer_constructor(
         name_ext=name_ext,
         sequential_axis=sequential_axis,
     )
-    x = keras.layers.MultiHeadAttention(
+    attention_layer = keras.layers.MultiHeadAttention(
         name="_".join([name, "multi_head_attention", name_ext]),
         **kwargs,
-    )(
-        x,
-        x,
-        x,
-        use_causal_mask=use_causal_mask,
-        return_attention_scores=return_attention_scores,
     )
+    if return_attention_scores:
+        attention_layer.build(
+            query_shape=x.shape,
+            value_shape=x.shape,
+            key_shape=x.shape,
+        )
+        x = attention_layer.call(
+            query=x,
+            value=x,
+            key=x,
+            use_causal_mask=use_causal_mask,
+            return_attention_scores=return_attention_scores,
+        )
+    else:
+        x = attention_layer(
+            query=x,
+            value=x,
+            key=x,
+            use_causal_mask=use_causal_mask,
+            return_attention_scores=return_attention_scores,
+        )
     return x
 
 
