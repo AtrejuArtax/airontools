@@ -342,13 +342,21 @@ def self_attention_layer_constructor(
             value_shape=x.shape,
             key_shape=x.shape,
         )
-    x = attention_layer(
-        query=x,
-        value=x,
-        key=x,
-        use_causal_mask=use_causal_mask,
-        return_attention_scores=return_attention_scores,
-    )
+        x = attention_layer.call(
+            query=x,
+            value=x,
+            key=x,
+            use_causal_mask=use_causal_mask,
+            return_attention_scores=return_attention_scores,
+        )
+    else:
+        x = attention_layer(
+            query=x,
+            value=x,
+            key=x,
+            use_causal_mask=use_causal_mask,
+            return_attention_scores=return_attention_scores,
+        )
     return x
 
 
