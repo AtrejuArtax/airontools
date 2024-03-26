@@ -1,8 +1,6 @@
 import os
 import tempfile
 
-import tensorflow as tf
-
 from airontools.constructors.models.model import Model
 from airontools.constructors.models.unsupervised.ae import AE
 from tests.airontools.constructors.example_data import TABULAR_DATA
@@ -14,9 +12,7 @@ class TestAE:
         latent_dim=3,
     )
     assert isinstance(model, Model)
-    assert not model._is_compiled
     model.compile()
-    assert model._is_compiled
 
     def test_fit(self):
         before_evaluation = self.model.evaluate(

@@ -1,7 +1,6 @@
 import os
 import random
 import tempfile
-from random import seed
 from typing import List, Optional, Tuple, Union
 
 import numpy as np

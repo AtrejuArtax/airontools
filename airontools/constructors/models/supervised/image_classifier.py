@@ -1,6 +1,7 @@
 import json
 from typing import Dict, List, Tuple
 
+import keras
 import numpy as np
 import tensorflow as tf
 from numpy.typing import NDArray
@@ -10,7 +11,7 @@ from airontools.constructors.models.model import Model
 from airontools.on_the_fly.hyper_design_dropout_rate import HyperDesignDropoutRate
 
 
-class ImageClassifierNN(Model, tf.keras.models.Model):
+class ImageClassifierNN(Model, keras.models.Model):
     """Image classifier model."""
 
     def __init__(
@@ -25,10 +26,10 @@ class ImageClassifierNN(Model, tf.keras.models.Model):
         tf.keras.models.Model.__init__(self)
 
         # Loss tracker
-        self.loss_tracker = tf.keras.metrics.Mean(name="loss")
+        self.loss_tracker = keras.metrics.Mean(name="loss")
 
         # Encoder
-        encoder_inputs = tf.keras.layers.Input(shape=input_shape)
+        encoder_inputs = keras.layers.Input(shape=input_shape)
         encoder_outputs = layer_constructor(
             x=encoder_inputs,
             units=n_classes,
@@ -36,7 +37,7 @@ class ImageClassifierNN(Model, tf.keras.models.Model):
             activation=output_activation,
             **kwargs,
         )
-        self._model = tf.keras.models.Model(
+        self._model = keras.models.Model(
             inputs=encoder_inputs,
             outputs=encoder_outputs,
             name=model_name,
@@ -47,11 +48,11 @@ class ImageClassifierNN(Model, tf.keras.models.Model):
 
     def compile(self, *args, **kwargs) -> None:
         """Compile model."""
-        tf.keras.models.Model.compile(self, *args, **kwargs)
+        keras.models.Model.compile(self, *args, **kwargs)
 
     def fit(self, *args, **kwargs) -> None:
         """Fit model."""
-        tf.keras.models.Model.fit(self, *args, **kwargs)
+        keras.models.Model.fit(self, *args, **kwargs)
 
     def evaluate(
         self, x: NDArray[float], y: NDArray[float], **kwargs
@@ -65,7 +66,7 @@ class ImageClassifierNN(Model, tf.keras.models.Model):
 
     def predict(self, *args, **kwargs) -> NDArray[float]:
         """Predict."""
-        return tf.keras.models.Model.predict(self, *args, **kwargs)
+        return keras.models.Model.predict(self, *args, **kwargs)
 
     def save_weights(self, path: str) -> None:
         """Save model weights."""
@@ -103,6 +104,6 @@ class ImageClassifierNN(Model, tf.keras.models.Model):
     def _loss_evaluation(
         self, y: tf.Tensor, y_pred: tf.Tensor, sample_weight: tf.Tensor
     ) -> tf.Tensor:
-        loss = tf.keras.metrics.categorical_crossentropy(y, y_pred) * sample_weight
+        loss = keras.metrics.categorical_crossentropy(y, y_pred) * sample_weight
         loss = tf.reduce_mean(tf.reduce_sum(loss))
         return loss

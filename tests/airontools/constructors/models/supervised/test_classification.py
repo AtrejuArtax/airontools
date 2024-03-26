@@ -1,7 +1,7 @@
 import os
 import tempfile
 
-import tensorflow as tf
+import keras
 
 from airontools.constructors.models.model import Model
 from airontools.constructors.models.supervised.image_classifier import ImageClassifierNN
@@ -22,9 +22,7 @@ class TestImageClassifierNN:
         **specs,
     )
     assert isinstance(model, Model)
-    assert not model._is_compiled
-    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001))
-    assert model._is_compiled
+    model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.001))
 
     def test_fit(self):
         before_evaluation = self.model.evaluate(

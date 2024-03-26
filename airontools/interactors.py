@@ -1,10 +1,10 @@
-import tensorflow as tf
+import keras
 
 from airontools.constructors.layers import CustomDropout
 
 
 def save_model(
-    model: tf.keras.models.Model,
+    model: keras.models.Model,
     filepath: str,
     save_entire_model: bool = False,
     file_format: str = "tf",
@@ -12,7 +12,7 @@ def save_model(
     """Save a Keras model.
 
     Parameters:
-        model (tf.keras.models.Model): Keras model to save.
+        model (keras.models.Model): Keras model to save.
         filepath (str): File path to save the model.
         save_entire_model (bool): Whether to save the entire model as a whole.
         file_format (str): The format of the file, which can be either tf or h5.
@@ -36,7 +36,7 @@ def load_model(
     custom_objects: dict = None,
     load_entire_model: bool = False,
     file_format: str = "tf",
-) -> tf.keras.models.Model:
+) -> keras.models.Model:
     """Load a Keras model.
 
     Parameters:
@@ -46,7 +46,7 @@ def load_model(
         file_format (str): The format of the file, which can be either tf or h5.
 
     Returns:
-        x (tf.keras.models.Model): A keras model.
+        x (keras.models.Model): A keras model.
 
     """
     # ToDo: make the addition of custom objects more general
@@ -63,12 +63,12 @@ def load_model(
     else:
         file_format = "." + file_format
     if load_entire_model:
-        model = tf.keras.models.load_model(filepath + file_format)
+        model = keras.models.load_model(filepath + file_format)
     else:
         json_file = open(filepath + "_topology")
         loaded_model_json = json_file.read()
         json_file.close()
-        model = tf.keras.models.model_from_json(loaded_model_json, custom_objects)
+        model = keras.models.model_from_json(loaded_model_json, custom_objects)
         model.load_weights(filepath=filepath + "_weights" + file_format)
 
     return model
