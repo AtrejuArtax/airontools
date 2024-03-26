@@ -336,12 +336,13 @@ def self_attention_layer_constructor(
         name="_".join([name, "multi_head_attention", name_ext]),
         **kwargs,
     )
-    attention_layer.build(
-        query_shape=x.shape,
-        value_shape=x.shape,
-        key_shape=x.shape,
-    )
-    x = attention_layer.call(
+    if return_attention_scores:
+        attention_layer.build(
+            query_shape=x.shape,
+            value_shape=x.shape,
+            key_shape=x.shape,
+        )
+    x = attention_layer(
         query=x,
         value=x,
         key=x,
