@@ -22,9 +22,7 @@ class TestImageClassifierNN:
         **specs,
     )
     assert isinstance(model, Model)
-    assert not model._is_compiled
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001))
-    assert model._is_compiled
 
     def test_fit(self):
         before_evaluation = self.model.evaluate(

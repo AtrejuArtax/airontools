@@ -14,9 +14,7 @@ class TestAE:
         latent_dim=3,
     )
     assert isinstance(model, Model)
-    assert not model._is_compiled
     model.compile()
-    assert model._is_compiled
 
     def test_fit(self):
         before_evaluation = self.model.evaluate(

@@ -8,4 +8,4 @@ class TestBlockConstructor:
         block = block_constructor(units=units, input_shape=(10,))
         for n_units, layer in zip(sub_units, block.layers):
             if n_units is not None:
-                assert n_units == layer.output_shape[-1]
+                assert n_units == layer.output.shape[-1]

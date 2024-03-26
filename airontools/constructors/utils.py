@@ -25,7 +25,7 @@ def get_latent_model(
     except ValueError:
         outputs = model._model.inputs
         layer_found = False
-        for layer in model._model.layers:
+        for layer in model._model.layers[1:]:
             outputs = layer(outputs)
             if layer.name == layer_name:
                 layer_found = True
