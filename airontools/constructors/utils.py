@@ -1,23 +1,23 @@
 import warnings
 from typing import Optional
 
-import tensorflow as tf
+import keras
 
 
 def get_latent_model(
-    model: tf.keras.models.Model, layer_name: str
-) -> Optional[tf.keras.models.Model]:
+    model: keras.models.Model, layer_name: str
+) -> Optional[keras.models.Model]:
     """Gets latent model.
 
     Parameters:
-        model (tf.keras.models.Model): Model.
+        model (keras.models.Model): Model.
         layer_name (str): Layer name from which to represent the data.
 
     Returns:
-        A tf.keras.models.Model.
+        A keras.models.Model.
     """
     try:
-        return tf.keras.models.Model(
+        return keras.models.Model(
             inputs=model._model.inputs,
             outputs=model._model.get_layer(layer_name).outputs,
             name=layer_name + "_model",
@@ -31,7 +31,7 @@ def get_latent_model(
                 layer_found = True
                 break
         if layer_found:
-            return tf.keras.models.Model(
+            return keras.models.Model(
                 inputs=model._model.inputs,
                 outputs=outputs,
                 name=layer_name + "_model",
@@ -48,15 +48,15 @@ def set_precision(precision: str) -> None:
     """
     if "float16" in precision:
         if precision == "mixed_float16":
-            policy = tf.keras.mixed_precision.Policy("mixed_float16")
-            tf.keras.mixed_precision.set_global_policy(policy)
+            policy = keras.mixed_precision.Policy("mixed_float16")
+            keras.mixed_precision.set_global_policy(policy)
         else:
-            tf.keras.backend.set_floatx("float16")
+            keras.backend.set_floatx("float16")
 
 
 def get_regularizer(
     l1_value: float = None, l2_value: float = None
-) -> tf.keras.regularizers.Regularizer:
+) -> keras.regularizers.Regularizer:
     """Gets a regularizer.
 
     Parameters:
@@ -64,11 +64,11 @@ def get_regularizer(
         l2_value (float): L2 (Ridge) regularization value.
 
     Returns:
-        A tf.keras.regularizers.Regularizer.
+        A keras.regularizers.Regularizer.
     """
     if l1_value and l2_value:
-        return tf.keras.regularizers.l1_l2(l1=l1_value, l2=l2_value)
+        return keras.regularizers.l1_l2(l1=l1_value, l2=l2_value)
     elif l1_value:
-        return tf.keras.regularizers.l1(l1=l1_value)
+        return keras.regularizers.l1(l1=l1_value)
     elif l2_value:
-        return tf.keras.regularizers.l2(l2=l2_value)
+        return keras.regularizers.l2(l2=l2_value)

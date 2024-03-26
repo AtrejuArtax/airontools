@@ -1,4 +1,4 @@
-import tensorflow as tf
+import keras
 
 from airontools.constructors.models.unsupervised.vae import VAE
 from airontools.constructors.utils import get_latent_model, get_regularizer
@@ -12,14 +12,14 @@ class TestGetLatentModel:
         input_shape=TABULAR_DATA.shape[1:],
         latent_dim=2,
     )
-    model.compile(optimizer=tf.keras.optimizers.Adam())
+    model.compile(optimizer=keras.optimizers.Adam())
 
     def test_successful_case(self):
         latent_model = get_latent_model(
             model=self.model,
             layer_name="_".join([self.model_name, "encoder"]),
         )
-        assert isinstance(latent_model, tf.keras.models.Model)
+        assert isinstance(latent_model, keras.models.Model)
 
     def test_unsuccessful_case(self):
         latent_model = get_latent_model(
@@ -32,15 +32,15 @@ class TestGetLatentModel:
 class TestGetRegularizer:
     def test_l1_case(self):
         regularizer = get_regularizer(l1_value=0.001)
-        assert isinstance(regularizer, tf.keras.regularizers.Regularizer)
+        assert isinstance(regularizer, keras.regularizers.Regularizer)
 
     def test_l2_case(self):
         regularizer = get_regularizer(l2_value=0.001)
-        assert isinstance(regularizer, tf.keras.regularizers.Regularizer)
+        assert isinstance(regularizer, keras.regularizers.Regularizer)
 
     def test_l1_l2_case(self):
         regularizer = get_regularizer(l1_value=0.001, l2_value=0.001)
-        assert isinstance(regularizer, tf.keras.regularizers.Regularizer)
+        assert isinstance(regularizer, keras.regularizers.Regularizer)
 
     def test_none_case(self):
         regularizer = get_regularizer()

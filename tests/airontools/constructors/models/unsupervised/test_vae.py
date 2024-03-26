@@ -3,7 +3,6 @@ import tempfile
 
 import keras
 import numpy as np
-import tensorflow as tf
 
 from airontools.constructors.models.model import Model
 from airontools.constructors.models.unsupervised.vae import VAE
@@ -16,7 +15,7 @@ class TestVAE:
         latent_dim=3,
     )
     assert isinstance(model, Model)
-    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001))
+    model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.001))
 
     def test_fit(self):
         before_evaluation = self.model.evaluate(

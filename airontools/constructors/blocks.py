@@ -1,6 +1,6 @@
 from typing import List, Tuple, Union
 
-import tensorflow as tf
+import keras
 
 from airontools.constructors.layers import layer_constructor
 
@@ -13,14 +13,14 @@ def block_constructor(
     bidirectional: bool = False,
     from_l: int = 1,
     hidden_activation: str = "prelu",
-    output_activation: Union[str, tf.keras.layers.Layer] = "linear",
+    output_activation: Union[str, keras.layers.Layer] = "linear",
     kernel_regularizer_l1: float = 0.001,
     kernel_regularizer_l2: float = 0.001,
     bias_regularizer_l1: float = 0.001,
     bias_regularizer_l2: float = 0.001,
     dropout_rate: float = 0.0,
     bn: bool = False,
-) -> tf.keras.models.Model:
+) -> keras.models.Model:
     """It builds a custom block. For now only compatible with dense and sequential layers.
 
     Parameters:
@@ -46,7 +46,7 @@ def block_constructor(
 
     # Hidden layers
     i_l, o_l = (
-        tf.keras.layers.Input(shape=input_shape, name="_".join([name, "input"])),
+        keras.layers.Input(shape=input_shape, name="_".join([name, "input"])),
         None,
     )
     to_l = from_l + len(units)
@@ -73,6 +73,6 @@ def block_constructor(
         )
 
     # Model
-    model = tf.keras.models.Model(inputs=i_l, outputs=o_l, name=name)
+    model = keras.models.Model(inputs=i_l, outputs=o_l, name=name)
 
     return model
