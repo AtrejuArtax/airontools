@@ -2,7 +2,7 @@
 
 [tool.poetry]
 name = "airontools"
-version = "0.1.43"
+version = "0.1.44"
 description = "AIronTools (Beta) is a Python library that provides the user with deep learning tools built to work with tensorflow as a backend."
 authors = ["Claudi Ruiz Camps <claudi_ruiz@hotmail.com>"]
 readme = "README.md"
@@ -15,17 +15,17 @@ classifiers= [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.10.13,<3.11"
-tensorflow = "2.16.1"
-keras = "3.1.1"
+python = ">=3.10.12,<3.11"
 tensorflow-datasets = "=4.8.3"
 scikit-learn = "^1.2.2"
+tensorflow = "2.16.2"
+h5py = "3.10.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "8.1.1"
 pip = "^23.1.2"
 black = "^24.2.0"
-twine = "^4.0.2"
+twine = "^5.1.1"
 isort = "^5.13.2"
 
 [build-system]
