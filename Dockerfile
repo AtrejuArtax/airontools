@@ -14,8 +14,11 @@ RUN apt update && \
     apt install --no-install-recommends -y \
     curl \
     python3 \
+    python3-dev \
     python-is-python3 \
     gcc \
+    pkg-config \
+    libhdf5-dev \
     pipx \
     && rm -rf /var/lib/apt/lists/* \
     && pipx install poetry
