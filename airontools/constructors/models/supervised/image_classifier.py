@@ -23,7 +23,7 @@ class ImageClassifierNN(Model, keras.models.Model):
         **kwargs,
     ):
         Model.__init__(self)
-        tf.keras.models.Model.__init__(self)
+        keras.models.Model.__init__(self)
 
         # Loss tracker
         self.loss_tracker = keras.metrics.Mean(name="loss")

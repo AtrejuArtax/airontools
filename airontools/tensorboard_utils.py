@@ -1,7 +1,7 @@
 import os
 from typing import List, Union
 
-import tensorflow as tf
+import keras
 from numpy.typing import NDArray
 from tensorboard.plugins import projector
 
