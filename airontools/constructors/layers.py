@@ -338,9 +338,7 @@ def self_attention_layer_constructor(
     )
     if return_attention_scores:
         attention_layer.build(
-            query_shape=x.shape,
-            value_shape=x.shape,
-            key_shape=x.shape,
+            input_shape=x.shape,
         )
         x = attention_layer.call(
             query=x,

@@ -1,5 +1,3 @@
-import keras
-
 from airontools.constructors.layers import CustomDropout
 
 
