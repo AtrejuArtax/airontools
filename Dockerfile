@@ -1,5 +1,5 @@
 # docker build -t airontools-linux .
-FROM nvidia/cuda:12.2.2-cudnn8-runtime-ubuntu22.04 AS base
+FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04 AS base
 ENV TZ="UTC"
 RUN apt update && \
     apt install --no-install-recommends -y curl ca-certificates && \
@@ -14,9 +14,9 @@ RUN apt update && \
     apt install --no-install-recommends -y \
     curl \
     python3 \
+    gcc \
     python3-dev \
     python-is-python3 \
-    gcc \
     pkg-config \
     libhdf5-dev \
     pipx \
