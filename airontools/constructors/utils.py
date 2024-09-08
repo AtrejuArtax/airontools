@@ -55,7 +55,7 @@ def set_precision(precision: str) -> None:
 
 
 def get_regularizer(
-    l1_value: float = None, l2_value: float = None
+    l1_value: Optional[float] = None, l2_value: Optional[float] = None
 ) -> keras.regularizers.Regularizer:
     """Gets a regularizer.
 

@@ -1,5 +1,5 @@
 import warnings
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 
 import keras
 import numpy as np
@@ -12,7 +12,7 @@ def layer_constructor(
     x: Union[tf.Tensor, keras.layers.Layer],
     units: int,
     name: str = "layer",
-    name_ext: str = "",
+    name_ext: Optional[str] = None,
     num_heads: int = 0,
     key_dim: int = 0,
     value_dim: int = 0,
@@ -27,7 +27,7 @@ def layer_constructor(
     filters: int = 0,
     kernel_size: Union[int, Tuple[int]] = 0,
     padding: str = "valid",
-    pooling: Union[str, keras.layers.Layer] = None,
+    pooling: Optional[Union[str, keras.layers.Layer]] = None,
     pool_size: Union[int, Tuple[int]] = 1,
     conv_transpose: bool = False,
     strides: Union[int, Tuple[int]] = 1,
@@ -253,19 +253,26 @@ def dropout_layer_constructor(
     x: Union[tf.Tensor, keras.layers.Layer],
     dropout_rate: float,
     name: str = "dropout",
-    name_ext: str = "",
+    name_ext: Optional[str] = None,
 ) -> keras.layers.Layer:
     input_shape = x.shape
     output_reshape = None
     if len(input_shape) > 2 and all([shape is not None for shape in input_shape[1:]]):
         output_reshape = input_shape
-        x = keras.layers.Flatten(
-            name="_".join([name, "pre", "dropout", "flatten", name_ext])
-        )(x)
-    x = CustomDropout(name="_".join([name, "dropout", name_ext]), rate=dropout_rate)(x)
+        flatten_layer_name = "_".join([name, "pre", "dropout", "flatten"])
+        if name_ext is not None:
+            flatten_layer_name = "_".join([flatten_layer_name, name_ext])
+        x = keras.layers.Flatten(name=flatten_layer_name)(x)
+    custom_dropout_layer_name = "_".join([name, "dropout"])
+    if name_ext is not None:
+        custom_dropout_layer_name = "_".join([custom_dropout_layer_name, name_ext])
+    x = CustomDropout(name=custom_dropout_layer_name, rate=dropout_rate)(x)
     if output_reshape is not None:
+        reshape_layer_name = "_".join([name, "reshape"])
+        if name_ext is not None:
+            reshape_layer_name = "_".join([reshape_layer_name, name_ext])
         x = keras.layers.Reshape(
-            name="_".join([name, "post", "dropout", "reshape", name_ext]),
+            name=reshape_layer_name,
             target_shape=output_reshape[1:],
         )(x)
     return x
@@ -274,15 +281,16 @@ def dropout_layer_constructor(
 def convolutional_layer_constructor(
     x: Union[tf.Tensor, keras.layers.Layer],
     name: str = "convolution",
-    name_ext: str = "",
+    name_ext: Optional[str] = None,
     conv_transpose: bool = False,
     **kwargs,
 ) -> keras.layers.Layer:
     assert len(x.shape) <= 5, "x layer shape should have 5 or less dimensions"
     conv_dim = len(x.shape) - 2
     conv_type = "transpose" if conv_transpose else ""
-    conv_name = "conv" + str(conv_dim) + "d" + conv_type.capitalize()
-    layer_name = "_".join([name, conv_name, name_ext])
+    conv_name = "_".join([name, "conv" + str(conv_dim) + "d" + conv_type.capitalize()])
+    if name_ext is not None:
+        conv_name = "_".join([conv_name, name_ext])
     if conv_dim == 1:
         conv_layer = keras.layers.Conv1D
     elif conv_dim == 2:
@@ -290,7 +298,7 @@ def convolutional_layer_constructor(
     else:
         conv_layer = keras.layers.Conv3D
     x = conv_layer(
-        name=layer_name,
+        name=conv_name,
         **kwargs,
     )(x)
     return x
@@ -299,7 +307,7 @@ def convolutional_layer_constructor(
 def pooling_layer_constructor(
     x: Union[tf.Tensor, keras.layers.Layer],
     name: str = "pooling",
-    name_ext: str = "",
+    name_ext: Optional[str] = None,
     pooling: Union[str, keras.layers.Layer] = "max",
     **kwargs,
 ) -> keras.layers.Layer:
@@ -309,7 +317,10 @@ def pooling_layer_constructor(
     else:
         pooling_name = [k for k, v in locals().iteritems() if v == pooling][0]
         pooling_layer = pooling
-    x = pooling_layer(name="_".join([name, pooling_name.lower(), name_ext]))(x)
+    pooling_layer_name = "_".join([name, pooling_name.lower()])
+    if name_ext is not None:
+        pooling_layer_name = "_".join([pooling_layer_name, name_ext])
+    x = pooling_layer(name=pooling_layer_name)(x)
     return x
 
 
@@ -320,7 +331,7 @@ def _get_pooling_dim(x: keras.layers.Layer) -> int:
 def self_attention_layer_constructor(
     x: Union[tf.Tensor, keras.layers.Layer],
     name: str = "self_attention",
-    name_ext: str = "",
+    name_ext: Optional[str] = None,
     sequential_axis: int = 1,
     return_attention_scores: bool = False,
     use_causal_mask: bool = False,
@@ -332,8 +343,11 @@ def self_attention_layer_constructor(
         name_ext=name_ext,
         sequential_axis=sequential_axis,
     )
+    attention_layer_name = "_".join([name, "multi_head_attention"])
+    if name_ext is not None:
+        attention_layer_name = "_".join([attention_layer_name, name_ext])
     attention_layer = keras.layers.MultiHeadAttention(
-        name="_".join([name, "multi_head_attention", name_ext]),
+        name=attention_layer_name,
         **kwargs,
     )
     if return_attention_scores:
@@ -361,7 +375,7 @@ def self_attention_layer_constructor(
 def sequential_layer_constructor(
     x: Union[tf.Tensor, keras.layers.Layer],
     name: str = "sequential",
-    name_ext: str = "",
+    name_ext: Optional[str] = None,
     bidirectional: bool = False,
     sequential_axis: int = 1,
     **kwargs,
@@ -372,27 +386,36 @@ def sequential_layer_constructor(
         name_ext=name_ext,
         sequential_axis=sequential_axis,
     )
+    gru_layer_name = "_".join([name, "gru"])
+    if name_ext is not None:
+        gru_layer_name = "_".join([gru_layer_name, name_ext])
     if bidirectional:
-        x = keras.layers.Bidirectional(
-            keras.layers.GRU(name="_".join([name, "gru", name_ext]), **kwargs)
-        )(x)
+        x = keras.layers.Bidirectional(keras.layers.GRU(name=gru_layer_name, **kwargs))(
+            x
+        )
     else:
-        x = keras.layers.GRU(name="_".join([name, "gru", name_ext]), **kwargs)(x)
+        x = keras.layers.GRU(name=gru_layer_name, **kwargs)(x)
     return x
 
 
 def dense_layer_constructor(
     x: Union[tf.Tensor, keras.layers.Layer],
     name: str = "dense",
-    name_ext: str = "",
+    name_ext: Optional[str] = None,
     **kwargs,
 ) -> keras.layers.Layer:
     input_shape = x.shape
     if len(input_shape) > 2 and all([shape is not None for shape in input_shape[1:]]):
+        flatten_layer_name = "_".join([name, "pre", "dense", "flatten"])
+        if name_ext is not None:
+            flatten_layer_name = "_".join([flatten_layer_name, name_ext])
         x = keras.layers.Flatten(
-            name="_".join([name, "pre", "dense", "flatten", name_ext])
+            name=flatten_layer_name,
         )(x)
-    x = keras.layers.Dense(name="_".join([name, "dense", name_ext]), **kwargs)(x)
+    dense_layer_name = "_".join([name, "dense"])
+    if name_ext is not None:
+        dense_layer_name = "_".join([dense_layer_name, name_ext])
+    x = keras.layers.Dense(name=dense_layer_name, **kwargs)(x)
     return x
 
 
@@ -403,16 +426,23 @@ def bn_layer_constructor(
     output_reshape = None
     if len(input_shape) > 2 and all([shape is not None for shape in input_shape[1:]]):
         output_reshape = input_shape
-        x = keras.layers.Flatten(
-            name="_".join([name, "pre", "bn", "flatten", name_ext])
-        )(x)
+        flatten_layer_name = "_".join([name, "pre", "bn", "flatten"])
+        if name_ext is not None:
+            flatten_layer_name = "_".join([flatten_layer_name, name_ext])
+        x = keras.layers.Flatten(name=flatten_layer_name)(x)
+    bn_layer_name = "_".join([name, "batch_normalization"])
+    if name_ext is not None:
+        bn_layer_name = "_".join([bn_layer_name, name_ext])
     x = keras.layers.BatchNormalization(
-        name="_".join([name, "batch_normalization", name_ext]),
+        name=bn_layer_name,
         **kwargs,
     )(x)
     if output_reshape is not None:
+        reshape_layer_name = "_".join([name, "post", "bn", "reshape"])
+        if name_ext is not None:
+            reshape_layer_name = "_".join([reshape_layer_name, name_ext])
         x = keras.layers.Reshape(
-            name="_".join([name, "post", "bn", "reshape", name_ext]),
+            name=reshape_layer_name,
             target_shape=output_reshape[1:],
         )(x)
     return x
@@ -421,7 +451,7 @@ def bn_layer_constructor(
 def activation_layer_constructor(
     x: Union[tf.Tensor, keras.layers.Layer],
     name: str = "activation",
-    name_ext: str = "",
+    name_ext: Optional[str] = None,
     activation: str = "linear",
     **reg_kwargs,
 ) -> keras.layers.Layer:
@@ -429,23 +459,31 @@ def activation_layer_constructor(
     output_reshape = None
     if len(input_shape) > 2 and all([shape is not None for shape in input_shape[1:]]):
         output_reshape = input_shape
-        x = keras.layers.Flatten(
-            name="_".join([name, "pre", "activation", "flatten", name_ext])
-        )(x)
-    activation_name = "_".join(
-        [name, activation if isinstance(activation, str) else "activation", name_ext],
+        flatten_layer_name = "_".join([name, "pre", "activation", "flatten"])
+        if name_ext is not None:
+            flatten_layer_name = "_".join([flatten_layer_name, name_ext])
+        x = keras.layers.Flatten(name=flatten_layer_name)(x)
+    activation_layer_name = "_".join(
+        [name, activation if isinstance(activation, str) else "activation"],
     )
+    if name_ext is not None:
+        activation_layer_name = "_".join([activation_layer_name, name_ext])
     if activation == "leakyrelu":
-        x = keras.layers.LeakyReLU(name=activation_name)(x)
+        x = keras.layers.LeakyReLU(name=activation_layer_name)(x)
     elif activation == "prelu":
-        x = keras.layers.PReLU(name=activation_name, **reg_kwargs)(x)
+        x = keras.layers.PReLU(name=activation_layer_name, **reg_kwargs)(x)
     elif activation == "softmax":
-        x = keras.layers.Softmax(name=activation_name, dtype="float32")(x)
+        x = keras.layers.Softmax(name=activation_layer_name, dtype="float32")(x)
     else:
-        x = keras.layers.Activation(name=activation_name, activation=activation)(x)
+        x = keras.layers.Activation(name=activation_layer_name, activation=activation)(
+            x
+        )
     if output_reshape is not None:
+        reshape_layer_name = "_".join([name, "post", "activation", "reshape"])
+        if name_ext is not None:
+            reshape_layer_name = "_".join([reshape_layer_name, name_ext])
         x = keras.layers.Reshape(
-            name="_".join([name, "post", "activation", "reshape", name_ext]),
+            name=reshape_layer_name,
             target_shape=output_reshape[1:],
         )(x)
     return x
@@ -454,7 +492,7 @@ def activation_layer_constructor(
 def sequential_permutation(
     x: Union[tf.Tensor, keras.layers.Layer],
     name: str = "permutation",
-    name_ext: str = "",
+    name_ext: Optional[str] = None,
     sequential_axis: int = 1,
 ) -> keras.layers.Layer:
     input_shape = x.shape
@@ -464,15 +502,19 @@ def sequential_permutation(
             [sequential_axis_]
             + [i for i in range(1, len(input_shape[1:])) if i != sequential_axis_],
         )
-        x = keras.layers.Permute(
-            name="_".join([name, "permutation", name_ext]), dims=permutation
-        )(x)
+        permute_layer_name = "_".join([name, "permutation"])
+        if name_ext is not None:
+            permute_layer_name = "_".join([permute_layer_name, name_ext])
+        x = keras.layers.Permute(name=permute_layer_name, dims=permutation)(x)
     else:
         permutation = list(range(1, len(input_shape)))
     if len(input_shape) > 2 and all([shape is not None for shape in input_shape[1:]]):
         permutation_dimensions = [input_shape[i] for i in permutation[1:]]
+        reshape_layer_name = "_".join([name, "reshape"])
+        if name_ext is not None:
+            reshape_layer_name = "_".join([reshape_layer_name, name_ext])
         x = keras.layers.Reshape(
-            name="_".join([name, "reshape", name_ext]),
+            name=reshape_layer_name,
             target_shape=(
                 input_shape[permutation[0]],
                 np.prod(permutation_dimensions),

@@ -3,8 +3,8 @@ import random
 import tempfile
 from typing import List, Optional, Tuple, Union
 
-import keras
 import numpy as np
+import tensorflow as tf
 import tensorflow_datasets.public_api as tfds
 from numpy.typing import NDArray
 from sklearn.model_selection import KFold
