@@ -41,7 +41,7 @@ def block_constructor(
         bn (bool): If set, a batch normalization layer will be added right before the output activation function.
 
     Returns:
-        model (Model): A keras model.
+        model (keras.models.Model): A keras model.
     """
 
     # Hidden layers

@@ -1,8 +1,9 @@
 import os
 import shutil
+from typing import Optional
 
 
-def path_management(path: str, modes=None) -> None:
+def path_management(path: str, modes: Optional[None]) -> None:
     """Path preparation.
 
     Parameters:
