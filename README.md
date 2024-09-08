@@ -40,7 +40,7 @@ model.fit(
     tabular_data,
     epochs=10,
 )
-print("VAE evaluation:", float(model.evaluate(tabular_data)["loss"]))
+print(f"VAE evaluation: {model.evaluate(tabular_data)['loss']:.4f}")
 
 ```
 
