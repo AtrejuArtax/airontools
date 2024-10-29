@@ -4,11 +4,11 @@ import tempfile
 import keras
 
 from airontools.constructors.models.model import Model
-from airontools.constructors.models.supervised.image_classifier import ImageClassifierNN
+from airontools.constructors.models.supervised.feed_forward import FeedForward
 from tests.airontools.constructors.example_data import IMG_DATA, N_CLASSES, TARGETS
 
 
-class TestImageClassifierNN:
+class TestFeedForward:
     specs = dict(
         filters=32,
         kernel_size=15,
@@ -16,9 +16,9 @@ class TestImageClassifierNN:
         sequential_axis=-1,
         num_heads=3,
     )
-    model = ImageClassifierNN(
+    model = FeedForward(
         input_shape=tuple(IMG_DATA.shape[1:]),
-        n_classes=N_CLASSES,
+        n_outputs=N_CLASSES,
         **specs,
     )
     assert isinstance(model, Model)
