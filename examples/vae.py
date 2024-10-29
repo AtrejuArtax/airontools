@@ -1,7 +1,8 @@
 import numpy as np
 import tensorflow as tf
-from airontools.constructors.models.unsupervised.vae import VAE
 from numpy.random import normal
+
+from airontools.constructors.models.unsupervised.vae import VAE
 
 tabular_data = np.concatenate(
     [

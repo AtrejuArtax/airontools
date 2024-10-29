@@ -11,19 +11,26 @@ from airontools.constructors.models.model import Model
 from airontools.on_the_fly.hyper_design_dropout_rate import HyperDesignDropoutRate
 
 
-class ImageClassifierNN(Model, keras.models.Model):
-    """Image classifier model."""
+class FeedForward(Model, keras.models.Model):
+    """Feed forward model."""
 
     def __init__(
         self,
         input_shape: Tuple[int],
-        n_classes: int,
-        model_name: str = "ImageClassifierNN",
-        output_activation: str = "softmax",
+        n_outputs: int,
+        model_name: str = "FeedForward",
+        output_activation: str = "linear",
+        loss: str = "mse",
         **kwargs,
     ):
         Model.__init__(self)
         keras.models.Model.__init__(self)
+        assert loss in [
+            "categorical_crossentropy",
+            "binary_crossentropy",
+            "mse",
+        ], f"{loss} is not implemented."
+        self._loss = loss
 
         # Loss tracker
         self.loss_tracker = keras.metrics.Mean(name="loss")
@@ -32,7 +39,7 @@ class ImageClassifierNN(Model, keras.models.Model):
         encoder_inputs = keras.layers.Input(shape=input_shape)
         encoder_outputs = layer_constructor(
             x=encoder_inputs,
-            units=n_classes,
+            units=n_outputs,
             name=f"{model_name}_encoder",
             activation=output_activation,
             **kwargs,
@@ -104,6 +111,14 @@ class ImageClassifierNN(Model, keras.models.Model):
     def _loss_evaluation(
         self, y: tf.Tensor, y_pred: tf.Tensor, sample_weight: tf.Tensor
     ) -> tf.Tensor:
-        loss = keras.metrics.categorical_crossentropy(y, y_pred) * sample_weight
+        if self._loss == "categorical_crossentropy":
+            loss = keras.metrics.categorical_crossentropy(y, y_pred)
+        elif self._loss == "binary_crossentropy":
+            loss = keras.metrics.binary_crossentropy(y, y_pred)
+        elif self._loss == "mse":
+            loss = keras.metrics.mean_squared_error(y, y_pred)
+        else:
+            loss = tf.zeros_like(y, dtype=tf.float32)
+        loss = loss * sample_weight
         loss = tf.reduce_mean(tf.reduce_sum(loss))
         return loss

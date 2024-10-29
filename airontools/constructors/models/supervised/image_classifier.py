@@ -11,14 +11,14 @@ from airontools.constructors.models.model import Model
 from airontools.on_the_fly.hyper_design_dropout_rate import HyperDesignDropoutRate
 
 
-class ImageClassifierNN(Model, keras.models.Model):
+class ImageClassifier(Model, keras.models.Model):
     """Image classifier model."""
 
     def __init__(
         self,
         input_shape: Tuple[int],
         n_classes: int,
-        model_name: str = "ImageClassifierNN",
+        model_name: str = "ImageClassifier",
         output_activation: str = "softmax",
         **kwargs,
     ):
