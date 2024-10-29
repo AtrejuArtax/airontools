@@ -4,7 +4,7 @@ import tempfile
 import keras
 
 from airontools.constructors.models.model import Model
-from airontools.constructors.models.supervised.image_classifier import ImageClassifierNN
+from airontools.constructors.models.supervised.image_classifier import ImageClassifier
 from tests.airontools.constructors.example_data import IMG_DATA, N_CLASSES, TARGETS
 
 
@@ -16,7 +16,7 @@ class TestImageClassifierNN:
         sequential_axis=-1,
         num_heads=3,
     )
-    model = ImageClassifierNN(
+    model = ImageClassifier(
         input_shape=tuple(IMG_DATA.shape[1:]),
         n_classes=N_CLASSES,
         **specs,
