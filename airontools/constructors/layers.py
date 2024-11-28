@@ -352,7 +352,8 @@ def self_attention_layer_constructor(
     )
     if return_attention_scores:
         attention_layer.build(
-            input_shape=x.shape,
+            query_shape=tf.keras.backend.int_shape(x),
+            value_shape=tf.keras.backend.int_shape(x),
         )
         x = attention_layer.call(
             query=x,

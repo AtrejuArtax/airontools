@@ -5,7 +5,6 @@ from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import tensorflow as tf
-import tensorflow_datasets.public_api as tfds
 from numpy.typing import NDArray
 from sklearn.model_selection import KFold
 from tensorflow import DType
@@ -99,8 +98,6 @@ def train_val_split(
     val_ratio: float = 0.2,
     shuffle: bool = True,
     seed_val: int = None,
-    return_tfrecord: bool = False,
-    tfrecord_name: str = None,
 ):
     """Train validation split.
 
@@ -113,8 +110,6 @@ def train_val_split(
         val_ratio (float): Ratio for validation.
         shuffle (bool): Whether to shuffle or not.
         seed_val (int): Seed value.
-        return_tfrecord (bool): Whether to return tfrecord or not.
-        tfrecord_name (str): Name of the tfrecord.
 
     Returns:
         4 list[Union[NDArray, tf.data.Dataset]].
@@ -161,25 +156,6 @@ def train_val_split(
                 for sub_meta in data["meta"]:
                     meta_ += [sub_meta[inds_[distribution], ...]]
                 split_data["meta"][distribution] += [meta_]
-    if return_tfrecord:
-        if tfrecord_name is None:
-            tfrecord_name = os.path.join(tempfile.gettempdir(), "tfrecord")
-        for name in split_data.keys():
-            for distribution in distributions:
-                for i in range(n_parallel_models):
-                    for j in range(len(split_data[name][distribution][i])):
-                        tfrecord_name_ = "_".join(
-                            [tfrecord_name, name, distribution, "fold", str(i), str(j)],
-                        )
-                        _data = split_data[name][distribution][i][j]
-                        sample_shape = tuple(_data.shape[1:])
-                        write_tfrecord(
-                            dataset=_data, filepath=tfrecord_name_ + ".tfrecords"
-                        )
-                        split_data[name][distribution][i][j] = read_tfrecord(
-                            filepath=tfrecord_name_ + ".tfrecords",
-                            sample_shape=sample_shape,
-                        )
     returns = []
     for name in split_data.keys():
         for distribution in distributions:
@@ -216,10 +192,5 @@ def _to_list_array(data):
     if not isinstance(data, list):
         data = [data]
     for i in range(len(data)):
-        if isinstance(data[i], tf.data.Dataset):
-            data[i] = tfds.as_numpy(data[i])
-            for _, data_ in data[i].items():
-                data_list += [data_]
-        else:
-            data_list += [data[i]]
+        data_list += [data[i]]
     return data_list
