@@ -96,9 +96,10 @@ def layer_constructor(
 
     # Dropout
     if dropout_rate != 0:
+        dropout_layer_name = "".join([name, "dropout"])
         x = dropout_layer_constructor(
             x,
-            name=name,
+            name=dropout_layer_name,
             name_ext=name_ext,
             dropout_rate=dropout_rate,
         )
@@ -125,9 +126,10 @@ def layer_constructor(
             ),
             bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
         )
+        convolutional_layer_name = "".join([name, "convolution"])
         x = convolutional_layer_constructor(
             x,
-            name=name,
+            name=convolutional_layer_name,
             name_ext=name_ext,
             conv_transpose=conv_transpose,
             **conv_kwargs,
@@ -145,9 +147,10 @@ def layer_constructor(
             strides=strides,
             padding=padding,
         )
+        pooling_layer_name = "".join([name, "pooling"])
         x = pooling_layer_constructor(
             x,
-            name=name,
+            name=pooling_layer_name,
             name_ext=name_ext,
             conv_transpose=conv_transpose,
             pooling=pooling,
@@ -171,9 +174,10 @@ def layer_constructor(
             bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
             dropout=multi_head_attention_dropout_rate,
         )
+        self_attention_layer_name = "".join([name, "self_attention"])
         x = self_attention_layer_constructor(
             x,
-            name=name,
+            name=self_attention_layer_name,
             name_ext=name_ext,
             sequential_axis=sequential_axis,
             return_attention_scores=return_attention_scores,
@@ -196,9 +200,10 @@ def layer_constructor(
             return_sequences=return_sequences,
             activation="linear",
         )
+        sequential_layer_name = "".join([name, "sequential"])
         x = sequential_layer_constructor(
             x,
-            name=name,
+            name=sequential_layer_name,
             name_ext=name_ext,
             bidirectional=bidirectional,
             sequential_axis=sequential_axis,
@@ -216,9 +221,10 @@ def layer_constructor(
             ),
             bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
         )
+        dense_layer_name = "".join([name, "dense"])
         x = dense_layer_constructor(
             x,
-            name=name,
+            name=dense_layer_name,
             name_ext=name_ext,
             **dense_kwargs,
         )
@@ -229,15 +235,17 @@ def layer_constructor(
             beta_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
             gamma_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
         )
-        x = bn_layer_constructor(x, name=name, name_ext=name_ext, **bn_kwargs)
+        bn_layer_name = "".join([name, "bn"])
+        x = bn_layer_constructor(x, name=bn_layer_name, name_ext=name_ext, **bn_kwargs)
 
     # Activation
     activation_kwargs = dict(
         alpha_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
     )
+    activation_layer_name = "".join([name, "activation"])
     x = activation_layer_constructor(
         x,
-        name=name,
+        name=activation_layer_name,
         name_ext=name_ext,
         activation=activation,
         **activation_kwargs,
@@ -288,7 +296,9 @@ def convolutional_layer_constructor(
     assert len(x.shape) <= 5, "x layer shape should have 5 or less dimensions"
     conv_dim = len(x.shape) - 2
     conv_type = "transpose" if conv_transpose else ""
-    conv_name = "_".join([name, "conv" + str(conv_dim) + "d" + conv_type.capitalize()])
+    conv_name = "_".join(
+        [name, "convolution" + str(conv_dim) + "d" + conv_type.capitalize()]
+    )
     if name_ext is not None:
         conv_name = "_".join([conv_name, name_ext])
     if conv_dim == 1:
@@ -337,9 +347,12 @@ def self_attention_layer_constructor(
     use_causal_mask: bool = False,
     **kwargs,
 ) -> keras.layers.Layer:
+    sequential_permutation_name = "_".join(
+        [name, "sequential_permutation_" + str(sequential_axis)]
+    )
     x = sequential_permutation(
         x=x,
-        name=name,
+        name=sequential_permutation_name,
         name_ext=name_ext,
         sequential_axis=sequential_axis,
     )
@@ -381,9 +394,12 @@ def sequential_layer_constructor(
     sequential_axis: int = 1,
     **kwargs,
 ) -> keras.layers.Layer:
+    sequential_permutation_name = "_".join(
+        [name, "sequential_permutation_" + str(sequential_axis)]
+    )
     x = sequential_permutation(
         x=x,
-        name=name,
+        name=sequential_permutation_name,
         name_ext=name_ext,
         sequential_axis=sequential_axis,
     )
