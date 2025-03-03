@@ -21,7 +21,7 @@ RUN apt update && \
     libhdf5-dev \
     pipx \
     && rm -rf /var/lib/apt/lists/* \
-    && pipx install poetry
+    && pipx install poetry==1.8.5
 
 FROM build_base as build_airontools
 # Copy the code to the container image
