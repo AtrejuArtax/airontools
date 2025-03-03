@@ -534,7 +534,7 @@ def sequential_permutation(
             name=reshape_layer_name,
             target_shape=(
                 input_shape[permutation[0]],
-                np.prod(permutation_dimensions),
+                int(np.prod(permutation_dimensions)),
             ),
         )(x)
     return x
