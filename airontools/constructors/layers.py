@@ -20,7 +20,7 @@ def layer_constructor(
     return_attention_scores: bool = False,
     use_causal_mask: bool = False,
     activation: Union[str, keras.layers.Activation] = "linear",
-    sequential_activation: Union[str] = "linear",
+    sequential_activation: Union[str] = "tanh",
     use_bias: bool = True,
     sequential: bool = False,
     bidirectional: bool = False,
