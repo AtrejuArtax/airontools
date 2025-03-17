@@ -20,6 +20,7 @@ def layer_constructor(
     return_attention_scores: bool = False,
     use_causal_mask: bool = False,
     activation: Union[str, keras.layers.Activation] = "linear",
+    sequential_activation: Union[str] = "linear",
     use_bias: bool = True,
     sequential: bool = False,
     bidirectional: bool = False,
@@ -58,6 +59,7 @@ def layer_constructor(
         return_attention_scores (bool): Whether to return attention scores or not.
         use_causal_mask: Whether to use casual mask in the multi-head attention.
         activation (str, keras.layers.Activation): The activation function of the output of the last hidden layer.
+        sequential_activation (str): The activation function of the output of the sequential hidden layer.
         use_bias (bool): Whether to sue bias or not.
         sequential (bool): Whether to consider a sequential custom layer or not. Sequential and self-attention
         (num_heads > 0) are not compatible.
@@ -198,7 +200,7 @@ def layer_constructor(
             ),
             bias_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
             return_sequences=return_sequences,
-            activation="linear",
+            activation=sequential_activation,
         )
         sequential_layer_name = "".join([name, "sequential"])
         x = sequential_layer_constructor(
