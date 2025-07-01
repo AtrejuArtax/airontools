@@ -246,7 +246,9 @@ def layer_constructor(
         ln_layer_name = "".join([name, "ln"])
         x = ln_layer_constructor(x, name=ln_layer_name, name_ext=name_ext)
     else:
-        raise ValueError(f"Unknown normalization type {normalization_type}. Only 'bn' and 'ln' are supported.")
+        raise ValueError(
+            f"Unknown normalization type {normalization_type}. Only 'bn' and 'ln' are supported."
+        )
 
     # Activation
     activation_kwargs = dict(
