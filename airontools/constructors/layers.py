@@ -38,7 +38,6 @@ def layer_constructor(
     bias_regularizer_l1: float = 0.001,
     bias_regularizer_l2: float = 0.001,
     dropout_rate: float = 0.0,
-    bn: bool = False,
     normalization_type: Optional[str] = None,
 ) -> Union[keras.layers.Layer, Tuple[keras.layers.Layer, keras.layers.Layer]]:
     """It builds a custom layer. For now only 2D convolutions
