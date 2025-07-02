@@ -1,3 +1,10 @@
+# rm -rf airontools.egg-info/
+# rm -rf build/
+# rm -rf dist/
+# rm requirements.txt
+# poetry export --without-hashes --format=requirements.txt > requirements.txt
+# poetry build
+# poetry run python -m twine upload dist/*
 # docker build -t airontools-linux .
 FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04 AS base
 ENV TZ="UTC"
@@ -36,5 +43,5 @@ COPY .pypirc /app/.pypirc
 RUN poetry config virtualenvs.in-project true && \
     poetry install && \
     poetry export --without-hashes --format=requirements.txt > requirements.txt && \
-    poetry run python setup.py bdist_wheel && \
+    poetry build && \
     poetry run python -m twine upload dist/* --config-file .pypirc
