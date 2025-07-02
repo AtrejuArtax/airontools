@@ -1,4 +1,4 @@
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import keras
 
@@ -19,7 +19,7 @@ def block_constructor(
     bias_regularizer_l1: float = 0.001,
     bias_regularizer_l2: float = 0.001,
     dropout_rate: float = 0.0,
-    bn: bool = False,
+    normalization_type: Optional[str] = None,
 ) -> keras.models.Model:
     """It builds a custom block. For now only compatible with dense and sequential layers.
 
@@ -38,7 +38,7 @@ def block_constructor(
         kernel_regularizer_l2 (float): Kernel regularization using l2 penalization (Ridge).
         bias_regularizer_l1 (float): Bias regularization using l1 penalization (Lasso).
         bias_regularizer_l2 (float): Bias regularization using l2 penalization (Ridge).
-        bn (bool): If set, a batch normalization layer will be added right before the output activation function.
+        normalization_type (str): If set, a normalization layer (BN or LN) will be added right before the output activation function.
 
     Returns:
         model (keras.models.Model): A keras model.
@@ -69,7 +69,7 @@ def block_constructor(
             bias_regularizer_l1=bias_regularizer_l1,
             bias_regularizer_l2=bias_regularizer_l2,
             dropout_rate=dropout_rate,
-            bn=bn,
+            normalization_type=normalization_type,
         )
 
     # Model

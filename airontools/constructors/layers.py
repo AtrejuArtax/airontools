@@ -38,7 +38,7 @@ def layer_constructor(
     bias_regularizer_l1: float = 0.001,
     bias_regularizer_l2: float = 0.001,
     dropout_rate: float = 0.0,
-    bn: bool = False,
+    normalization_type: Optional[str] = None,
 ) -> Union[keras.layers.Layer, Tuple[keras.layers.Layer, keras.layers.Layer]]:
     """It builds a custom layer. For now only 2D convolutions
     are supported for input of rank 4.
@@ -85,7 +85,7 @@ def layer_constructor(
         bias_regularizer_l1 (float): Bias regularization using l1 penalization (Lasso).
         bias_regularizer_l2 (float): Bias regularization using l2 penalization (Ridge).
         dropout_rate (float): Dropout rate.
-        bn (bool): If set, a batch normalization layer will be added right before the output activation function.
+        normalization_type (str): If set, a normalization layer (BN or LN) will be added right before the output activation function.
 
     Returns:
         x (keras.layers.Layer | tuple(keras.layers.Layer, keras.layers.Layer)): A keras layer.
@@ -94,16 +94,6 @@ def layer_constructor(
     if num_heads > 0 and units is None and key_dim == 0:
         warnings.warn(
             "in order to use a multi-head attention layer either units or key_dim needs to be set",
-        )
-
-    # Dropout
-    if dropout_rate != 0:
-        dropout_layer_name = "".join([name, "dropout"])
-        x = dropout_layer_constructor(
-            x,
-            name=dropout_layer_name,
-            name_ext=name_ext,
-            dropout_rate=dropout_rate,
         )
 
     # Convolution
@@ -231,10 +221,19 @@ def layer_constructor(
             **dense_kwargs,
         )
 
-    # Batch Normalization
-    if bn:
+    # Normalization
+    if normalization_type is None:
+        pass
+    elif normalization_type == "bn":
         bn_layer_name = "".join([name, "bn"])
         x = bn_layer_constructor(x, name=bn_layer_name, name_ext=name_ext)
+    elif normalization_type == "ln":
+        ln_layer_name = "".join([name, "ln"])
+        x = ln_layer_constructor(x, name=ln_layer_name, name_ext=name_ext)
+    else:
+        raise ValueError(
+            f"Unknown normalization type {normalization_type}. Only 'bn' and 'ln' are supported."
+        )
 
     # Activation
     activation_kwargs = dict(
@@ -248,6 +247,16 @@ def layer_constructor(
         activation=activation,
         **activation_kwargs,
     )
+
+    # Dropout
+    if dropout_rate != 0:
+        dropout_layer_name = "".join([name, "dropout"])
+        x = dropout_layer_constructor(
+            x,
+            name=dropout_layer_name,
+            name_ext=name_ext,
+            dropout_rate=dropout_rate,
+        )
 
     if return_attention_scores:
         return x, attention_scores
@@ -454,6 +463,35 @@ def bn_layer_constructor(
     )(x)
     if output_reshape is not None:
         reshape_layer_name = "_".join([name, "post", "bn", "reshape"])
+        if name_ext is not None:
+            reshape_layer_name = "_".join([reshape_layer_name, name_ext])
+        x = keras.layers.Reshape(
+            name=reshape_layer_name,
+            target_shape=output_reshape[1:],
+        )(x)
+    return x
+
+
+def ln_layer_constructor(
+    x: Union[tf.Tensor, keras.layers.Layer], name: str, name_ext: str, **kwargs
+) -> keras.layers.Layer:
+    input_shape = x.shape
+    output_reshape = None
+    if len(input_shape) > 2 and all([shape is not None for shape in input_shape[1:]]):
+        output_reshape = input_shape
+        flatten_layer_name = "_".join([name, "pre", "ln", "flatten"])
+        if name_ext is not None:
+            flatten_layer_name = "_".join([flatten_layer_name, name_ext])
+        x = keras.layers.Flatten(name=flatten_layer_name)(x)
+    ln_layer_name = "_".join([name, "layer_normalization"])
+    if name_ext is not None:
+        ln_layer_name = "_".join([ln_layer_name, name_ext])
+    x = keras.layers.LayerNormalization(
+        name=ln_layer_name,
+        **kwargs,
+    )(x)
+    if output_reshape is not None:
+        reshape_layer_name = "_".join([name, "post", "ln", "reshape"])
         if name_ext is not None:
             reshape_layer_name = "_".join([reshape_layer_name, name_ext])
         x = keras.layers.Reshape(
