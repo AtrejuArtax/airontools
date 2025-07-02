@@ -1,10 +1,3 @@
-# rm -rf airontools.egg-info/
-# rm -rf build/
-# rm -rf dist/
-# rm requirements.txt
-# poetry export --without-hashes --format=requirements.txt > requirements.txt
-# poetry build
-# poetry run python -m twine upload dist/*
 # docker build -t airontools-linux .
 FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04 AS base
 ENV TZ="UTC"
