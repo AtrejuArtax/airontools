@@ -235,6 +235,16 @@ def layer_constructor(
             f"Unknown normalization type {normalization_type}. Only 'bn' and 'ln' are supported."
         )
 
+    # Dropout
+    if dropout_rate != 0:
+        dropout_layer_name = "".join([name, "dropout"])
+        x = dropout_layer_constructor(
+            x,
+            name=dropout_layer_name,
+            name_ext=name_ext,
+            dropout_rate=dropout_rate,
+        )
+
     # Activation
     activation_kwargs = dict(
         alpha_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
@@ -247,16 +257,6 @@ def layer_constructor(
         activation=activation,
         **activation_kwargs,
     )
-
-    # Dropout
-    if dropout_rate != 0:
-        dropout_layer_name = "".join([name, "dropout"])
-        x = dropout_layer_constructor(
-            x,
-            name=dropout_layer_name,
-            name_ext=name_ext,
-            dropout_rate=dropout_rate,
-        )
 
     if return_attention_scores:
         return x, attention_scores
