@@ -225,12 +225,8 @@ def layer_constructor(
     if normalization_type is None:
         pass
     elif normalization_type == "bn":
-        bn_kwargs = dict(
-            beta_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
-            gamma_regularizer=get_regularizer(bias_regularizer_l1, bias_regularizer_l2),
-        )
         bn_layer_name = "".join([name, "bn"])
-        x = bn_layer_constructor(x, name=bn_layer_name, name_ext=name_ext, **bn_kwargs)
+        x = bn_layer_constructor(x, name=bn_layer_name, name_ext=name_ext)
     elif normalization_type == "ln":
         ln_layer_name = "".join([name, "ln"])
         x = ln_layer_constructor(x, name=ln_layer_name, name_ext=name_ext)
