@@ -278,10 +278,10 @@ def dropout_layer_constructor(
         if name_ext is not None:
             flatten_layer_name = "_".join([flatten_layer_name, name_ext])
         x = keras.layers.Flatten(name=flatten_layer_name)(x)
-    custom_dropout_layer_name = "_".join([name, "dropout"])
+    dropout_layer_name = "_".join([name, "dropout"])
     if name_ext is not None:
-        custom_dropout_layer_name = "_".join([custom_dropout_layer_name, name_ext])
-    x = CustomDropout(name=custom_dropout_layer_name, rate=dropout_rate)(x)
+        dropout_layer_name = "_".join([dropout_layer_name, name_ext])
+    x = keras.layers.Dropout(name=dropout_layer_name, rate=dropout_rate)(x)
     if output_reshape is not None:
         reshape_layer_name = "_".join([name, "reshape"])
         if name_ext is not None:
@@ -579,14 +579,3 @@ def sequential_permutation(
 def identity(x: keras.layers.Layer) -> keras.layers.Layer:
     """Identity layer."""
     return x
-
-
-class CustomDropout(keras.layers.Dropout):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.rate = tf.Variable(
-            self.rate,
-            trainable=False,
-            name="_".join([self.name, "rate"]),
-            dtype=self.dtype,
-        )
