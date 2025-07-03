@@ -1,9 +1,10 @@
+import keras
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from tensorflow.keras.optimizers import Adam
+
 from airontools.constructors.layers import layer_constructor
-import keras
 
 if __name__ == "__main__":
     # Load dataset
