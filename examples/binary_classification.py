@@ -12,7 +12,9 @@ if __name__ == "__main__":
     y = data.target  # 0 = malignant, 1 = benign
 
     # Split into train and test sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
 
     # Standardize features
     scaler = StandardScaler()
@@ -26,9 +28,11 @@ if __name__ == "__main__":
     kernel_regularizer_l2 = 0.001
     bias_regularizer_l1 = 0.001
     bias_regularizer_l2 = 0.001
-    dropout_rate = 0.
-    normalization_type = None
-    inputs = keras.layers.Input(shape=(X_train.shape[-1],), name=f"{model_name}_input_layer")
+    dropout_rate = 0.1
+    normalization_type = "bn"
+    inputs = keras.layers.Input(
+        shape=(X_train.shape[-1],), name=f"{model_name}_input_layer"
+    )
     outputs = None
     if len(n_units) > 0:
         for hidden_layer_i, n_units_i in enumerate(n_units):
@@ -70,8 +74,8 @@ if __name__ == "__main__":
     # Compile the model
     model.compile(
         optimizer=Adam(learning_rate=0.001),
-        loss='binary_crossentropy',
-        metrics=['accuracy'],
+        loss="binary_crossentropy",
+        metrics=["accuracy"],
     )
 
     # Train the model
