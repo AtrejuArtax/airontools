@@ -218,6 +218,7 @@ def layer_constructor(
             x,
             name=dense_layer_name,
             name_ext=name_ext,
+            return_sequences=return_sequences,
             **dense_kwargs,
         )
 
@@ -426,10 +427,15 @@ def dense_layer_constructor(
     x: Union[tf.Tensor, keras.layers.Layer],
     name: str = "dense",
     name_ext: Optional[str] = None,
+    return_sequences: bool = False,
     **kwargs,
 ) -> keras.layers.Layer:
     input_shape = x.shape
-    if len(input_shape) > 2 and all([shape is not None for shape in input_shape[1:]]):
+    if (
+        len(input_shape) > 2
+        and all([shape is not None for shape in input_shape[1:]])
+        and not return_sequences
+    ):
         flatten_layer_name = "_".join([name, "pre", "dense", "flatten"])
         if name_ext is not None:
             flatten_layer_name = "_".join([flatten_layer_name, name_ext])
