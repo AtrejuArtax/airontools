@@ -6,7 +6,7 @@ import setuptools
 
 # Release new version steps
 # ToDo: crate a script to automate the following commands
-# rm -rf airontools.egg-info/
+# rm -rf *.egg-info/
 # rm -rf build/
 # rm -rf dist/
 # rm requirements.txt
@@ -35,9 +35,9 @@ with open("requirements.txt") as f:
 
 setuptools.setup(
     name=PACKAGE_NAME,
-    version="0.1.60",
+    version="0.1.62",
     scripts=[],
-    author="Claudi Ruiz Camps",
+    author="AtrejuArtax",
     author_email="claudi_ruiz@hotmail.com",
     description="Machine learning tools to complement the AIronSuit package.",
     long_description=long_description,
