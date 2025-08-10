@@ -37,4 +37,4 @@ RUN poetry config virtualenvs.in-project true && \
     poetry install && \
     poetry export --without-hashes --format=requirements.txt > requirements.txt && \
     poetry build && \
-    poetry run python -m twine upload dist/* --config-file .pypirc
+    poetry run python -m twine upload dist/*.whl --config-file .pypirc

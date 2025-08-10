@@ -4,7 +4,7 @@
 name = "airontools"
 version = "0.1.62"
 description = "AIronTools (Beta) is a Python library that provides the user with deep learning tools built to work with tensorflow as a backend."
-authors = ["AtrejuArtax"]
+authors = ["Claudi"]
 readme = "README.md"
 license = "BSD"
 repository = "https://github.com/AtrejuArtax/airontools"
