@@ -15,6 +15,7 @@ class TestImageClassifierNN:
         strides=2,
         sequential_axis=-1,
         num_heads=3,
+        pooling="max",
     )
     model = ImageClassifier(
         input_shape=tuple(IMG_DATA.shape[1:]),

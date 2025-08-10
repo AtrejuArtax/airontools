@@ -144,7 +144,6 @@ def layer_constructor(
             x,
             name=pooling_layer_name,
             name_ext=name_ext,
-            conv_transpose=conv_transpose,
             pooling=pooling,
             **pooling_kwargs,
         )
@@ -304,9 +303,7 @@ def convolutional_layer_constructor(
     assert len(x.shape) <= 5, "x layer shape should have 5 or less dimensions"
     conv_dim = len(x.shape) - 2
     conv_type = "transpose" if conv_transpose else ""
-    conv_name = "_".join(
-        [name, "convolution" + str(conv_dim) + "d" + conv_type.capitalize()]
-    )
+    conv_name = "_".join([name, "convolution" + str(conv_dim) + "d" + conv_type])
     if name_ext is not None:
         conv_name = "_".join([conv_name, name_ext])
     if conv_dim == 1:
@@ -329,16 +326,48 @@ def pooling_layer_constructor(
     pooling: Union[str, keras.layers.Layer] = "max",
     **kwargs,
 ) -> keras.layers.Layer:
-    if isinstance(pooling, str):
-        pooling_name = pooling.capitalize() + "Pooling" + str(_get_pooling_dim(x)) + "D"
-        pooling_layer = globals()[pooling_name]
-    else:
-        pooling_name = [k for k, v in locals().iteritems() if v == pooling][0]
-        pooling_layer = pooling
-    pooling_layer_name = "_".join([name, pooling_name.lower()])
+    assert len(x.shape) <= 5, "x layer shape should have 5 or less dimensions"
+    pool_dim = len(x.shape) - 2
+    pooling_name = "_".join([name, "pooling" + str(pool_dim) + "d"])
     if name_ext is not None:
-        pooling_layer_name = "_".join([pooling_layer_name, name_ext])
-    x = pooling_layer(name=pooling_layer_name)(x)
+        pooling_name = "_".join([pooling_name, name_ext])
+    if isinstance(pooling, keras.layers.Layer):
+        x = pooling(
+            name=pooling_name,
+            **kwargs,
+        )(x)
+        return x
+    available_max_pooling = ["max", "avg", "global"]
+    if pooling not in available_max_pooling:
+        raise ValueError(
+            f"Unknown pooling type {pooling}. Available pooling: {available_max_pooling}"
+        )
+    pooling_layer = None
+    if pool_dim == 1:
+        if pooling == "max":
+            pooling_layer = keras.layers.MaxPooling1D
+        elif pooling == "avg":
+            pooling_layer = keras.layers.AveragePooling1D
+        elif pooling == "global":
+            pooling_layer = keras.layers.GlobalAveragePooling1D
+    elif pool_dim == 2:
+        if pooling == "max":
+            pooling_layer = keras.layers.MaxPooling2D
+        elif pooling == "avg":
+            pooling_layer = keras.layers.AveragePooling2D
+        elif pooling == "global":
+            pooling_layer = keras.layers.GlobalAveragePooling2D
+    else:
+        if pooling == "max":
+            pooling_layer = keras.layers.MaxPooling3D
+        elif pooling == "avg":
+            pooling_layer = keras.layers.AveragePooling3D
+        elif pooling == "global":
+            pooling_layer = keras.layers.GlobalAveragePooling3D
+    x = pooling_layer(
+        name=pooling_name,
+        **kwargs,
+    )(x)
     return x
 
 
