@@ -1,4 +1,4 @@
-# docker build -t airontools-linux .
+# docker build -t airontools .
 FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04 AS base
 ENV TZ="UTC"
 RUN apt update && \
@@ -27,7 +27,6 @@ FROM build_base as build_airontools
 # Copy the code to the container image
 WORKDIR /app
 COPY airontools /app/airontools
-COPY setup.py /app/setup.py
 COPY pyproject.toml /app/pyproject.toml
 COPY README.md /app/README.md
 COPY LICENSE /app/LICENSE
