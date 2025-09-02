@@ -400,26 +400,13 @@ def self_attention_layer_constructor(
         name=attention_layer_name,
         **kwargs,
     )
-    if return_attention_scores:
-        attention_layer.build(
-            query_shape=tf.keras.backend.int_shape(x),
-            value_shape=tf.keras.backend.int_shape(x),
-        )
-        x = attention_layer.call(
-            query=x,
-            value=x,
-            key=x,
-            use_causal_mask=use_causal_mask,
-            return_attention_scores=return_attention_scores,
-        )
-    else:
-        x = attention_layer(
-            query=x,
-            value=x,
-            key=x,
-            use_causal_mask=use_causal_mask,
-            return_attention_scores=return_attention_scores,
-        )
+    x = attention_layer(
+        query=x,
+        value=x,
+        key=x,
+        use_causal_mask=use_causal_mask,
+        return_attention_scores=return_attention_scores,
+    )
     return x
 
 
