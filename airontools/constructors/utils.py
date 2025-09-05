@@ -2,6 +2,7 @@ import warnings
 from typing import Optional
 
 import keras
+import tensorflow as tf
 
 
 def get_latent_model(
@@ -72,3 +73,17 @@ def get_regularizer(
         return keras.regularizers.l1(l1=l1_value)
     elif l2_value:
         return keras.regularizers.l2(l2=l2_value)
+
+
+@tf.function
+def concatenate_positional_embedding_f(x: tf.Tensor, sequential_axis: int):
+    batch_size = tf.shape(x)[0]
+    n_indexes = tf.shape(x)[sequential_axis]
+    position_index = tf.range(n_indexes, dtype=tf.float32)
+    position_index = tf.expand_dims(position_index, axis=0)
+    position_index = tf.tile(position_index, [batch_size, 1])
+    position_index = tf.expand_dims(position_index, axis=-1)
+    position_index_embedding = position_index / float(n_indexes)
+    position_index_embedding = tf.cast(position_index_embedding, dtype=tf.float32)
+    x_with_positional_embedding = tf.concat([x, position_index_embedding], axis=-1)
+    return x_with_positional_embedding
