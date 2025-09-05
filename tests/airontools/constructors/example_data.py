@@ -6,8 +6,8 @@ N_CLASSES = 2
 IMG_DIM = 28
 IMG_DATA = np.concatenate(
     [
-        normal(loc=0.5, scale=1, size=(N_HALF_SAMPLES, IMG_DIM, IMG_DIM)),
-        normal(loc=-0.5, scale=1, size=(N_HALF_SAMPLES, IMG_DIM, IMG_DIM)),
+        normal(loc=0.5, scale=1, size=(N_HALF_SAMPLES, IMG_DIM, IMG_DIM, 1)),
+        normal(loc=-0.5, scale=1, size=(N_HALF_SAMPLES, IMG_DIM, IMG_DIM, 1)),
     ]
 )
 N_FEATURES = 10

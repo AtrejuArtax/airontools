@@ -5,7 +5,10 @@ import keras
 import numpy as np
 import tensorflow as tf
 
-from airontools.constructors.utils import get_regularizer
+from airontools.constructors.utils import (
+    concatenate_positional_embedding_f,
+    get_regularizer,
+)
 
 
 def layer_constructor(
@@ -393,6 +396,20 @@ def self_attention_layer_constructor(
         name_ext=name_ext,
         sequential_axis=sequential_axis,
     )
+    positional_embedding_layer_name = "_".join([name, "positional_embedding_layer"])
+    if name_ext is not None:
+        positional_embedding_layer_name = "_".join(
+            [positional_embedding_layer_name, name_ext]
+        )
+    x_with_positional_embedding_layer = keras.layers.Lambda(
+        concatenate_positional_embedding_f,
+        name=positional_embedding_layer_name,
+        arguments=dict(sequential_axis=1),
+        output_shape=(
+            x.shape[1],
+            x.shape[-1] + 1,
+        ),
+    )(x)
     attention_layer_name = "_".join([name, "multi_head_attention"])
     if name_ext is not None:
         attention_layer_name = "_".join([attention_layer_name, name_ext])
@@ -401,9 +418,9 @@ def self_attention_layer_constructor(
         **kwargs,
     )
     x = attention_layer(
-        query=x,
-        value=x,
-        key=x,
+        query=x_with_positional_embedding_layer,
+        value=x_with_positional_embedding_layer,
+        key=x_with_positional_embedding_layer,
         use_causal_mask=use_causal_mask,
         return_attention_scores=return_attention_scores,
     )
