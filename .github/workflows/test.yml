@@ -19,7 +19,7 @@ jobs:
         id: setup-python
         uses: actions/setup-python@v1
         with:
-          python-version: 3.101.*
+          python-version: 3.11.*
       - name: Install Poetry
         run: |
           python -m pip install poetry
