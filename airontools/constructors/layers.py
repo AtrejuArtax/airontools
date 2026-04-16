@@ -2,11 +2,11 @@ import warnings
 from typing import Optional, Tuple, Union
 
 import keras
+import keras_hub
 import numpy as np
 import tensorflow as tf
 
 from airontools.constructors.utils import (
-    concatenate_positional_embedding_f,
     get_regularizer,
 )
 
@@ -151,6 +151,22 @@ def layer_constructor(
             **pooling_kwargs,
         )
 
+        # Pre Normalization
+        if normalization_type is None:
+            pass
+        elif num_heads != 0:
+            pass
+        elif normalization_type == "bn":
+            bn_layer_name = "".join([name, "bn"])
+            x = bn_layer_constructor(x, name=bn_layer_name, name_ext=name_ext)
+        elif normalization_type == "ln":
+            ln_layer_name = "".join([name, "ln"])
+            x = ln_layer_constructor(x, name=ln_layer_name, name_ext=name_ext)
+        else:
+            raise ValueError(
+                f"Unknown normalization type {normalization_type}. Only 'bn' and 'ln' are supported."
+            )
+
     # Multi-Head Attention
     attention_scores = None
     if num_heads > 0:
@@ -224,8 +240,10 @@ def layer_constructor(
             **dense_kwargs,
         )
 
-    # Normalization
+    # Post Normalization
     if normalization_type is None:
+        pass
+    elif num_heads == 0:
         pass
     elif normalization_type == "bn":
         bn_layer_name = "".join([name, "bn"])
@@ -401,15 +419,18 @@ def self_attention_layer_constructor(
         positional_embedding_layer_name = "_".join(
             [positional_embedding_layer_name, name_ext]
         )
-    x_with_positional_embedding_layer = keras.layers.Lambda(
-        concatenate_positional_embedding_f,
+    positional_embedding_layer = keras_hub.layers.PositionEmbedding(
         name=positional_embedding_layer_name,
-        arguments=dict(sequential_axis=1),
-        output_shape=(
-            x.shape[1],
-            x.shape[-1] + 1,
-        ),
+        sequence_length=x.shape[1],
     )(x)
+    x_with_positional_embedding_layer_name = "_".join([name, "x_with_positional_embedding_layer"])
+    if name_ext is not None:
+        x_with_positional_embedding_layer_name = "_".join(
+            [x_with_positional_embedding_layer_name, name_ext]
+        )
+    x_with_positional_embedding_layer = keras.layers.Add(
+        name=x_with_positional_embedding_layer_name,
+    )([x, positional_embedding_layer])
     attention_layer_name = "_".join([name, "multi_head_attention"])
     if name_ext is not None:
         attention_layer_name = "_".join([attention_layer_name, name_ext])
@@ -417,14 +438,14 @@ def self_attention_layer_constructor(
         name=attention_layer_name,
         **kwargs,
     )
-    x = attention_layer(
+    attention_x = attention_layer(
         query=x_with_positional_embedding_layer,
         value=x_with_positional_embedding_layer,
         key=x_with_positional_embedding_layer,
         use_causal_mask=use_causal_mask,
         return_attention_scores=return_attention_scores,
     )
-    return x
+    return attention_x
 
 
 def sequential_layer_constructor(
