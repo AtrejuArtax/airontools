@@ -6,9 +6,7 @@ import keras_hub
 import numpy as np
 import tensorflow as tf
 
-from airontools.constructors.utils import (
-    get_regularizer,
-)
+from airontools.constructors.utils import get_regularizer
 
 
 def layer_constructor(
@@ -423,7 +421,9 @@ def self_attention_layer_constructor(
         name=positional_embedding_layer_name,
         sequence_length=x.shape[1],
     )(x)
-    x_with_positional_embedding_layer_name = "_".join([name, "x_with_positional_embedding_layer"])
+    x_with_positional_embedding_layer_name = "_".join(
+        [name, "x_with_positional_embedding_layer"]
+    )
     if name_ext is not None:
         x_with_positional_embedding_layer_name = "_".join(
             [x_with_positional_embedding_layer_name, name_ext]
@@ -438,14 +438,14 @@ def self_attention_layer_constructor(
         name=attention_layer_name,
         **kwargs,
     )
-    attention_x = attention_layer(
+    x = attention_layer(
         query=x_with_positional_embedding_layer,
         value=x_with_positional_embedding_layer,
         key=x_with_positional_embedding_layer,
         use_causal_mask=use_causal_mask,
         return_attention_scores=return_attention_scores,
     )
-    return attention_x
+    return x
 
 
 def sequential_layer_constructor(
