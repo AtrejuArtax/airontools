@@ -18,9 +18,9 @@ classifiers= [
 python = ">=3.11"
 scikit-learn = "^1.2.2"
 h5py = "^3.10.0"
-tensorflow = "2.21.0"
+tensorflow = "2.18.1"
 tensorflow-metal = { version = "1.2.0", markers = "sys_platform == 'darwin' and platform_machine == 'arm64'" }
-keras = "^3.13.0"
+keras = "^3.13.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.1.1"
