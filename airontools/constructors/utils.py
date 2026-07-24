@@ -75,7 +75,6 @@ def get_regularizer(
         return keras.regularizers.l2(l2=l2_value)
 
 
-@tf.function
 def concatenate_positional_embedding_f(x: tf.Tensor, sequential_axis: int):
     batch_size = tf.shape(x)[0]
     n_indexes = tf.shape(x)[sequential_axis]
