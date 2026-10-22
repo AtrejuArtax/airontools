@@ -82,7 +82,6 @@ def concatenate_positional_embedding_f(x: tf.Tensor, sequential_axis: int):
     position_index = tf.expand_dims(position_index, axis=0)
     position_index = tf.tile(position_index, [batch_size, 1])
     position_index = tf.expand_dims(position_index, axis=-1)
-    position_index_embedding = position_index / float(n_indexes)
-    position_index_embedding = tf.cast(position_index_embedding, dtype=tf.float32)
+    position_index_embedding = position_index / tf.cast(n_indexes, dtype=tf.float32)
     x_with_positional_embedding = tf.concat([x, position_index_embedding], axis=-1)
     return x_with_positional_embedding
