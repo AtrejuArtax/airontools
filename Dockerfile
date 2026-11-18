@@ -10,11 +10,12 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Install dependencies.
 FROM base AS build_base
-RUN apt install --no-install-recommends -y \
+RUN apt update && \
+    apt install --no-install-recommends -y \
     software-properties-common && \
-    add-apt-repository ppa:deadsnakes/ppa && \
-    apt update
-RUN apt install --no-install-recommends -y \
+    add-apt-repository ppa:deadsnakes/ppa
+RUN apt update && \
+    apt install --no-install-recommends -y \
     curl \
     python3.12 \
     python3.12-dev \
@@ -23,9 +24,8 @@ RUN apt install --no-install-recommends -y \
     gcc \
     pkg-config \
     libhdf5-dev \
-    default-jdk ca-certificates \
+    ca-certificates \
     git \
-    mono-mcs \
     && update-ca-certificates
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.12 1 && \
     update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
