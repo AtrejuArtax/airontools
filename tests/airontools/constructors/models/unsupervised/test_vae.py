@@ -1,6 +1,3 @@
-import os
-import tempfile
-
 import keras
 import numpy as np
 
@@ -34,11 +31,9 @@ class TestVAE:
         prediction = self.model.predict(TABULAR_DATA)
         assert prediction.shape == TABULAR_DATA.shape
 
-    def test_save_load_weights(self):
-        before_weights_file_name = os.sep.join(
-            [tempfile.gettempdir(), "before_weights"]
-        )
-        after_weights_file_name = os.sep.join([tempfile.gettempdir(), "after_weights"])
+    def test_save_load_weights(self, tmp_path):
+        before_weights_file_name = str(tmp_path / "before_weights")
+        after_weights_file_name = str(tmp_path / "after_weights")
         before_evaluation = self.model.evaluate(
             TABULAR_DATA,
         )["loss"]
